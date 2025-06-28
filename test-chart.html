@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TradingView Chart Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a202c;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #chart {
+            width: 100%;
+            height: 400px;
+            background: #2d3748;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>TradingView Lightweight Charts Test</h1>
+    <div id="chart"></div>
+    
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script>
+        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+            layout: {
+                background: { type: LightweightCharts.ColorType.Solid, color: '#1a202c' },
+                textColor: '#d1d5db',
+            },
+            grid: {
+                vertLines: { color: '#374151' },
+                horzLines: { color: '#374151' },
+            },
+            crosshair: {
+                mode: LightweightCharts.CrosshairMode.Normal,
+            },
+            rightPriceScale: {
+                borderColor: '#485563',
+            },
+            timeScale: {
+                borderColor: '#485563',
+                timeVisible: true,
+                secondsVisible: false,
+            },
+        });
+
+        const candlestickSeries = chart.addCandlestickSeries({
+            upColor: '#48bb78',
+            downColor: '#fc8181',
+            borderDownColor: '#fc8181',
+            borderUpColor: '#48bb78',
+            wickDownColor: '#fc8181',
+            wickUpColor: '#48bb78',
+        });
+
+        // Generate sample data
+        const data = [];
+        let basePrice = 100;
+        let currentPrice = basePrice;
+        const now = Date.now();
+        
+        for (let i = 100; i >= 0; i--) {
+            const time = Math.floor((now - (i * 60 * 1000)) / 1000);
+            const variation = (Math.random() - 0.5) * 2;
+            currentPrice += variation;
+            
+            const high = currentPrice + Math.random() * 1;
+            const low = currentPrice - Math.random() * 1;
+            const open = i === 100 ? basePrice : data[data.length - 1]?.close || currentPrice;
+            const close = currentPrice;
+
+            data.push({
+                time: time,
+                open: Number(open.toFixed(2)),
+                high: Number(Math.max(open, close, high).toFixed(2)),
+                low: Number(Math.min(open, close, low).toFixed(2)),
+                close: Number(close.toFixed(2)),
+            });
+        }
+
+        candlestickSeries.setData(data);
+
+        console.log('TradingView chart created successfully!');
+    </script>
+</body>
+</html>

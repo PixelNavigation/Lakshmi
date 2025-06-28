@@ -337,6 +337,20 @@ export default function StockScreener() {
               </div>
             </div>
           )}
+
+          {/* Watchlist Summary */}
+          <div className={styles.card}>
+            <h3>📋 Your Watchlist</h3>
+            <p>Total items: {watchlist.length}</p>
+            {watchlist.length > 0 && (
+              <div className={styles.watchlistPreview}>
+                {watchlist.slice(0, 5).map(symbol => (
+                  <span key={symbol} className={styles.watchlistItem}>{symbol}</span>
+                ))}
+                {watchlist.length > 5 && <span>+{watchlist.length - 5} more</span>}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

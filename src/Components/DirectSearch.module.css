@@ -1,0 +1,331 @@
+/* DirectSearch.module.css */
+
+.searchTab {
+  width: 100%;
+}
+
+.card {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid #2d3748;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.card h3 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cardDescription {
+  color: #a0aec0;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.searchContainer {
+  margin-bottom: 20px;
+}
+
+.searchRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.marketSelect {
+  background: #2d3748;
+  color: #ffffff;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 180px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.marketSelect:hover {
+  border-color: #63b3ed;
+}
+
+.marketSelect:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.searchInput {
+  flex: 1;
+  background: #2d3748;
+  color: #ffffff;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  min-width: 250px;
+  transition: all 0.2s ease;
+}
+
+.searchInput:hover {
+  border-color: #63b3ed;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.searchInput::placeholder {
+  color: #718096;
+}
+
+.searchButton {
+  background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.searchButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2c5aa0 0%, #2a4c8c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
+}
+
+.searchButton:disabled {
+  background: #4a5568;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.searchResults {
+  margin-top: 20px;
+}
+
+.searchResults h4 {
+  color: #ffffff;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.searchResultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.searchResultItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(45, 55, 72, 0.6);
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.searchResultItem:hover {
+  border-color: #63b3ed;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 179, 237, 0.15);
+}
+
+.searchResultItem::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3182ce, #63b3ed);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.searchResultItem:hover::before {
+  opacity: 1;
+}
+
+.resultInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.resultHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resultSymbol {
+  color: #63b3ed;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.resultType {
+  background: rgba(99, 179, 237, 0.2);
+  color: #63b3ed;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.resultName {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.priceInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.price {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.change {
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.positive {
+  color: #48bb78;
+  background: rgba(72, 187, 120, 0.1);
+}
+
+.negative {
+  color: #fc8181;
+  background: rgba(252, 129, 129, 0.1);
+}
+
+.resultActions {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.addToWatchlistBtn {
+  background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.addToWatchlistBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2c5aa0 0%, #2a4c8c 100%);
+  transform: translateY(-1px);
+}
+
+.addToWatchlistBtn:disabled {
+  background: #48bb78;
+  cursor: not-allowed;
+}
+
+/* Live data indicators */
+.resultsTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.loadingDot {
+  color: #63b3ed;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.liveIndicator {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(72, 187, 120, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .searchRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .marketSelect,
+  .searchInput {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .searchResultItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .addToWatchlistBtn,
+  .addDirectBtn {
+    width: 100%;
+  }
+  
+  .resultHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .priceInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

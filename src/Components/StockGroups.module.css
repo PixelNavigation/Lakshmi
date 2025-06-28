@@ -1,0 +1,277 @@
+/* StockGroups.module.css */
+
+.groupsTab {
+  width: 100%;
+}
+
+.stockGroupsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.stockGroupCard {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid #2d3748;
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.stockGroupCard:hover {
+  transform: translateY(-4px);
+  border-color: #63b3ed;
+  box-shadow: 0 8px 32px rgba(99, 179, 237, 0.2);
+}
+
+.stockGroupCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3182ce, #63b3ed, #90cdf4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stockGroupCard:hover::before {
+  opacity: 1;
+}
+
+.groupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.groupTitle {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.groupCategory {
+  background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+  color: #ffffff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(49, 130, 206, 0.3);
+}
+
+.groupDescription {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  min-height: 3em;
+}
+
+.groupMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 8px 0;
+  border-top: 1px solid #2d3748;
+}
+
+.groupMarket {
+  color: #63b3ed;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.groupMarket::before {
+  content: '🌐';
+  font-size: 0.8rem;
+}
+
+.groupCount {
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: rgba(45, 55, 72, 0.6);
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.groupActions {
+  display: flex;
+  gap: 8px;
+}
+
+.moreInfoBtn {
+  flex: 1;
+  background: rgba(45, 55, 72, 0.8);
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.moreInfoBtn:hover {
+  background: rgba(45, 55, 72, 1);
+  border-color: #63b3ed;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.loadBtn {
+  flex: 1;
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.loadBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+}
+
+.loadBtn:disabled {
+  background: #4a5568;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.loadedBtn {
+  background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+}
+
+.loadedBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2c5aa0 0%, #2a4c8c 100%);
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
+}
+
+/* Animation for loading state */
+.loadBtn:disabled::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Category-specific styling */
+.stockGroupCard[data-category="Technology"] .groupCategory {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stockGroupCard[data-category="Value"] .groupCategory {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stockGroupCard[data-category="Small Cap"] .groupCategory {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stockGroupCard[data-category="Large Cap"] .groupCategory {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.stockGroupCard[data-category="Cryptocurrency"] .groupCategory {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.stockGroupCard[data-category="Dividend"] .groupCategory {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  color: #2d3748;
+}
+
+.stockGroupCard[data-category="Growth"] .groupCategory {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  color: #2d3748;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .stockGroupsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .stockGroupCard {
+    padding: 16px;
+  }
+  
+  .groupHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .groupCategory {
+    align-self: flex-start;
+  }
+  
+  .groupMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .groupActions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .stockGroupCard {
+    padding: 12px;
+  }
+  
+  .groupTitle {
+    font-size: 1.1rem;
+  }
+  
+  .groupDescription {
+    font-size: 0.85rem;
+  }
+}
