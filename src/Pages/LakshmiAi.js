@@ -119,8 +119,8 @@ function BotMessage({ content, children, isStreaming = false }) {
   const symbol = stockSymbolMatch?.[0]
 
   return (
-    <div className="flex items-start mb-4">
-      <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 text-sm">
+    <div className={styles.botMessageContainer}>
+      <div className={styles.botAvatar}>
         🤖
       </div>
       <div className={styles.botMessage}>
@@ -136,7 +136,7 @@ function BotMessage({ content, children, isStreaming = false }) {
                 </div>
                 <div className={styles.responseBody}>
                   {content}
-                  {isStreaming && <span className="animate-pulse">|</span>}
+                  {isStreaming && <span className={styles.streamingCursor}>|</span>}
                 </div>
               </div>
             )}
@@ -150,12 +150,12 @@ function BotMessage({ content, children, isStreaming = false }) {
 
 function BotCard({ children }) {
   return (
-    <div className="mb-4">
-      <div className="flex items-start mb-2">
-        <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 text-sm">
-          🤖
-        </div>
-        <div className="text-sm text-gray-600">
+    <div className={styles.botCardContainer}>
+      <div className={styles.botAvatar}>
+        🤖
+      </div>
+      <div className={styles.botCardHeader}>
+        <div className={styles.botCardLabel}>
           Here's what I found:
         </div>
       </div>
@@ -167,87 +167,123 @@ function BotCard({ children }) {
 }
 
 function parseAIResponse(message, content) {
-  // Check if the AI wants to show a chart or widget based on the content
+  // Check user's original message and AI response for widget requests
+  const lowercaseMessage = message.toLowerCase()
   const lowercaseContent = content.toLowerCase()
-  const uppercaseContent = content.toUpperCase()
   
-  // Extract stock symbols (basic pattern matching)
-  const stockSymbolMatch = content.match(/\b[A-Z]{1,5}\b/g)
-  const commonStocks = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'JPM', 'V', 'JNJ']
-  const mentionedStock = stockSymbolMatch?.find(symbol => commonStocks.includes(symbol))
+  // Extract stock symbols - improved pattern to handle various formats
+  // Matches: AAPL, NCC.NS, RELIANCE.BSE, etc.
+  const stockSymbolMatch = (message + ' ' + content).match(/\b[A-Z][A-Z0-9]*(?:\.[A-Z]{2,4})?\b/g)
   
-  // Check for specific requests
-  if (lowercaseContent.includes('chart') && mentionedStock) {
-    return {
-      type: 'chart',
-      symbol: mentionedStock,
-      content: `Here's the chart for ${mentionedStock}:`,
-      hideText: false // Show brief intro text
-    }
+  // Common stocks list - expanded to include Indian exchanges
+  const commonStocks = [
+    'AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'JPM', 'V', 'JNJ',
+    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'HDFC.NS', 'ICICIBANK.NS',
+    'KOTAKBANK.NS', 'BHARTIARTL.NS', 'ITC.NS', 'SBIN.NS', 'LT.NS', 'ASIANPAINT.NS',
+    'MARUTI.NS', 'BAJFINANCE.NS', 'HCLTECH.NS', 'WIPRO.NS', 'ULTRACEMCO.NS',
+    'TITAN.NS', 'SUNPHARMA.NS', 'POWERGRID.NS', 'NTPC.NS', 'ONGC.NS', 'TATASTEEL.NS',
+    'TECHM.NS', 'NESTLEIND.NS', 'COALINDIA.NS', 'HINDALCO.NS', 'GRASIM.NS',
+    'BPCL.NS', 'DRREDDY.NS', 'EICHERMOT.NS', 'CIPLA.NS', 'HEROMOTOCO.NS',
+    'BAJAJFINSV.NS', 'BRITANNIA.NS', 'SHREECEM.NS', 'DIVISLAB.NS', 'TATACONSUM.NS',
+    'JSWSTEEL.NS', 'APOLLOHOSP.NS', 'INDUSINDBK.NS', 'ADANIENT.NS', 'TATAMOTORS.NS',
+    'NCC.NS'  // Added NCC.NS specifically
+  ]
+  
+  // Find the first mentioned stock symbol
+  let mentionedStock = null
+  if (stockSymbolMatch) {
+    mentionedStock = stockSymbolMatch.find(symbol => {
+      // Check if it's in common stocks or looks like a valid symbol
+      return commonStocks.includes(symbol) || 
+             /^[A-Z]{2,5}(\.[A-Z]{2,4})?$/.test(symbol)
+    })
   }
   
-  if (lowercaseContent.includes('price') && mentionedStock) {
-    return {
-      type: 'price',
-      symbol: mentionedStock,
-      content: `Here's the current price for ${mentionedStock}:`,
-      hideText: false // Show brief intro text
-    }
+  // If no symbol found in common list, take the first plausible one
+  if (!mentionedStock && stockSymbolMatch) {
+    mentionedStock = stockSymbolMatch.find(symbol => 
+      /^[A-Z]{2,10}(\.[A-Z]{2,4})?$/.test(symbol)
+    )
   }
-  
-  if (lowercaseContent.includes('financial') && mentionedStock) {
-    return {
-      type: 'financials',
-      symbol: mentionedStock,
-      content: `Here are the financials for ${mentionedStock}:`,
-      hideText: false // Show brief intro text
-    }
-  }
-  
-  if (lowercaseContent.includes('news') && mentionedStock) {
+
+  // Priority check: Look for specific widget requests in user message first
+  // NEWS - highest priority for news requests
+  if (lowercaseMessage.includes('news') && mentionedStock) {
     return {
       type: 'news',
       symbol: mentionedStock,
-      content: `Here's the latest news for ${mentionedStock}:`,
-      hideText: false // Show brief intro text
+      content: content,  // Show the full AI response
+      hideText: false
     }
   }
   
-  if (lowercaseContent.includes('screener') || lowercaseContent.includes('screen')) {
+  // FINANCIALS - check before price to avoid conflicts
+  if ((lowercaseMessage.includes('financial') || lowercaseMessage.includes('financials')) && mentionedStock) {
+    return {
+      type: 'financials',
+      symbol: mentionedStock,
+      content: content,  // Show the full AI response
+      hideText: false
+    }
+  }
+  
+  // PRICE - but not if chart is also mentioned
+  if (lowercaseMessage.includes('price') && !lowercaseMessage.includes('chart') && mentionedStock) {
+    return {
+      type: 'price',
+      symbol: mentionedStock,
+      content: content,  // Show the full AI response
+      hideText: false
+    }
+  }
+  
+  // CHART - only if specifically requested
+  if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show')) && mentionedStock) {
+    return {
+      type: 'chart',
+      symbol: mentionedStock,
+      content: content,  // Show the full AI response
+      hideText: false
+    }
+  }
+  
+  // Market-wide widgets (no stock symbol needed)
+  if (lowercaseMessage.includes('screener') || lowercaseMessage.includes('screen')) {
     return {
       type: 'screener',
-      content: `Here's the stock screener:`,
-      hideText: false // Show brief intro text
+      content: content,  // Show the full AI response
+      hideText: false
     }
   }
   
-  if (lowercaseContent.includes('market') && (lowercaseContent.includes('overview') || lowercaseContent.includes('performance'))) {
+  if (lowercaseMessage.includes('market') && (lowercaseMessage.includes('overview') || lowercaseMessage.includes('performance'))) {
     return {
       type: 'market',
-      content: `Here's the market overview:`,
-      hideText: false // Show brief intro text
+      content: content,  // Show the full AI response
+      hideText: false
     }
   }
   
-  if (lowercaseContent.includes('heatmap') || (lowercaseContent.includes('sector') && lowercaseContent.includes('performance'))) {
+  if (lowercaseMessage.includes('heatmap') || (lowercaseMessage.includes('sector') && lowercaseMessage.includes('performance'))) {
     return {
       type: 'heatmap',
-      content: `Here's the market heatmap:`,
-      hideText: false // Show brief intro text
+      content: content,  // Show the full AI response
+      hideText: false
     }
   }
   
-  if (lowercaseContent.includes('trending') || lowercaseContent.includes('movers')) {
+  if (lowercaseMessage.includes('trending') || lowercaseMessage.includes('movers')) {
     return {
       type: 'trending',
-      content: `Here are the trending stocks:`,
-      hideText: false // Show brief intro text
+      content: content,  // Show the full AI response
+      hideText: false
     }
   }
   
+  // Default: just show text response (no widget)
   return {
     type: 'text',
-    content: message,
+    content: content,  // Show the full AI response
     hideText: false
   }
 }
@@ -271,18 +307,37 @@ export default function LakshmiAi() {
   const handleScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
-      // Show scroll to top button when user has scrolled down
-      setShowScrollToTop(scrollTop > 300)
+      // Show scroll to top button when user has scrolled down even a little
+      setShowScrollToTop(scrollTop > 100)
     }
   }
 
   const clearChat = () => {
     setMessages([])
     setInputValue('')
+    // Scroll to top when clearing chat
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = 0
+      }
+    }, 100)
   }
 
   useEffect(() => {
-    scrollToBottom()
+    // Only scroll to bottom when a new message is added, not on initial render
+    if (messages.length > 0) {
+      // If it's the first message after welcome screen, start at top
+      if (messages.length === 1) {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = 0
+        }
+        // Don't auto-scroll to bottom for first message - let user see it from the top
+        return
+      } else {
+        // For subsequent messages, scroll to bottom
+        scrollToBottom()
+      }
+    }
   }, [messages])
 
   const handleSendMessage = async () => {
@@ -500,35 +555,72 @@ export default function LakshmiAi() {
             <div className={styles.chatHeader}>
               <div className={styles.chatHeaderContent}>
                 <h2 className={styles.chatTitle}>🤖 Lakshmi AI Chat</h2>
-                <button 
-                  onClick={clearChat}
-                  className={styles.clearButton}
-                  title="Clear Chat"
-                >
-                  <svg className={styles.clearIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                  </svg>
-                </button>
+                <div className={styles.chatHeaderButtons}>
+                  {messages.length > 0 && showScrollToTop && (
+                    <button 
+                      onClick={scrollToTop}
+                      className={styles.goToStartButton}
+                      title="Go to Start of Conversation"
+                    >
+                      <svg className={styles.goToStartIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M18 15l-6-6-6 6"/>
+                      </svg>
+                      Start
+                    </button>
+                  )}
+                  <button 
+                    onClick={clearChat}
+                    className={styles.clearButton}
+                    title="Clear Chat"
+                  >
+                    <svg className={styles.clearIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
             
             {/* Messages area */}
             <div className={styles.messagesArea}>
+              {/* Scroll to Top Button */}
+              {showScrollToTop && (
+                <button 
+                  onClick={scrollToTop}
+                  className={styles.scrollToTop}
+                  title="Scroll to Top"
+                >
+                  <svg className={styles.scrollToTopIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M18 15l-6-6-6 6"/>
+                  </svg>
+                </button>
+              )}
+              
               <div 
                 className={styles.messagesContainer}
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
               >
+                {/* Conversation start indicator */}
+                {messages.length > 0 && (
+                  <div className={styles.conversationStart}>
+                    <div className={styles.conversationStartIcon}>🏁</div>
+                    <div className={styles.conversationStartText}>
+                      Start of conversation
+                    </div>
+                  </div>
+                )}
+                
                 {messages.map((message) => (
                   <div key={message.id}>
                     {message.type === 'user' ? (
                       <UserMessage>{message.content}</UserMessage>
                     ) : (
                       <>
-                        {/* Only show bot message if there's no widget or if we specifically want to show text */}
-                        {!message.widget && (
-                          <BotMessage content={message.content} />
-                        )}
+                        {/* Always show the AI text response */}
+                        <BotMessage content={message.content} />
+                        
+                        {/* Show widget if available */}
                         {message.widget && (
                           <BotCard>
                             {renderWidget(message.widget)}
@@ -552,19 +644,6 @@ export default function LakshmiAi() {
                 <div ref={messagesEndRef} />
               </div>
             </div>
-
-            {/* Scroll to Top Button */}
-            {showScrollToTop && (
-              <button 
-                onClick={scrollToTop}
-                className={styles.scrollToTop}
-                title="Scroll to Top"
-              >
-                <svg className={styles.scrollToTopIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M18 15l-6-6-6 6"/>
-                </svg>
-              </button>
-            )}
 
             {/* Chat input at bottom */}
             <div className={styles.chatInputContainer}>
