@@ -1,0 +1,260 @@
+/* watchList.module.css */
+.pageContainer {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  margin-bottom: 2rem;
+}
+
+.pageTitle {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pageSubtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.watchlistControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.searchContainer {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.searchInput {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-width: 200px;
+  font-size: 0.9rem;
+}
+
+.categoryFilters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filterButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  background: #f8f9fa;
+  color: #374151;
+  text-transform: capitalize;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.activeFilter {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  background: #3b82f6;
+  color: white;
+  text-transform: capitalize;
+  font-size: 0.9rem;
+}
+
+.watchlistTable {
+  overflow-x: auto;
+}
+
+.watchlistTable table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.watchlistTable th,
+.watchlistTable td {
+  text-align: left;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.watchlistTable th {
+  font-weight: 600;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.quickStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quickStats div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.quickStats div:last-child {
+  border-bottom: none;
+}
+
+.topMovers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trendingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.trendingItem:last-child {
+  border-bottom: none;
+}
+
+.trendingItem div:first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.trendingItem div:first-child div:first-child {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.trendingItem div:first-child div:last-child {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.primaryButton {
+  padding: 0.75rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.primaryButton:hover {
+  background: #2563eb;
+}
+
+.secondaryButton {
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.secondaryButton:hover {
+  background: #e5e7eb;
+}
+
+.positive {
+  color: #10b981;
+}
+
+.negative {
+  color: #ef4444;
+}
+
+.neutral {
+  color: #6b7280;
+}
+
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 1rem;
+  }
+  
+  .watchlistControls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .searchContainer {
+    justify-content: center;
+  }
+  
+  .categoryFilters {
+    justify-content: center;
+  }
+  
+  .searchInput {
+    min-width: auto;
+    flex: 1;
+  }
+}

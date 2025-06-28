@@ -1,3 +1,4 @@
+'use client'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import styles from './Auth.module.css'

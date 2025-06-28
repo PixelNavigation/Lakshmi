@@ -35,3 +35,40 @@ a {
   text-decoration: none;
 }
 
+/* Layout Styles for Sidebar */
+.layout-with-sidebar {
+  display: flex;
+}
+
+.layout-default {
+  display: block;
+}
+
+.main-content-with-sidebar {
+  margin-left: 280px;
+  min-height: 100vh;
+  flex: 1;
+}
+
+.main-content-default {
+  margin-left: 0;
+  min-height: 100vh;
+}
+
+/* Responsive sidebar */
+@media (max-width: 768px) {
+  .main-content-with-sidebar {
+    margin-left: 0;
+    padding-top: 60px;
+  }
+  
+  .left-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .left-sidebar.open {
+    transform: translateX(0);
+  }
+}
+

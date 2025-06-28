@@ -1,0 +1,290 @@
+/* StockGraph.module.css */
+.pageContainer {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  margin-bottom: 2rem;
+}
+
+.pageTitle {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pageSubtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.stockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.stockHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+}
+
+.timeframeButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.timeframeButtons button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timeframeButtons button:hover {
+  background: #f9fafb;
+}
+
+.chartContainer {
+  height: 400px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.stockMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric div:first-child {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.metric div:last-child {
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.indicatorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.indicator {
+  text-align: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.indicator div:first-child {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.indicator div:nth-child(2) {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.indicator div:last-child {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.watchlistContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.watchlistItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.watchlistItem:hover {
+  background: #f9fafb;
+}
+
+.watchlistItem div:first-child div:first-child {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.watchlistItem div:first-child div:last-child {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.watchlistItem div:last-child div:first-child {
+  font-weight: bold;
+  text-align: right;
+}
+
+.watchlistItem div:last-child div:last-child {
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.marketSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.marketSummary div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.marketSummary div:last-child {
+  border-bottom: none;
+}
+
+.primaryButton {
+  padding: 0.75rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.primaryButton:hover {
+  background: #2563eb;
+}
+
+.secondaryButton {
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.secondaryButton:hover {
+  background: #e5e7eb;
+}
+
+.positive {
+  color: #10b981;
+}
+
+.negative {
+  color: #ef4444;
+}
+
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 1rem;
+  }
+  
+  .stockHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .chartContainer {
+    height: 300px;
+  }
+  
+  .stockMetrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .indicatorGrid {
+    grid-template-columns: 1fr;
+  }
+}

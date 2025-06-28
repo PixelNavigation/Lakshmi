@@ -24,6 +24,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 2rem;
 }
 
 .brand-logo {
@@ -79,6 +80,36 @@
   color: var(--foreground);
 }
 
+/* Authenticated Links Styles */
+.authenticated-links {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  margin-left: 3rem;
+}
+
+.authenticated-links li {
+  margin: 0;
+}
+
+.authenticated-links a {
+  color: var(--foreground);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.authenticated-links a:hover {
+  background: var(--foreground);
+  color: var(--background);
+}
+
 /* User Menu Styles */
 .user-menu {
   display: flex;
@@ -109,12 +140,172 @@
   color: var(--background);
 }
 
+/* Left Sidebar Styles */
+.left-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background: var(--background);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .left-sidebar {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--background);
+  }
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.sidebar-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.sidebar-navigation {
+  flex: 1;
+  padding: 1rem 0;
+}
+
+.sidebar-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-links li {
+  margin: 0;
+}
+
+.sidebar-links a {
+  display: block;
+  color: var(--foreground);
+  text-decoration: none;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-links a:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-left-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar-links a:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.sidebar-footer {
+  padding: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.user-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-name {
+  color: var(--foreground);
+  font-size: 0.9rem;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.sidebar-logout {
+  background: transparent;
+  border: 1px solid var(--foreground);
+  color: var(--foreground);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  align-self: flex-start;
+}
+
+.sidebar-logout:hover {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+/* Navigation button styles for sidebar */
+.nav-button {
+  display: block;
+  width: 100%;
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  text-decoration: none;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.nav-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-left-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .nav-button:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .navigation-container {
     padding: 1rem;
     flex-direction: column;
     gap: 1rem;
+  }
+  
+  .authenticated-links {
+    gap: 0.5rem;
+    margin-left: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .authenticated-links a {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
   }
   
   .authentication-links {
@@ -125,5 +316,35 @@
   .login-button {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
+  }
+  
+  .user-menu {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .left-sidebar {
+    width: 100%;
+    position: relative;
+    height: auto;
+    border-right: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .sidebar-header,
+  .sidebar-footer {
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .sidebar-links a {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .sidebar-logout {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.9rem;
   }
 }

@@ -5,19 +5,19 @@
   background: var(--background);
 }
 
-/* Hero Section */
-.heroSection {
+/* Banner Section */
+.bannerSection {
   padding: 4rem 2rem;
   text-align: center;
   background: linear-gradient(135deg, var(--background) 0%, rgba(0, 2, 35, 0.05) 100%);
 }
 
-.heroContainer {
+.bannerContainer {
   max-width: 800px;
   margin: 0 auto;
 }
 
-.heroTitle {
+.bannerTitle {
   font-size: 3.5rem;
   font-weight: 800;
   margin-bottom: 1.5rem;
@@ -28,7 +28,7 @@
   background-clip: text;
 }
 
-.heroSubtitle {
+.bannerSubtitle {
   font-size: 1.25rem;
   margin-bottom: 2.5rem;
   color: var(--foreground);
@@ -39,7 +39,7 @@
   margin-right: auto;
 }
 
-.heroActions {
+.bannerActions {
   display: flex;
   gap: 1rem;
   justify-content: center;
@@ -197,17 +197,149 @@
   box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
 }
 
+/* Dashboard Styles for Authenticated Users */
+.dashboardContainer {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboardHeader {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.dashboardTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+}
+
+.dashboardSubtitle {
+  font-size: 1.1rem;
+  opacity: 0.7;
+  color: var(--foreground);
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.dashboardCard {
+  background: var(--background);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .dashboardCard {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.dashboardCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.dashboardCard h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+}
+
+.dashboardCard p {
+  color: var(--foreground);
+  opacity: 0.7;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  color: var(--foreground);
+}
+
+.alertItem, .stockItem, .insight {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  color: var(--foreground);
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .alertItem, .stockItem, .insight {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+.stockItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.positive {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.insight {
+  font-style: italic;
+  opacity: 0.8;
+  border: none;
+  background: rgba(0, 0, 0, 0.02);
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin: 0.25rem 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .insight {
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-  .heroTitle {
+  .bannerTitle {
     font-size: 2.5rem;
   }
   
-  .heroSubtitle {
+  .bannerSubtitle {
     font-size: 1.1rem;
   }
   
-  .heroActions {
+  .bannerActions {
     flex-direction: column;
     align-items: center;
   }
@@ -234,10 +366,27 @@
   .ctaDescription {
     font-size: 1.1rem;
   }
+  
+  .dashboardContainer {
+    padding: 1rem;
+  }
+  
+  .dashboardTitle {
+    font-size: 2rem;
+  }
+  
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .dashboardCard {
+    padding: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .heroSection {
+  .bannerSection {
     padding: 3rem 1rem;
   }
   
