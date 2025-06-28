@@ -13,7 +13,8 @@ export default function Dashboard() {
     { value: 'NSE', label: 'NSE (India)' },
     { value: 'BSE', label: 'BSE (India)' },
     { value: 'NASDAQ', label: 'NASDAQ' },
-    { value: 'NYSE', label: 'NYSE' }
+    { value: 'NYSE', label: 'NYSE' },
+    { value: 'CRYPTO', label: 'Cryptocurrency' }
   ]
 
   // Load watchlist from localStorage

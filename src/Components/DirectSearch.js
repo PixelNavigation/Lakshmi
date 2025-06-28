@@ -32,13 +32,18 @@ export default function DirectSearch({
       let enhancedQuery = query.toUpperCase()
       let searchType = 'stocks'
       
+      // Auto-append market suffixes for Indian stocks or crypto
       if (selectedMarket === 'NSE' && !enhancedQuery.includes('.NS')) {
-        enhancedQuery = query
+        enhancedQuery = enhancedQuery + '.NS'
         searchType = 'stocks'
       } else if (selectedMarket === 'BSE' && !enhancedQuery.includes('.BO')) {
-        enhancedQuery = query
+        enhancedQuery = enhancedQuery + '.BO'
         searchType = 'stocks'
       } else if (selectedMarket === 'CRYPTO') {
+        // For crypto, use INR instead of USD for Indian users
+        if (!enhancedQuery.includes('-INR') && !enhancedQuery.includes('-USD') && !enhancedQuery.includes('-')) {
+          enhancedQuery = enhancedQuery + '-INR'
+        }
         searchType = 'crypto'
       }
 
@@ -110,6 +115,56 @@ export default function DirectSearch({
       // Additional fallbacks for Indian stocks if no results and specific market selected
       if (searchResults.length === 0 && (selectedMarket === 'NSE' || selectedMarket === 'BSE')) {
         searchResults = searchIndianStocks(query, selectedMarket)
+      }
+      
+      // If still no results and Indian market selected, try the other Indian market as fallback
+      if (searchResults.length === 0 && selectedMarket === 'NSE') {
+        // Try BSE as fallback
+        const bseQuery = query.toUpperCase() + '.BO'
+        try {
+          const bseResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(bseQuery)}&market=BSE&limit=10`)
+          const bseResult = await bseResponse.json()
+          if (bseResult.success && bseResult.data && bseResult.data.length > 0) {
+            searchResults = bseResult.data
+            console.log(`Found ${searchResults.length} results from BSE fallback`)
+          }
+        } catch (error) {
+          console.log('BSE fallback failed:', error)
+        }
+      } else if (searchResults.length === 0 && selectedMarket === 'BSE') {
+        // Try NSE as fallback
+        const nseQuery = query.toUpperCase() + '.NS'
+        try {
+          const nseResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(nseQuery)}&market=NSE&limit=10`)
+          const nseResult = await nseResponse.json()
+          if (nseResult.success && nseResult.data && nseResult.data.length > 0) {
+            searchResults = nseResult.data
+            console.log(`Found ${searchResults.length} results from NSE fallback`)
+          }
+        } catch (error) {
+          console.log('NSE fallback failed:', error)
+        }
+      }
+      
+      // Crypto fallback: if INR pair not found, try USD pair and mark for conversion
+      if (searchResults.length === 0 && selectedMarket === 'CRYPTO' && enhancedQuery.includes('-INR')) {
+        const usdQuery = enhancedQuery.replace('-INR', '-USD')
+        try {
+          const usdResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(usdQuery)}&market=ALL&limit=10`)
+          const usdResult = await usdResponse.json()
+          if (usdResult.success && usdResult.data && usdResult.data.length > 0) {
+            // Mark these results as needing conversion from USD to INR
+            searchResults = usdResult.data.map(result => ({
+              ...result,
+              symbol: result.symbol.replace('-USD', '-INR'),
+              currency: 'INR',
+              needsConversion: true
+            }))
+            console.log(`Found ${searchResults.length} results from USD crypto fallback`)
+          }
+        } catch (error) {
+          console.log('USD crypto fallback failed:', error)
+        }
       }
       
       // Final fallback to known symbols
@@ -208,7 +263,12 @@ export default function DirectSearch({
       { symbol: 'AMZN', name: 'Amazon.com, Inc.', type: 'stock', region: 'United States', currency: 'USD' },
       { symbol: 'NFLX', name: 'Netflix, Inc.', type: 'stock', region: 'United States', currency: 'USD' },
       { symbol: 'BTC-USD', name: 'Bitcoin', type: 'crypto', region: 'Crypto', currency: 'USD' },
-      { symbol: 'ETH-USD', name: 'Ethereum', type: 'crypto', region: 'Crypto', currency: 'USD' }
+      { symbol: 'ETH-USD', name: 'Ethereum', type: 'crypto', region: 'Crypto', currency: 'USD' },
+      { symbol: 'BTC-INR', name: 'Bitcoin', type: 'crypto', region: 'Crypto', currency: 'INR' },
+      { symbol: 'ETH-INR', name: 'Ethereum', type: 'crypto', region: 'Crypto', currency: 'INR' },
+      { symbol: 'DOGE-INR', name: 'Dogecoin', type: 'crypto', region: 'Crypto', currency: 'INR' },
+      { symbol: 'ADA-INR', name: 'Cardano', type: 'crypto', region: 'Crypto', currency: 'INR' },
+      { symbol: 'SOL-INR', name: 'Solana', type: 'crypto', region: 'Crypto', currency: 'INR' }
     ]
     
     knownSymbols.forEach(symbol => {
@@ -383,33 +443,35 @@ export default function DirectSearch({
       { symbol: 'SUNPHARMA.NS', name: 'Sun Pharmaceutical', sector: 'Pharmaceuticals' }
     ]
 
-    // Cryptocurrencies
+    // Cryptocurrencies (INR pairs for Indian users)
     const cryptos = [
-      { symbol: 'BTC-USD', name: 'Bitcoin', sector: 'Cryptocurrency' },
-      { symbol: 'ETH-USD', name: 'Ethereum', sector: 'Cryptocurrency' },
-      { symbol: 'USDT-USD', name: 'Tether USDt', sector: 'Stablecoin' },
-      { symbol: 'BNB-USD', name: 'BNB', sector: 'Cryptocurrency' },
-      { symbol: 'SOL-USD', name: 'Solana', sector: 'Cryptocurrency' },
-      { symbol: 'USDC-USD', name: 'USD Coin', sector: 'Stablecoin' },
-      { symbol: 'XRP-USD', name: 'XRP', sector: 'Cryptocurrency' },
-      { symbol: 'DOGE-USD', name: 'Dogecoin', sector: 'Cryptocurrency' },
-      { symbol: 'ADA-USD', name: 'Cardano', sector: 'Cryptocurrency' },
-      { symbol: 'AVAX-USD', name: 'Avalanche', sector: 'Cryptocurrency' },
-      { symbol: 'SHIB-USD', name: 'Shiba Inu', sector: 'Cryptocurrency' },
-      { symbol: 'DOT-USD', name: 'Polkadot', sector: 'Cryptocurrency' },
-      { symbol: 'LINK-USD', name: 'Chainlink', sector: 'Cryptocurrency' },
-      { symbol: 'TRX-USD', name: 'TRON', sector: 'Cryptocurrency' },
-      { symbol: 'MATIC-USD', name: 'Polygon', sector: 'Cryptocurrency' },
-      { symbol: 'LTC-USD', name: 'Litecoin', sector: 'Cryptocurrency' },
-      { symbol: 'BCH-USD', name: 'Bitcoin Cash', sector: 'Cryptocurrency' },
-      { symbol: 'UNI-USD', name: 'Uniswap', sector: 'DeFi' }
+      { symbol: 'BTC-INR', name: 'Bitcoin', sector: 'Cryptocurrency' },
+      { symbol: 'ETH-INR', name: 'Ethereum', sector: 'Cryptocurrency' },
+      { symbol: 'BNB-INR', name: 'BNB', sector: 'Cryptocurrency' },
+      { symbol: 'SOL-INR', name: 'Solana', sector: 'Cryptocurrency' },
+      { symbol: 'XRP-INR', name: 'XRP', sector: 'Cryptocurrency' },
+      { symbol: 'DOGE-INR', name: 'Dogecoin', sector: 'Cryptocurrency' },
+      { symbol: 'ADA-INR', name: 'Cardano', sector: 'Cryptocurrency' },
+      { symbol: 'AVAX-INR', name: 'Avalanche', sector: 'Cryptocurrency' },
+      { symbol: 'SHIB-INR', name: 'Shiba Inu', sector: 'Cryptocurrency' },
+      { symbol: 'DOT-INR', name: 'Polkadot', sector: 'Cryptocurrency' },
+      { symbol: 'LINK-INR', name: 'Chainlink', sector: 'Cryptocurrency' },
+      { symbol: 'TRX-INR', name: 'TRON', sector: 'Cryptocurrency' },
+      { symbol: 'MATIC-INR', name: 'Polygon', sector: 'Cryptocurrency' },
+      { symbol: 'LTC-INR', name: 'Litecoin', sector: 'Cryptocurrency' },
+      { symbol: 'UNI-INR', name: 'Uniswap', sector: 'Cryptocurrency' },
+      { symbol: 'BCH-INR', name: 'Bitcoin Cash', sector: 'Cryptocurrency' },
+      { symbol: 'ATOM-INR', name: 'Cosmos', sector: 'Cryptocurrency' },
+      { symbol: 'FIL-INR', name: 'Filecoin', sector: 'Cryptocurrency' },
+      { symbol: 'ICP-INR', name: 'Internet Computer', sector: 'Cryptocurrency' },
+      { symbol: 'VET-INR', name: 'VeChain', sector: 'Cryptocurrency' }
     ]
 
     // Search all stocks
     const allStocks = [
       ...usStocks.map(stock => ({ ...stock, type: 'stock', region: 'United States', currency: 'USD' })),
       ...indianStocks.map(stock => ({ ...stock, type: 'stock', region: 'India', currency: 'INR' })),
-      ...cryptos.map(stock => ({ ...stock, type: 'crypto', region: 'Global', currency: 'USD' }))
+      ...cryptos.map(stock => ({ ...stock, type: 'crypto', region: 'Global', currency: 'INR' }))
     ]
 
     // Filter results
@@ -472,8 +534,18 @@ export default function DirectSearch({
 
   const formatCurrency = (value, currency = 'USD') => {
     if (value === null || value === undefined || isNaN(value)) {
-      return `${currency === 'USD' ? '$' : currency} --`
+      return `${currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency} --`
     }
+    
+    if (currency === 'INR') {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(Number(value))
+    }
+    
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
@@ -489,7 +561,11 @@ export default function DirectSearch({
       <div className={styles.card}>
         <h3>🔍 Search Stocks & Markets</h3>
         <p className={styles.cardDescription}>
-          Search for stocks, cryptocurrencies, commodities, or forex pairs and add them to your watchlist
+          {selectedMarket === 'NSE' || selectedMarket === 'BSE' 
+            ? `Search for Indian stocks on ${selectedMarket}. Just enter the symbol (e.g., NCC, INFY) - market suffix will be added automatically.`
+            : selectedMarket === 'CRYPTO'
+            ? "Search for cryptocurrencies like Bitcoin, Ethereum, Dogecoin and more. Prices shown in INR (₹) for Indian users."
+            : "Search for stocks, cryptocurrencies, commodities, or forex pairs and add them to your watchlist"}
         </p>
         
         <div className={styles.searchContainer}>
@@ -499,14 +575,18 @@ export default function DirectSearch({
               onChange={(e) => setSelectedMarket(e.target.value)}
               className={styles.marketSelect}
             >
-              {Object.entries(markets).map(([key, market]) => (
-                <option key={key} value={key}>{market.name}</option>
+              {markets.map((market) => (
+                <option key={market.value} value={market.value}>{market.label}</option>
               ))}
             </select>
             
             <input
               type="text"
-              placeholder="Enter symbol (e.g., AAPL, BTC, TSLA...)"
+              placeholder={selectedMarket === 'NSE' || selectedMarket === 'BSE' 
+                ? "Enter symbol (e.g., NCC, INFY, TCS...)" 
+                : selectedMarket === 'CRYPTO'
+                ? "Enter crypto symbol (e.g., BTC, ETH, DOGE...)"
+                : "Enter symbol (e.g., AAPL, BTC, TSLA...)"}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}
@@ -576,12 +656,6 @@ export default function DirectSearch({
         {searchQuery.length > 0 && searchResults.length === 0 && searchQuery.length > 2 && (
           <div className={styles.noResults}>
             <p>No results found for "{searchQuery}"</p>
-            <button 
-              className={styles.addDirectBtn}
-              onClick={() => addToWatchlist(searchQuery.toUpperCase())}
-            >
-              Add "{searchQuery.toUpperCase()}" directly to watchlist
-            </button>
           </div>
         )}
       </div>
