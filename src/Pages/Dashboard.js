@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import styles from './Dashboard.module.css'
 import DirectSearch from '../Components/DirectSearch'
+import { convertToTradingViewSymbol } from '../Components/TradingView/TradingViewHelper'
 
 export default function Dashboard() {
   const [selectedMarket, setSelectedMarket] = useState('ALL')
@@ -42,7 +43,10 @@ export default function Dashboard() {
   }
 
   const addToWatchlist = async (symbol) => {
-    if (isAddingToWatchlist || watchlist.includes(symbol)) return
+    // Convert to TradingView-compatible symbol before storing
+    const tradingViewSymbol = convertToTradingViewSymbol(symbol)
+    
+    if (isAddingToWatchlist || watchlist.includes(tradingViewSymbol)) return
     
     setIsAddingToWatchlist(true)
     try {
@@ -51,8 +55,8 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           userId: userId,
-          symbol: symbol,
-          name: symbol, // Basic name, will be enhanced later
+          symbol: tradingViewSymbol, // Store TradingView-compatible symbol
+          name: symbol, // Keep original symbol for display name if needed
           action: 'add'
         })
       })
@@ -61,7 +65,7 @@ export default function Dashboard() {
       
       if (result.success) {
         // Add to local state for immediate UI update
-        setWatchlist(prev => [...prev, symbol])
+        setWatchlist(prev => [...prev, tradingViewSymbol])
       } else {
         console.error('Failed to add to watchlist:', result.error)
         // Show error to user if needed

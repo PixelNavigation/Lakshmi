@@ -1,7 +1,12 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import styles from './watchList.module.css'
+
+// Import TradingView Chart component
+import { StockChart } from '../Components/TradingView/StockChart'
+import { MiniPrice } from '../Components/TradingView/MiniPrice'
+import { PriceWidget } from '../Components/TradingView/PriceWidget'
 
 export default function WatchList() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -10,6 +15,10 @@ export default function WatchList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [chartModal, setChartModal] = useState({ isOpen: false, symbol: '', name: '' })
+  const [priceAnimations, setPriceAnimations] = useState({})
+  const [viewMode, setViewMode] = useState('tradingview') // Only TradingView mode
 
   // Mock user ID - in a real app, this would come from authentication
   const userId = 'user123' // Replace with actual user authentication
@@ -64,9 +73,30 @@ export default function WatchList() {
         // Merge watchlist data with stock data
         const enhancedItems = watchlistData.map(watchlistItem => {
           const stockData = result.data.find(stock => stock.symbol === watchlistItem.symbol)
+          const currentItem = watchlistItems.find(item => item.symbol === watchlistItem.symbol)
+          const newPrice = stockData?.price || 0
+          
+          // Detect price changes for animation
+          if (currentItem && currentItem.price !== newPrice && newPrice > 0) {
+            const isIncrease = newPrice > currentItem.price
+            setPriceAnimations(prev => ({
+              ...prev,
+              [watchlistItem.symbol]: isIncrease ? 'increase' : 'decrease'
+            }))
+            
+            // Clear animation after 2 seconds
+            setTimeout(() => {
+              setPriceAnimations(prev => {
+                const updated = { ...prev }
+                delete updated[watchlistItem.symbol]
+                return updated
+              })
+            }, 2000)
+          }
+          
           return {
             ...watchlistItem,
-            price: stockData?.price || 0,
+            price: newPrice,
             change: stockData?.change || 0,
             changePercent: stockData?.changePercent || 0,
             volume: stockData?.volume || '0',
@@ -76,6 +106,7 @@ export default function WatchList() {
           }
         })
         setWatchlistItems(enhancedItems)
+        setLastUpdated(new Date())
       } else {
         setError(result.error)
       }
@@ -127,21 +158,55 @@ export default function WatchList() {
     }
   }
 
+  // Open chart modal
+  const openChart = (symbol, name) => {
+    setChartModal({ isOpen: true, symbol, name })
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden'
+  }
+
+  // Close chart modal
+  const closeChart = () => {
+    setChartModal({ isOpen: false, symbol: '', name: '' })
+    // Restore body scroll
+    document.body.style.overflow = 'unset'
+  }
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (e) => {
+      if (e.key === 'Escape' && chartModal.isOpen) {
+        closeChart()
+      }
+    }
+    
+    document.addEventListener('keydown', handleEscapeKey)
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey)
+      // Cleanup: restore body scroll if component unmounts with modal open
+      document.body.style.overflow = 'unset'
+    }
+  }, [chartModal.isOpen])
+
   // Load watchlist on component mount
   useEffect(() => {
     loadWatchlist()
   }, [])
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 10 seconds for more real-time feel (skip if pure TradingView mode)
   useEffect(() => {
+    if (viewMode === 'tradingview') {
+      return // No need to refresh API data in TradingView-only mode
+    }
+    
     const interval = setInterval(() => {
-      if (watchlistItems.length > 0) {
+      if (watchlistItems.length > 0 && !refreshing) {
         refreshStockData()
       }
-    }, 30000)
+    }, 10000) // Reduced from 30 seconds to 10 seconds
 
     return () => clearInterval(interval)
-  }, [watchlistItems])
+  }, [watchlistItems, refreshing, viewMode])
 
   // Format currency based on type
   const formatCurrency = (value, currency = 'USD') => {
@@ -164,6 +229,15 @@ export default function WatchList() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(Number(value))
+  }
+
+  // Render price cell with TradingView widget
+  const renderPriceCell = (item) => {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <PriceWidget symbol={item.symbol} width={200} height={80} />
+      </div>
+    )
   }
 
   const filteredWatchlist = watchlistItems.filter(item => {
@@ -206,8 +280,11 @@ export default function WatchList() {
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>👁️ Watch List</h1>
         <p className={styles.pageSubtitle}>
-          Monitor your favorite stocks and set up custom alerts
-          {refreshing && <span style={{ color: '#007bff', marginLeft: '1rem' }}>🔄 Refreshing...</span>}
+          📈 Real-time stock data powered by TradingView
+          <br />
+          <span style={{ fontSize: '0.8rem', color: '#666', fontStyle: 'italic' }}>
+            📊 Live charts and prices directly from TradingView financial data
+          </span>
         </p>
         {error && (
           <div style={{ 
@@ -257,57 +334,42 @@ export default function WatchList() {
                 <button className={styles.primaryButton} style={{ padding: '0.5rem 1rem' }}>
                   🔍 Search
                 </button>
-                <button 
-                  className={styles.secondaryButton} 
-                  onClick={() => refreshStockData()}
-                  disabled={refreshing}
-                  style={{ 
-                    padding: '0.5rem 1rem',
-                    opacity: refreshing ? 0.6 : 1,
-                    cursor: refreshing ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {refreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
-                </button>
               </div>
               
-              <div className={styles.categoryFilters} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {categories.map(category => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={selectedCategory === category ? styles.activeFilter : styles.filterButton}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      border: 'none',
-                      borderRadius: '20px',
-                      cursor: 'pointer',
-                      backgroundColor: selectedCategory === category ? '#007bff' : '#f8f9fa',
-                      color: selectedCategory === category ? 'white' : '#333',
-                      textTransform: 'capitalize',
-                      fontSize: '0.9rem'
-                    }}
-                  >
-                    {category}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div className={styles.categoryFilters} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={selectedCategory === category ? styles.activeFilter : styles.filterButton}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        border: 'none',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        backgroundColor: selectedCategory === category ? '#007bff' : '#f8f9fa',
+                        color: selectedCategory === category ? 'white' : '#333',
+                        textTransform: 'capitalize',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
             <div className={styles.watchlistTable} style={{ overflowX: 'auto' }}>
               {filteredWatchlist.length === 0 ? (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '3rem 1rem',
-                  color: '#666'
-                }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📈</div>
-                  <h3>Your watchlist is empty</h3>
-                  <p>Start by adding some stocks from the Dashboard search.</p>
+                <div className={styles.emptyState}>
+                  <div className={styles.emptyStateIcon}>📈</div>
+                  <h3 className={styles.emptyStateTitle}>Your watchlist is empty</h3>
+                  <p className={styles.emptyStateDescription}>Start by adding some stocks from the Dashboard search.</p>
                   <button 
                     className={styles.primaryButton}
                     onClick={() => window.location.href = '/dashboard'}
-                    style={{ marginTop: '1rem' }}
                   >
                     ➕ Add Your First Stock
                   </button>
@@ -316,12 +378,11 @@ export default function WatchList() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #eee' }}>
-                      <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold' }}>Symbol</th>
-                      <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Price</th>
-                      <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Change</th>
-                      <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Volume</th>
-                      <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold' }}>Alerts</th>
-                      <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold' }}>Actions</th>
+                      <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold', width: '25%' }}>Symbol</th>
+                      <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '30%' }}>TradingView Price</th>
+                      <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold', width: '15%' }}>Volume</th>
+                      <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '10%' }}>Alerts</th>
+                      <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '20%' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -344,23 +405,8 @@ export default function WatchList() {
                             </div>
                           </div>
                         </td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                          {formatCurrency(item.price, item.currency)}
-                        </td>
-                        <td style={{ 
-                          padding: '1rem', 
-                          textAlign: 'right',
-                          color: item.change >= 0 ? '#28a745' : '#dc3545',
-                          fontWeight: 'bold'
-                        }}>
-                          <div>
-                            {item.currency === 'INR' ? '₹' : '$'}
-                            {item.change >= 0 ? '+' : ''}
-                            {Math.abs(item.change).toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: '0.9rem' }}>
-                            ({item.changePercent >= 0 ? '+' : ''}{item.changePercent.toFixed(2)}%)
-                          </div>
+                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                          {renderPriceCell(item)}
                         </td>
                         <td style={{ padding: '1rem', textAlign: 'right' }}>{item.volume}</td>
                         <td style={{ padding: '1rem', textAlign: 'center' }}>
@@ -383,6 +429,7 @@ export default function WatchList() {
                         <td style={{ padding: '1rem', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                             <button 
+                              onClick={() => openChart(item.symbol, item.name)}
                               style={{ 
                                 padding: '0.25rem 0.5rem', 
                                 border: '1px solid #007bff', 
@@ -466,20 +513,14 @@ export default function WatchList() {
             <h3>Top Gainers</h3>
             <div className={styles.topMovers}>
               {topGainers.map(stock => (
-                <div key={stock.symbol} style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  padding: '0.5rem 0',
-                  borderBottom: '1px solid #eee'
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold' }}>{stock.symbol}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                <div key={stock.symbol} className={styles.moverItem}>
+                  <div className={styles.moverInfo}>
+                    <div className={styles.moverSymbol}>{stock.symbol}</div>
+                    <div className={styles.moverPrice}>
                       {formatCurrency(stock.price, stock.currency)}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', color: '#28a745', fontWeight: 'bold' }}>
+                  <div className={`${styles.moverChange} ${styles.positive}`}>
                     +{stock.changePercent.toFixed(2)}%
                   </div>
                 </div>
@@ -491,20 +532,14 @@ export default function WatchList() {
             <h3>Top Losers</h3>
             <div className={styles.topMovers}>
               {topLosers.map(stock => (
-                <div key={stock.symbol} style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  padding: '0.5rem 0',
-                  borderBottom: '1px solid #eee'
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold' }}>{stock.symbol}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                <div key={stock.symbol} className={styles.moverItem}>
+                  <div className={styles.moverInfo}>
+                    <div className={styles.moverSymbol}>{stock.symbol}</div>
+                    <div className={styles.moverPrice}>
                       {formatCurrency(stock.price, stock.currency)}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', color: '#dc3545', fontWeight: 'bold' }}>
+                  <div className={`${styles.moverChange} ${styles.negative}`}>
                     {stock.changePercent.toFixed(2)}%
                   </div>
                 </div>
@@ -528,6 +563,34 @@ export default function WatchList() {
           </div>
         </div>
       </div>
+
+      {chartModal.isOpen && (
+        <div 
+          className={styles.chartModal}
+          onClick={closeChart}
+        >
+          <div 
+            className={styles.chartModalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.chartModalHeader}>
+              <h3 className={styles.chartModalTitle}>
+                📊 {chartModal.symbol} - {chartModal.name}
+              </h3>
+              <button 
+                onClick={closeChart}
+                className={styles.closeButton}
+                title="Close Chart"
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.chartContainer}>
+              <StockChart symbol={chartModal.symbol} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import styles from './DirectSearch.module.css'
 import StockDetail from './StockDetail'
+import { convertToTradingViewSymbol } from './TradingView/TradingViewHelper'
 
 export default function DirectSearch({ 
   selectedMarket, 
@@ -642,9 +643,9 @@ export default function DirectSearch({
                         e.stopPropagation()
                         addToWatchlist(result.symbol)
                       }}
-                      disabled={watchlist.includes(result.symbol)}
+                      disabled={watchlist.includes(convertToTradingViewSymbol(result.symbol))}
                     >
-                      {watchlist.includes(result.symbol) ? '✓ Added' : '+ Add to Watchlist'}
+                      {watchlist.includes(convertToTradingViewSymbol(result.symbol)) ? '✓ Added' : '+ Add to Watchlist'}
                     </button>
                   </div>
                 </div>
