@@ -166,6 +166,8 @@ export default function WatchList() {
     }).format(Number(value))
   }
 
+  const categories = ['all', 'technology', 'finance', 'healthcare', 'automotive', 'energy', 'crypto']
+
   const filteredWatchlist = watchlistItems.filter(item => {
     const matchesSearch = item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -429,6 +431,121 @@ export default function WatchList() {
                   </tbody>
                 </table>
               )}
+            </div>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #eee' }}>
+                    <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold' }}>Symbol</th>
+                    <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Price</th>
+                    <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Change</th>
+                    <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Volume</th>
+                    <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold' }}>Alerts</th>
+                    <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWatchlist.map(item => (
+                    <tr key={item.symbol} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: '1rem' }}>
+                        <div>
+                          <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{item.symbol}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#666' }}>{item.name}</div>
+                          <div style={{ 
+                            fontSize: '0.7rem', 
+                            backgroundColor: `var(--${item.category}-bg, #f8f9fa)`,
+                            color: `var(--${item.category}-color, #666)`,
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '12px',
+                            display: 'inline-block',
+                            marginTop: '0.2rem'
+                          }}>
+                            {item.category}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                        {formatCurrency(item.price, item.currency)}
+                      </td>
+                      <td style={{ 
+                        padding: '1rem', 
+                        textAlign: 'right',
+                        color: item.change >= 0 ? '#28a745' : '#dc3545',
+                        fontWeight: 'bold'
+                      }}>
+                        <div>
+                          {item.currency === 'INR' ? '₹' : '$'}
+                          {item.change >= 0 ? '+' : ''}
+                          {Math.abs(item.change).toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: '0.9rem' }}>
+                          ({item.changePercent >= 0 ? '+' : ''}{item.changePercent.toFixed(2)}%)
+                        </div>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'right' }}>{item.volume}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                          <span style={{ 
+                            backgroundColor: (item.alerts?.filter(a => a.active).length || 0) > 0 ? '#ffc107' : '#e9ecef',
+                            color: (item.alerts?.filter(a => a.active).length || 0) > 0 ? '#856404' : '#6c757d',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold'
+                          }}>
+                            {item.alerts?.filter(a => a.active).length || 0}
+                          </span>
+                          {(item.alerts?.filter(a => a.active).length || 0) > 0 && (
+                            <span style={{ fontSize: '0.8rem', color: '#ffc107' }}>🔔</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                          <button 
+                            style={{ 
+                              padding: '0.25rem 0.5rem', 
+                              border: '1px solid #007bff', 
+                              backgroundColor: 'white', 
+                              color: '#007bff',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            📊 Chart
+                          </button>
+                          <button 
+                            style={{ 
+                              padding: '0.25rem 0.5rem', 
+                              border: '1px solid #28a745', 
+                              backgroundColor: 'white', 
+                              color: '#28a745',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            🔔 Alert
+                          </button>
+                          <button 
+                            onClick={() => removeFromWatchlist(item.symbol)}
+                            style={{ 
+                              padding: '0.25rem 0.5rem', 
+                              border: '1px solid #dc3545', 
+                              backgroundColor: 'white', 
+                              color: '#dc3545',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            🗑️ Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

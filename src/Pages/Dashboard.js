@@ -7,6 +7,10 @@ import DirectSearch from '../Components/DirectSearch'
 export default function Dashboard() {
   const [selectedMarket, setSelectedMarket] = useState('ALL')
   const [watchlist, setWatchlist] = useState([])
+  const [isAddingToWatchlist, setIsAddingToWatchlist] = useState(false)
+
+  // Mock user ID - in a real app, this would come from authentication
+  const userId = 'user123' // Replace with actual user authentication
 
   const markets = [
     { value: 'ALL', label: 'All Markets' },
@@ -17,22 +21,58 @@ export default function Dashboard() {
     { value: 'CRYPTO', label: 'Cryptocurrency' }
   ]
 
-  // Load watchlist from localStorage
+  // Load watchlist symbols from Supabase on mount
   useEffect(() => {
-    const savedWatchlist = localStorage.getItem('stockWatchlist')
-    if (savedWatchlist) {
-      try {
-        setWatchlist(JSON.parse(savedWatchlist))
-      } catch (error) {
-        console.error('Error loading watchlist:', error)
-      }
-    }
+    loadWatchlistSymbols()
   }, [])
 
-  const addToWatchlist = (stock) => {
-    const updatedWatchlist = [...watchlist, { ...stock, addedAt: new Date().toISOString() }]
-    setWatchlist(updatedWatchlist)
-    localStorage.setItem('stockWatchlist', JSON.stringify(updatedWatchlist))
+  const loadWatchlistSymbols = async () => {
+    try {
+      const response = await fetch(`/api/user-watchlist?userId=${userId}`)
+      const result = await response.json()
+      
+      if (result.success) {
+        // Extract just the symbols for the DirectSearch component
+        const symbols = result.watchlist.map(item => item.symbol)
+        setWatchlist(symbols)
+      }
+    } catch (error) {
+      console.error('Error loading watchlist:', error)
+    }
+  }
+
+  const addToWatchlist = async (symbol) => {
+    if (isAddingToWatchlist || watchlist.includes(symbol)) return
+    
+    setIsAddingToWatchlist(true)
+    try {
+      const response = await fetch('/api/user-watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: userId,
+          symbol: symbol,
+          name: symbol, // Basic name, will be enhanced later
+          action: 'add'
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        // Add to local state for immediate UI update
+        setWatchlist(prev => [...prev, symbol])
+      } else {
+        console.error('Failed to add to watchlist:', result.error)
+        // Show error to user if needed
+        alert(`Failed to add ${symbol} to watchlist: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error adding to watchlist:', error)
+      alert('Network error while adding to watchlist')
+    } finally {
+      setIsAddingToWatchlist(false)
+    }
   }
   return (
     <div className={styles.pageContainer}>
