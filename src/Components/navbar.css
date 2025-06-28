@@ -282,9 +282,21 @@
   border-left-color: var(--foreground);
 }
 
+.nav-button.active {
+  background: rgba(102, 126, 234, 0.1);
+  border-left-color: #667eea;
+  color: #667eea;
+  font-weight: 600;
+}
+
 @media (prefers-color-scheme: dark) {
   .nav-button:hover {
     background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .nav-button.active {
+    background: rgba(102, 126, 234, 0.2);
+    color: #8b9eff;
   }
 }
 

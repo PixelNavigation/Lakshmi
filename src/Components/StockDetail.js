@@ -120,8 +120,8 @@ export default function StockDetail({ stock, onClose }) {
             },
           })
 
-          // Generate sample data
-          generateChartData()
+          // Fetch real chart data
+          fetchChartData()
 
           // Handle resize
           const handleResize = () => {
@@ -158,7 +158,35 @@ export default function StockDetail({ stock, onClose }) {
   }, [])
 
   // Generate realistic chart data
-  const generateChartData = () => {
+  const fetchChartData = async () => {
+    try {
+      const response = await fetch(`/api/stock-detail?symbol=${stock.symbol}&timeframe=${timeframe}`)
+      const result = await response.json()
+      
+      if (result.success && result.chartData && result.chartData.length > 0) {
+        // Use real chart data from API
+        const realChartData = result.chartData.map(candle => ({
+          time: candle.time,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close
+        }))
+        
+        if (candlestickSeries.current) {
+          candlestickSeries.current.setData(realChartData)
+        }
+        return
+      }
+    } catch (error) {
+      console.error('Error fetching real chart data:', error)
+    }
+    
+    // Fallback to mock data if API fails
+    generateMockChartData()
+  }
+
+  const generateMockChartData = () => {
     const data = []
     const basePrice = liveData.price || stock.price || 100
     let currentPrice = basePrice
@@ -219,7 +247,7 @@ export default function StockDetail({ stock, onClose }) {
   // Update chart when timeframe changes
   useEffect(() => {
     if (candlestickSeries.current) {
-      generateChartData()
+      fetchChartData()
     }
   }, [timeframe])
 
@@ -232,8 +260,8 @@ export default function StockDetail({ stock, onClose }) {
         if (result.success) {
           setLiveData(result.data)
           
-          // Update chart with new data point
-          if (candlestickSeries.current && timeframe === '1D') {
+          // Update chart with new data point only for intraday timeframes
+          if (candlestickSeries.current && (timeframe === '1D' || timeframe === '5D')) {
             const lastData = {
               time: Math.floor(Date.now() / 1000),
               open: result.data.previousClose || result.data.price,
@@ -241,13 +269,16 @@ export default function StockDetail({ stock, onClose }) {
               low: result.data.dayLow || result.data.price,
               close: result.data.price,
             }
-            candlestickSeries.current.update(lastData)
+            // Only update if we have valid price data
+            if (lastData.close > 0) {
+              candlestickSeries.current.update(lastData)
+            }
           }
         }
       } catch (error) {
         console.error('Error fetching live data:', error)
       }
-    }, 5000) // Update every 5 seconds
+    }, 10000) // Update every 10 seconds
 
     return () => clearInterval(interval)
   }, [stock.symbol, timeframe])

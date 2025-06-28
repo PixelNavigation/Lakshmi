@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '../contexts/AuthContext'
 import LoginForm from './LoginForm'
 import SignUpForm from './SignUpForm'
@@ -10,6 +11,9 @@ export default function Navbar() {
   const { user, signOut } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [authMode, setAuthMode] = useState('login')
+  const [currentPage, setCurrentPage] = useState('dashboard')
+  const router = useRouter()
+  const pathname = usePathname()
 
   const handleAuthSuccess = () => {
     setShowAuth(false)
@@ -38,9 +42,59 @@ export default function Navbar() {
   }
 
   const handleNavigation = (page) => {
-    // Dispatch custom navigation event
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { page } }))
+    // Update the local state immediately for instant UI feedback
+    setCurrentPage(page)
+    
+    // Use the global navigation function or dispatch custom event
+    if (window.navigateApp) {
+      window.navigateApp(page)
+    } else {
+      // Fallback to custom event
+      const event = new CustomEvent('navigate', { 
+        detail: { page } 
+      })
+      window.dispatchEvent(event)
+    }
   }
+
+  // Get current page from URL parameters for active state
+  const updateCurrentPage = () => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const page = params.get('page') || 'dashboard'
+      setCurrentPage(page)
+    }
+  }
+
+  // Update current page on mount and URL changes
+  useEffect(() => {
+    updateCurrentPage()
+    
+    // Listen for popstate events (browser back/forward)
+    window.addEventListener('popstate', updateCurrentPage)
+    
+    // Listen for custom navigation events to keep navbar in sync
+    const handleNavigationEvent = (event) => {
+      if (event.detail && event.detail.page) {
+        setCurrentPage(event.detail.page)
+      }
+    }
+    window.addEventListener('navigate', handleNavigationEvent)
+    
+    // Listen for page change events from main app
+    const handlePageChangeEvent = (event) => {
+      if (event.detail && event.detail.page) {
+        setCurrentPage(event.detail.page)
+      }
+    }
+    window.addEventListener('pageChanged', handlePageChangeEvent)
+    
+    return () => {
+      window.removeEventListener('popstate', updateCurrentPage)
+      window.removeEventListener('navigate', handleNavigationEvent)
+      window.removeEventListener('pageChanged', handlePageChangeEvent)
+    }
+  }, [])
 
   return (
     <>
@@ -70,13 +124,13 @@ export default function Navbar() {
           
           <nav className="sidebar-navigation">
             <ul className='sidebar-links'>
-              <li><button onClick={() => handleNavigation('dashboard')} className="nav-button">📊 Dashboard</button></li>
-              <li><button onClick={() => handleNavigation('stockScreener')} className="nav-button">🔍 Stock Screener</button></li>
-              <li><button onClick={() => handleNavigation('watchList')} className="nav-button">👁️ Watch List</button></li>
-              <li><button onClick={() => handleNavigation('portfolio')} className="nav-button">💼 Portfolio</button></li>
-              <li><button onClick={() => handleNavigation('stockGraph')} className="nav-button">📈 Stock Graph</button></li>
-              <li><button onClick={() => handleNavigation('news')} className="nav-button">📰 News</button></li>
-              <li><button onClick={() => handleNavigation('lakshmiAi')} className="nav-button">🤖 Lakshmi AI</button></li>
+              <li><button onClick={() => handleNavigation('dashboard')} className={`nav-button ${currentPage === 'dashboard' ? 'active' : ''}`}>📊 Dashboard</button></li>
+              <li><button onClick={() => handleNavigation('stockScreener')} className={`nav-button ${currentPage === 'stockScreener' ? 'active' : ''}`}>🔍 Stock Screener</button></li>
+              <li><button onClick={() => handleNavigation('watchList')} className={`nav-button ${currentPage === 'watchList' ? 'active' : ''}`}>👁️ Watch List</button></li>
+              <li><button onClick={() => handleNavigation('portfolio')} className={`nav-button ${currentPage === 'portfolio' ? 'active' : ''}`}>💼 Portfolio</button></li>
+              <li><button onClick={() => handleNavigation('stockGraph')} className={`nav-button ${currentPage === 'stockGraph' ? 'active' : ''}`}>📈 Stock Graph</button></li>
+              <li><button onClick={() => handleNavigation('news')} className={`nav-button ${currentPage === 'news' ? 'active' : ''}`}>📰 News</button></li>
+              <li><button onClick={() => handleNavigation('lakshmiAi')} className={`nav-button ${currentPage === 'lakshmiAi' ? 'active' : ''}`}>🤖 Lakshmi AI</button></li>
             </ul>
           </nav>
 

@@ -496,6 +496,93 @@ function generateMockWatchlistData(symbols, type) {
 // POST route for searching instruments
 export async function POST(request) {
   try {
+    const body = await request.json()
+    const { query, type = 'stocks', comprehensive = false } = body
+
+    if (!query || query.length < 2) {
+      return NextResponse.json({ success: false, error: 'Query too short' })
+    }
+
+    let searchResults = []
+
+    // If comprehensive search is requested, use multiple data sources
+    if (comprehensive) {
+      // Method 1: Alpha Vantage Symbol Search
+      try {
+        const alphaVantageKey = process.env.ALPHA_VANTAGE_API_KEY || 'demo'
+        const alphaResponse = await fetch(
+          `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(query)}&apikey=${alphaVantageKey}`
+        )
+        const alphaData = await alphaResponse.json()
+
+        if (alphaData.bestMatches && alphaData.bestMatches.length > 0) {
+          const alphaResults = alphaData.bestMatches.map(match => ({
+            symbol: match['1. symbol'],
+            name: match['2. name'],
+            type: match['3. type'] || 'stock',
+            region: match['4. region'],
+            currency: match['8. currency'] || 'USD',
+            source: 'Alpha Vantage'
+          }))
+          searchResults = [...searchResults, ...alphaResults]
+        }
+      } catch (error) {
+        console.log('Alpha Vantage comprehensive search failed:', error)
+      }
+
+      // Method 2: Financial Modeling Prep Search
+      try {
+        const fmpKey = process.env.FMP_API_KEY
+        if (fmpKey) {
+          const fmpResponse = await fetch(
+            `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query)}&limit=20&apikey=${fmpKey}`
+          )
+          const fmpData = await fmpResponse.json()
+
+          if (Array.isArray(fmpData) && fmpData.length > 0) {
+            const fmpResults = fmpData.map(company => ({
+              symbol: company.symbol,
+              name: company.name,
+              type: 'stock',
+              region: company.exchangeShortName || 'Unknown',
+              currency: company.currency || 'USD',
+              source: 'Financial Modeling Prep'
+            }))
+            searchResults = [...searchResults, ...fmpResults]
+          }
+        }
+      } catch (error) {
+        console.log('Financial Modeling Prep search failed:', error)
+      }
+    }
+
+    // Fallback to existing search logic
+    if (searchResults.length === 0) {
+      // Use existing basic search...
+      const basicResults = await performBasicSearch(query, type)
+      searchResults = basicResults
+    }
+
+    // Remove duplicates
+    const uniqueResults = searchResults.filter((stock, index, self) => 
+      index === self.findIndex(s => s.symbol === stock.symbol)
+    )
+
+    return NextResponse.json({ 
+      success: true, 
+      data: uniqueResults.slice(0, 20),
+      query: query,
+      comprehensive: comprehensive
+    })
+
+  } catch (error) {
+    console.error('POST search error:', error)
+    return NextResponse.json({ success: false, error: 'Search failed' })
+  }
+}
+
+async function performBasicSearch(query, type) {
+  try {
     const { query, type } = await request.json()
     
     if (!query || query.length < 2) {

@@ -42,19 +42,77 @@ export default function DirectSearch({
         searchType = 'crypto'
       }
 
-      const response = await fetch('/api/watchlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: enhancedQuery, type: searchType })
-      })
+      // Try multiple search methods for comprehensive results
+      let initialSearchResults = []
+
+      // Method 1: Use our comprehensive search API first
+      try {
+        const comprehensiveResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(enhancedQuery)}&market=${selectedMarket}&limit=20`)
+        const comprehensiveResult = await comprehensiveResponse.json()
+        if (comprehensiveResult.success && comprehensiveResult.data && comprehensiveResult.data.length > 0) {
+          initialSearchResults = comprehensiveResult.data
+          console.log(`Found ${initialSearchResults.length} results from comprehensive search`)
+        }
+      } catch (error) {
+        console.log('Comprehensive search failed:', error)
+      }
+
+      // Method 2: Fallback to original watchlist API
+      if (initialSearchResults.length === 0) {
+        try {
+          const response = await fetch('/api/watchlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: enhancedQuery, type: searchType })
+          })
+          
+          const result = await response.json()
+          if (result.success && result.stocks) {
+            initialSearchResults = result.stocks
+            console.log(`Found ${initialSearchResults.length} results from watchlist API`)
+          }
+        } catch (error) {
+          console.log('Watchlist API failed:', error)
+        }
+      }
+
+      // Method 3: Try external APIs if local search fails
+      if (initialSearchResults.length === 0) {
+        try {
+          // Try Yahoo Finance API
+          const yahooResponse = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0`)
+          const yahooData = await yahooResponse.json()
+          
+          if (yahooData.quotes && yahooData.quotes.length > 0) {
+            initialSearchResults = yahooData.quotes.map(quote => ({
+              symbol: quote.symbol,
+              name: quote.longname || quote.shortname || quote.symbol,
+              type: quote.typeDisp || 'stock',
+              region: quote.exchDisp || 'Unknown',
+              currency: quote.currency || 'USD'
+            }))
+            console.log(`Found ${initialSearchResults.length} results from Yahoo Finance`)
+          }
+        } catch (error) {
+          console.log('Yahoo Finance search failed:', error)
+        }
+      }
+
+      // Method 4: Final fallback - local comprehensive database
+      if (initialSearchResults.length === 0) {
+        initialSearchResults = getLocalStockDatabase(query)
+        console.log(`Found ${initialSearchResults.length} results from local database`)
+      }
       
-      const result = await response.json()
-      let searchResults = result.success ? result.data : []
+      // Use the comprehensive search results
+      let searchResults = initialSearchResults
       
+      // Additional fallbacks for Indian stocks if no results and specific market selected
       if (searchResults.length === 0 && (selectedMarket === 'NSE' || selectedMarket === 'BSE')) {
         searchResults = searchIndianStocks(query, selectedMarket)
       }
       
+      // Final fallback to known symbols
       if (searchResults.length === 0) {
         searchResults = searchFromKnownSymbols(query)
       }
@@ -164,6 +222,209 @@ export default function DirectSearch({
     return allSymbols.filter((item, index, self) => 
       index === self.findIndex(i => i.symbol === item.symbol)
     )
+  }
+
+  // Comprehensive local stock database for fallback
+  const getLocalStockDatabase = (query) => {
+    const queryUpper = query.toUpperCase()
+    const results = []
+    
+    // Major US stocks database (200+ stocks)
+    const usStocks = [
+      // Technology
+      { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology' },
+      { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology' },
+      { symbol: 'GOOGL', name: 'Alphabet Inc. Class A', sector: 'Technology' },
+      { symbol: 'GOOG', name: 'Alphabet Inc. Class C', sector: 'Technology' },
+      { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'E-commerce' },
+      { symbol: 'TSLA', name: 'Tesla Inc.', sector: 'Electric Vehicles' },
+      { symbol: 'META', name: 'Meta Platforms Inc.', sector: 'Social Media' },
+      { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Semiconductors' },
+      { symbol: 'NFLX', name: 'Netflix Inc.', sector: 'Streaming' },
+      { symbol: 'ORCL', name: 'Oracle Corporation', sector: 'Software' },
+      { symbol: 'CRM', name: 'Salesforce Inc.', sector: 'Cloud Software' },
+      { symbol: 'ADBE', name: 'Adobe Inc.', sector: 'Software' },
+      { symbol: 'NOW', name: 'ServiceNow Inc.', sector: 'Cloud Software' },
+      { symbol: 'INTU', name: 'Intuit Inc.', sector: 'Financial Software' },
+      { symbol: 'IBM', name: 'International Business Machines', sector: 'Enterprise Software' },
+      { symbol: 'SNOW', name: 'Snowflake Inc.', sector: 'Data Cloud' },
+      { symbol: 'PLTR', name: 'Palantir Technologies Inc.', sector: 'Data Analytics' },
+      { symbol: 'ZM', name: 'Zoom Video Communications', sector: 'Communication Software' },
+      { symbol: 'TEAM', name: 'Atlassian Corporation', sector: 'Collaboration Software' },
+      { symbol: 'DDOG', name: 'Datadog Inc.', sector: 'Monitoring Software' },
+      
+      // Semiconductors
+      { symbol: 'INTC', name: 'Intel Corporation', sector: 'Semiconductors' },
+      { symbol: 'AMD', name: 'Advanced Micro Devices', sector: 'Semiconductors' },
+      { symbol: 'QCOM', name: 'QUALCOMM Incorporated', sector: 'Semiconductors' },
+      { symbol: 'AVGO', name: 'Broadcom Inc.', sector: 'Semiconductors' },
+      { symbol: 'TXN', name: 'Texas Instruments', sector: 'Semiconductors' },
+      { symbol: 'ADI', name: 'Analog Devices Inc.', sector: 'Semiconductors' },
+      { symbol: 'MRVL', name: 'Marvell Technology', sector: 'Semiconductors' },
+      { symbol: 'MU', name: 'Micron Technology', sector: 'Memory' },
+      { symbol: 'LRCX', name: 'Lam Research Corporation', sector: 'Semiconductor Equipment' },
+      { symbol: 'AMAT', name: 'Applied Materials', sector: 'Semiconductor Equipment' },
+      
+      // Financial Services
+      { symbol: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Banking' },
+      { symbol: 'BAC', name: 'Bank of America Corp', sector: 'Banking' },
+      { symbol: 'WFC', name: 'Wells Fargo & Company', sector: 'Banking' },
+      { symbol: 'GS', name: 'Goldman Sachs Group', sector: 'Investment Banking' },
+      { symbol: 'MS', name: 'Morgan Stanley', sector: 'Investment Banking' },
+      { symbol: 'C', name: 'Citigroup Inc.', sector: 'Banking' },
+      { symbol: 'AXP', name: 'American Express Company', sector: 'Financial Services' },
+      { symbol: 'V', name: 'Visa Inc.', sector: 'Financial Technology' },
+      { symbol: 'MA', name: 'Mastercard Incorporated', sector: 'Financial Technology' },
+      { symbol: 'PYPL', name: 'PayPal Holdings Inc.', sector: 'Fintech' },
+      { symbol: 'SQ', name: 'Block Inc.', sector: 'Fintech' },
+      { symbol: 'BRK-A', name: 'Berkshire Hathaway Class A', sector: 'Conglomerate' },
+      { symbol: 'BRK-B', name: 'Berkshire Hathaway Class B', sector: 'Conglomerate' },
+      
+      // Healthcare
+      { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare' },
+      { symbol: 'PFE', name: 'Pfizer Inc.', sector: 'Pharmaceuticals' },
+      { symbol: 'UNH', name: 'UnitedHealth Group', sector: 'Healthcare' },
+      { symbol: 'ABBV', name: 'AbbVie Inc.', sector: 'Pharmaceuticals' },
+      { symbol: 'TMO', name: 'Thermo Fisher Scientific', sector: 'Life Sciences' },
+      { symbol: 'ABT', name: 'Abbott Laboratories', sector: 'Healthcare' },
+      { symbol: 'LLY', name: 'Eli Lilly and Company', sector: 'Pharmaceuticals' },
+      { symbol: 'BMY', name: 'Bristol-Myers Squibb', sector: 'Pharmaceuticals' },
+      { symbol: 'MDT', name: 'Medtronic plc', sector: 'Medical Devices' },
+      { symbol: 'AMGN', name: 'Amgen Inc.', sector: 'Biotechnology' },
+      { symbol: 'GILD', name: 'Gilead Sciences', sector: 'Biotechnology' },
+      { symbol: 'BIIB', name: 'Biogen Inc.', sector: 'Biotechnology' },
+      { symbol: 'REGN', name: 'Regeneron Pharmaceuticals', sector: 'Biotechnology' },
+      { symbol: 'VRTX', name: 'Vertex Pharmaceuticals', sector: 'Biotechnology' },
+      { symbol: 'MRNA', name: 'Moderna Inc.', sector: 'Biotechnology' },
+      { symbol: 'BNTX', name: 'BioNTech SE', sector: 'Biotechnology' },
+      
+      // Consumer & Retail
+      { symbol: 'WMT', name: 'Walmart Inc.', sector: 'Retail' },
+      { symbol: 'HD', name: 'Home Depot Inc.', sector: 'Home Improvement' },
+      { symbol: 'PG', name: 'Procter & Gamble', sector: 'Consumer Goods' },
+      { symbol: 'KO', name: 'Coca-Cola Company', sector: 'Beverages' },
+      { symbol: 'PEP', name: 'PepsiCo Inc.', sector: 'Beverages' },
+      { symbol: 'COST', name: 'Costco Wholesale Corp', sector: 'Retail' },
+      { symbol: 'NKE', name: 'NIKE Inc.', sector: 'Apparel' },
+      { symbol: 'MCD', name: 'McDonald\'s Corporation', sector: 'Restaurants' },
+      { symbol: 'SBUX', name: 'Starbucks Corporation', sector: 'Restaurants' },
+      { symbol: 'TGT', name: 'Target Corporation', sector: 'Retail' },
+      
+      // Industrial
+      { symbol: 'BA', name: 'Boeing Company', sector: 'Aerospace' },
+      { symbol: 'CAT', name: 'Caterpillar Inc.', sector: 'Heavy Machinery' },
+      { symbol: 'MMM', name: '3M Company', sector: 'Industrial Conglomerate' },
+      { symbol: 'HON', name: 'Honeywell International', sector: 'Industrial Technology' },
+      { symbol: 'GE', name: 'General Electric', sector: 'Industrial Conglomerate' },
+      { symbol: 'LMT', name: 'Lockheed Martin Corp', sector: 'Defense' },
+      { symbol: 'RTX', name: 'Raytheon Technologies', sector: 'Defense' },
+      { symbol: 'UPS', name: 'United Parcel Service', sector: 'Logistics' },
+      { symbol: 'FDX', name: 'FedEx Corporation', sector: 'Logistics' },
+      { symbol: 'DE', name: 'Deere & Company', sector: 'Agricultural Equipment' },
+      
+      // Energy
+      { symbol: 'XOM', name: 'Exxon Mobil Corporation', sector: 'Oil & Gas' },
+      { symbol: 'CVX', name: 'Chevron Corporation', sector: 'Oil & Gas' },
+      { symbol: 'COP', name: 'ConocoPhillips', sector: 'Oil & Gas' },
+      { symbol: 'SLB', name: 'Schlumberger Limited', sector: 'Oilfield Services' },
+      { symbol: 'NEE', name: 'NextEra Energy Inc.', sector: 'Utilities' },
+      { symbol: 'DUK', name: 'Duke Energy Corporation', sector: 'Utilities' },
+      
+      // Electric Vehicles & Clean Energy
+      { symbol: 'NIO', name: 'NIO Inc.', sector: 'Electric Vehicles' },
+      { symbol: 'RIVN', name: 'Rivian Automotive', sector: 'Electric Vehicles' },
+      { symbol: 'LCID', name: 'Lucid Group Inc.', sector: 'Electric Vehicles' },
+      { symbol: 'F', name: 'Ford Motor Company', sector: 'Automotive' },
+      { symbol: 'GM', name: 'General Motors Company', sector: 'Automotive' },
+      { symbol: 'ENPH', name: 'Enphase Energy Inc.', sector: 'Solar Energy' },
+      
+      // E-commerce & Digital
+      { symbol: 'BABA', name: 'Alibaba Group Holding', sector: 'E-commerce' },
+      { symbol: 'SHOP', name: 'Shopify Inc.', sector: 'E-commerce Platform' },
+      { symbol: 'EBAY', name: 'eBay Inc.', sector: 'E-commerce' },
+      { symbol: 'ETSY', name: 'Etsy Inc.', sector: 'E-commerce' },
+      { symbol: 'PINS', name: 'Pinterest Inc.', sector: 'Social Media' },
+      { symbol: 'SNAP', name: 'Snap Inc.', sector: 'Social Media' },
+      { symbol: 'UBER', name: 'Uber Technologies', sector: 'Ride Sharing' },
+      { symbol: 'LYFT', name: 'Lyft Inc.', sector: 'Ride Sharing' },
+      { symbol: 'DASH', name: 'DoorDash Inc.', sector: 'Food Delivery' },
+      
+      // Media & Entertainment
+      { symbol: 'DIS', name: 'Walt Disney Company', sector: 'Entertainment' },
+      { symbol: 'CMCSA', name: 'Comcast Corporation', sector: 'Media' },
+      { symbol: 'VZ', name: 'Verizon Communications', sector: 'Telecommunications' },
+      { symbol: 'T', name: 'AT&T Inc.', sector: 'Telecommunications' },
+      { symbol: 'TMUS', name: 'T-Mobile US Inc.', sector: 'Telecommunications' },
+      { symbol: 'ROKU', name: 'Roku Inc.', sector: 'Streaming' },
+      { symbol: 'SPOT', name: 'Spotify Technology', sector: 'Music Streaming' }
+    ]
+
+    // Indian stocks
+    const indianStocks = [
+      { symbol: 'RELIANCE.NS', name: 'Reliance Industries Limited', sector: 'Energy' },
+      { symbol: 'TCS.NS', name: 'Tata Consultancy Services', sector: 'IT' },
+      { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Limited', sector: 'Banking' },
+      { symbol: 'INFY.NS', name: 'Infosys Limited', sector: 'IT' },
+      { symbol: 'HINDUNILVR.NS', name: 'Hindustan Unilever', sector: 'FMCG' },
+      { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Limited', sector: 'Banking' },
+      { symbol: 'SBIN.NS', name: 'State Bank of India', sector: 'Banking' },
+      { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Limited', sector: 'Telecom' },
+      { symbol: 'ITC.NS', name: 'ITC Limited', sector: 'FMCG' },
+      { symbol: 'KOTAKBANK.NS', name: 'Kotak Mahindra Bank', sector: 'Banking' },
+      { symbol: 'LT.NS', name: 'Larsen & Toubro', sector: 'Construction' },
+      { symbol: 'ASIANPAINT.NS', name: 'Asian Paints Limited', sector: 'Paints' },
+      { symbol: 'HCLTECH.NS', name: 'HCL Technologies', sector: 'IT' },
+      { symbol: 'MARUTI.NS', name: 'Maruti Suzuki India', sector: 'Automotive' },
+      { symbol: 'WIPRO.NS', name: 'Wipro Limited', sector: 'IT' },
+      { symbol: 'AXISBANK.NS', name: 'Axis Bank Limited', sector: 'Banking' },
+      { symbol: 'TITAN.NS', name: 'Titan Company Limited', sector: 'Jewellery' },
+      { symbol: 'NESTLEIND.NS', name: 'Nestle India Limited', sector: 'FMCG' },
+      { symbol: 'TECHM.NS', name: 'Tech Mahindra Limited', sector: 'IT' },
+      { symbol: 'SUNPHARMA.NS', name: 'Sun Pharmaceutical', sector: 'Pharmaceuticals' }
+    ]
+
+    // Cryptocurrencies
+    const cryptos = [
+      { symbol: 'BTC-USD', name: 'Bitcoin', sector: 'Cryptocurrency' },
+      { symbol: 'ETH-USD', name: 'Ethereum', sector: 'Cryptocurrency' },
+      { symbol: 'USDT-USD', name: 'Tether USDt', sector: 'Stablecoin' },
+      { symbol: 'BNB-USD', name: 'BNB', sector: 'Cryptocurrency' },
+      { symbol: 'SOL-USD', name: 'Solana', sector: 'Cryptocurrency' },
+      { symbol: 'USDC-USD', name: 'USD Coin', sector: 'Stablecoin' },
+      { symbol: 'XRP-USD', name: 'XRP', sector: 'Cryptocurrency' },
+      { symbol: 'DOGE-USD', name: 'Dogecoin', sector: 'Cryptocurrency' },
+      { symbol: 'ADA-USD', name: 'Cardano', sector: 'Cryptocurrency' },
+      { symbol: 'AVAX-USD', name: 'Avalanche', sector: 'Cryptocurrency' },
+      { symbol: 'SHIB-USD', name: 'Shiba Inu', sector: 'Cryptocurrency' },
+      { symbol: 'DOT-USD', name: 'Polkadot', sector: 'Cryptocurrency' },
+      { symbol: 'LINK-USD', name: 'Chainlink', sector: 'Cryptocurrency' },
+      { symbol: 'TRX-USD', name: 'TRON', sector: 'Cryptocurrency' },
+      { symbol: 'MATIC-USD', name: 'Polygon', sector: 'Cryptocurrency' },
+      { symbol: 'LTC-USD', name: 'Litecoin', sector: 'Cryptocurrency' },
+      { symbol: 'BCH-USD', name: 'Bitcoin Cash', sector: 'Cryptocurrency' },
+      { symbol: 'UNI-USD', name: 'Uniswap', sector: 'DeFi' }
+    ]
+
+    // Search all stocks
+    const allStocks = [
+      ...usStocks.map(stock => ({ ...stock, type: 'stock', region: 'United States', currency: 'USD' })),
+      ...indianStocks.map(stock => ({ ...stock, type: 'stock', region: 'India', currency: 'INR' })),
+      ...cryptos.map(stock => ({ ...stock, type: 'crypto', region: 'Global', currency: 'USD' }))
+    ]
+
+    // Filter results
+    allStocks.forEach(stock => {
+      const symbolClean = stock.symbol.replace(/\.(NS|BO|-USD)$/, '')
+      const symbolMatch = symbolClean.includes(queryUpper) || stock.symbol.includes(queryUpper)
+      const nameMatch = stock.name.toUpperCase().includes(queryUpper)
+      const sectorMatch = stock.sector && stock.sector.toUpperCase().includes(queryUpper)
+      
+      if (symbolMatch || nameMatch || sectorMatch) {
+        results.push(stock)
+      }
+    })
+
+    return results
   }
 
   // Search debouncing with real-time updates

@@ -4,6 +4,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
     const symbol = searchParams.get('symbol')
+    const timeframe = searchParams.get('timeframe') || '1D'
 
     if (!symbol) {
       return NextResponse.json({ success: false, error: 'Symbol is required' })
@@ -11,6 +12,7 @@ export async function GET(request) {
 
     // Try multiple APIs for real-time data
     let stockData = null
+    let chartData = null
 
     // Try Alpha Vantage first
     try {
@@ -109,9 +111,69 @@ export async function GET(request) {
       }
     }
 
+    // Fetch historical chart data
+    if (stockData) {
+      try {
+        // Determine the range and interval based on timeframe
+        let range, interval
+        switch (timeframe) {
+          case '1D':
+            range = '1d'
+            interval = '5m'
+            break
+          case '5D':
+            range = '5d'
+            interval = '15m'
+            break
+          case '1M':
+            range = '1mo'
+            interval = '1d'
+            break
+          case '3M':
+            range = '3mo'
+            interval = '1d'
+            break
+          case '1Y':
+            range = '1y'
+            interval = '1wk'
+            break
+          default:
+            range = '1d'
+            interval = '5m'
+        }
+
+        const chartResponse = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`
+        )
+        const chartResult = await chartResponse.json()
+
+        if (chartResult.chart?.result?.[0]) {
+          const result = chartResult.chart.result[0]
+          const timestamps = result.timestamp || []
+          const quotes = result.indicators?.quote?.[0]
+
+          if (quotes && timestamps.length > 0) {
+            chartData = timestamps.map((timestamp, index) => ({
+              time: timestamp,
+              open: Number((quotes.open?.[index] || 0).toFixed(2)),
+              high: Number((quotes.high?.[index] || 0).toFixed(2)),
+              low: Number((quotes.low?.[index] || 0).toFixed(2)),
+              close: Number((quotes.close?.[index] || 0).toFixed(2)),
+              volume: quotes.volume?.[index] || 0
+            })).filter(candle => candle.open > 0 && candle.high > 0 && candle.low > 0 && candle.close > 0)
+          }
+        }
+      } catch (error) {
+        console.error('Chart data fetch error:', error)
+        chartData = null
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: stockData
+      data: stockData,
+      chartData: chartData,
+      timeframe: timeframe
     })
 
   } catch (error) {

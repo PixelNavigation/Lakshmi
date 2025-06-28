@@ -5,47 +5,49 @@ import styles from './Dashboard.module.css'
 import DirectSearch from '../Components/DirectSearch'
 
 export default function Dashboard() {
-  const [selectedMarket, setSelectedMarket] = useState('NASDAQ')
+  const [selectedMarket, setSelectedMarket] = useState('ALL')
   const [watchlist, setWatchlist] = useState([])
 
-  // Market configurations
-  const markets = {
-    'NASDAQ': { name: 'NASDAQ', currency: 'USD', description: 'US Technology Stocks' },
-    'SP500': { name: 'S&P 500', currency: 'USD', description: 'US Large Cap Stocks' },
-    'NSE': { name: 'NSE (India)', currency: 'INR', description: 'National Stock Exchange of India' },
-    'BSE': { name: 'BSE (India)', currency: 'INR', description: 'Bombay Stock Exchange' },
-    'CRYPTO': { name: 'Cryptocurrency', currency: 'USD', description: 'Major Cryptocurrencies' },
-    'FTSE': { name: 'FTSE 100 (UK)', currency: 'GBP', description: 'UK Large Cap Stocks' }
-  }
+  const markets = [
+    { value: 'ALL', label: 'All Markets' },
+    { value: 'NSE', label: 'NSE (India)' },
+    { value: 'BSE', label: 'BSE (India)' },
+    { value: 'NASDAQ', label: 'NASDAQ' },
+    { value: 'NYSE', label: 'NYSE' }
+  ]
 
   // Load watchlist from localStorage
   useEffect(() => {
-    const savedWatchlist = localStorage.getItem('lakshmi_watchlist')
+    const savedWatchlist = localStorage.getItem('stockWatchlist')
     if (savedWatchlist) {
-      setWatchlist(JSON.parse(savedWatchlist))
+      try {
+        setWatchlist(JSON.parse(savedWatchlist))
+      } catch (error) {
+        console.error('Error loading watchlist:', error)
+      }
     }
   }, [])
 
-  // Add to watchlist
-  const addToWatchlist = (symbol) => {
-    if (!watchlist.includes(symbol)) {
-      const newWatchlist = [...watchlist, symbol]
-      setWatchlist(newWatchlist)
-      localStorage.setItem('lakshmi_watchlist', JSON.stringify(newWatchlist))
-    }
+  const addToWatchlist = (stock) => {
+    const updatedWatchlist = [...watchlist, { ...stock, addedAt: new Date().toISOString() }]
+    setWatchlist(updatedWatchlist)
+    localStorage.setItem('stockWatchlist', JSON.stringify(updatedWatchlist))
   }
   return (
     <div className={styles.pageContainer}>
+      {/* Direct Search at the top */}
+      <div className={styles.searchSection}>
+        <DirectSearch
+          selectedMarket={selectedMarket}
+          setSelectedMarket={setSelectedMarket}
+          markets={markets}
+          watchlist={watchlist}
+          addToWatchlist={addToWatchlist}
+        />
+      </div>
+
       <div className={styles.contentGrid}>
         <div className={styles.mainContent}>
-          <DirectSearch
-            selectedMarket={selectedMarket}
-            setSelectedMarket={setSelectedMarket}
-            markets={markets}
-            watchlist={watchlist}
-            addToWatchlist={addToWatchlist}
-          />
-
           <div className={styles.card}>
             <h3>Portfolio Performance</h3>
             <div className={styles.performanceGrid}>
@@ -89,16 +91,13 @@ export default function Dashboard() {
 
         <div className={styles.sidebar}>
           <div className={styles.card}>
-            <h3>📋 Your Watchlist</h3>
-            <p>Total items: {watchlist.length}</p>
-            {watchlist.length > 0 && (
-              <div className={styles.watchlistPreview}>
-                {watchlist.slice(0, 5).map(symbol => (
-                  <span key={symbol} className={styles.watchlistItem}>{symbol}</span>
-                ))}
-                {watchlist.length > 5 && <span>+{watchlist.length - 5} more</span>}
-              </div>
-            )}
+            <h3>Quick Actions</h3>
+            <div className={styles.actionButtons}>
+              <button className={styles.actionBtn}>Add Investment</button>
+              <button className={styles.actionBtn}>Run Screen</button>
+              <button className={styles.actionBtn}>View Reports</button>
+              <button className={styles.actionBtn}>Export Data</button>
+            </div>
           </div>
 
           <div className={styles.card}>

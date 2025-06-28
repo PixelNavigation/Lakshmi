@@ -5,6 +5,10 @@
   margin: 0 auto;
 }
 
+.searchSection {
+  margin-bottom: 2rem;
+}
+
 .pageHeader {
   margin-bottom: 2rem;
 }
@@ -151,25 +155,6 @@
   font-weight: 600;
 }
 
-/* Watchlist Preview */
-.watchlistPreview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.watchlistItem {
-  background: rgba(99, 179, 237, 0.2);
-  color: #3182ce;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  border: 1px solid rgba(99, 179, 237, 0.3);
-}
-
-/* Responsive Design */
 @media (max-width: 768px) {
   .contentGrid {
     grid-template-columns: 1fr;
