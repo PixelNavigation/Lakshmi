@@ -10,27 +10,34 @@ export function StockChart({ symbol, comparisonSymbols = [] }) {
       // Clear previous widget
       container.current.innerHTML = ''
       
-      const script = document.createElement('script')
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
-      script.type = 'text/javascript'
-      script.async = true
-      
-      script.innerHTML = JSON.stringify({
-        autosize: true,
-        symbol: symbol.toUpperCase(),
-        interval: 'D',
-        timezone: 'Etc/UTC',
-        theme: 'light',
-        style: '1',
-        locale: 'en',
-        toolbar_bg: '#f1f3f6',
-        enable_publishing: false,
-        allow_symbol_change: true,
-        width: "100%",
-        height: 400
-      })
+      // Add a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        if (container.current) {
+          const script = document.createElement('script')
+          script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
+          script.type = 'text/javascript'
+          script.async = true
+          
+          script.innerHTML = JSON.stringify({
+            autosize: true,
+            symbol: symbol.toUpperCase(),
+            interval: 'D',
+            timezone: 'Etc/UTC',
+            theme: 'light',
+            style: '1',
+            locale: 'en',
+            toolbar_bg: '#f1f3f6',
+            enable_publishing: false,
+            allow_symbol_change: true,
+            width: "100%",
+            height: 400
+          })
 
-      container.current.appendChild(script)
+          container.current.appendChild(script)
+        }
+      }, 100)
+      
+      return () => clearTimeout(timer)
     }
   }, [symbol, comparisonSymbols])
 

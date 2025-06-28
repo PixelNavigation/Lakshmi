@@ -171,6 +171,37 @@ function parseAIResponse(message, content) {
   const lowercaseMessage = message.toLowerCase()
   const lowercaseContent = content.toLowerCase()
   
+  console.log('Parsing AI Response - Message:', lowercaseMessage, 'Content:', lowercaseContent.substring(0, 100) + '...')
+  
+  // Extract TradingView URLs and parse symbols from them
+  const tradingViewUrlPattern = /https?:\/\/(?:www\.)?tradingview\.com\/symbols\/([^\/\?]+)/gi
+  const tvUrlMatches = (message + ' ' + content).match(tradingViewUrlPattern)
+  let tvSymbol = null
+  
+  if (tvUrlMatches) {
+    // Parse the first TradingView URL found
+    const urlMatch = tvUrlMatches[0].match(/\/symbols\/([^\/\?]+)/)
+    if (urlMatch) {
+      // Convert TradingView format to standard format
+      // NSE-SBIN -> SBIN.NS, NASDAQ-AAPL -> AAPL
+      let symbol = urlMatch[1]
+      if (symbol.includes('-')) {
+        const [exchange, ticker] = symbol.split('-')
+        if (exchange === 'NSE') {
+          tvSymbol = `${ticker}.NS`
+        } else if (exchange === 'BSE') {
+          tvSymbol = `${ticker}.BO`
+        } else if (exchange === 'NASDAQ' || exchange === 'NYSE') {
+          tvSymbol = ticker
+        } else {
+          tvSymbol = ticker // Default fallback
+        }
+      } else {
+        tvSymbol = symbol
+      }
+    }
+  }
+  
   // Extract stock symbols - improved pattern to handle various formats
   // Matches: AAPL, NCC.NS, RELIANCE.BSE, etc.
   const stockSymbolMatch = (message + ' ' + content).match(/\b[A-Z][A-Z0-9]*(?:\.[A-Z]{2,4})?\b/g)
@@ -189,9 +220,10 @@ function parseAIResponse(message, content) {
     'NCC.NS'  // Added NCC.NS specifically
   ]
   
-  // Find the first mentioned stock symbol
-  let mentionedStock = null
-  if (stockSymbolMatch) {
+  // Find the first mentioned stock symbol - prioritize TradingView parsed symbol
+  let mentionedStock = tvSymbol
+  
+  if (!mentionedStock && stockSymbolMatch) {
     mentionedStock = stockSymbolMatch.find(symbol => {
       // Check if it's in common stocks or looks like a valid symbol
       return commonStocks.includes(symbol) || 
@@ -206,8 +238,30 @@ function parseAIResponse(message, content) {
     )
   }
 
+  // Special handling for TradingView URLs - automatically show chart
+  if (tvUrlMatches && mentionedStock) {
+    return {
+      type: 'chart',
+      symbol: mentionedStock,
+      content: content,
+      hideText: false,
+      source: 'tradingview'
+    }
+  }
+
   // Priority check: Look for specific widget requests in user message first
-  // NEWS - highest priority for news requests
+  // CHART - highest priority when explicitly requested
+  if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show chart')) && mentionedStock) {
+    console.log('Returning CHART widget for symbol:', mentionedStock)
+    return {
+      type: 'chart',
+      symbol: mentionedStock,
+      content: content,  // Show the full AI response
+      hideText: false
+    }
+  }
+  
+  // NEWS - high priority for news requests
   if (lowercaseMessage.includes('news') && mentionedStock) {
     return {
       type: 'news',
@@ -217,8 +271,10 @@ function parseAIResponse(message, content) {
     }
   }
   
-  // FINANCIALS - check before price to avoid conflicts
-  if ((lowercaseMessage.includes('financial') || lowercaseMessage.includes('financials')) && mentionedStock) {
+  // FINANCIALS - check before price to avoid conflicts, but not if chart was requested
+  if ((lowercaseMessage.includes('financial') || lowercaseMessage.includes('financials')) && 
+      !lowercaseMessage.includes('chart') && mentionedStock) {
+    console.log('Returning FINANCIALS widget for symbol:', mentionedStock)
     return {
       type: 'financials',
       symbol: mentionedStock,
@@ -227,20 +283,13 @@ function parseAIResponse(message, content) {
     }
   }
   
-  // PRICE - but not if chart is also mentioned
-  if (lowercaseMessage.includes('price') && !lowercaseMessage.includes('chart') && mentionedStock) {
+  // PRICE - but not if chart or financials are also mentioned
+  if (lowercaseMessage.includes('price') && 
+      !lowercaseMessage.includes('chart') && 
+      !lowercaseMessage.includes('financial') && 
+      mentionedStock) {
     return {
       type: 'price',
-      symbol: mentionedStock,
-      content: content,  // Show the full AI response
-      hideText: false
-    }
-  }
-  
-  // CHART - only if specifically requested
-  if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show')) && mentionedStock) {
-    return {
-      type: 'chart',
       symbol: mentionedStock,
       content: content,  // Show the full AI response
       hideText: false
@@ -377,7 +426,7 @@ export default function LakshmiAi() {
         }
         
         // Parse the response to determine if we should show widgets
-        const parsedResponse = parseAIResponse(data.response, messageContent)
+        const parsedResponse = parseAIResponse(messageContent, data.response)
         
         const botMessage = {
           id: nanoid(),
@@ -426,7 +475,7 @@ export default function LakshmiAi() {
     },
     {
       title: "Chart View", 
-      message: "Show me a chart for GOOGL",
+      message: "Show me a chart for SBIN.NS",
       icon: "📈"
     },
     {

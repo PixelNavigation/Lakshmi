@@ -9,23 +9,30 @@ export function StockFinancials({ symbol }) {
     if (container.current && symbol) {
       container.current.innerHTML = ''
       
-      const script = document.createElement('script')
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-financials.js'
-      script.type = 'text/javascript'
-      script.async = true
-      
-      script.innerHTML = JSON.stringify({
-        colorTheme: 'light',
-        isTransparent: false,
-        largeChartUrl: '',
-        displayMode: 'regular',
-        width: '100%',
-        height: 400,
-        symbol: symbol.toUpperCase(),
-        locale: 'en'
-      })
+      // Add a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        if (container.current) {
+          const script = document.createElement('script')
+          script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-financials.js'
+          script.type = 'text/javascript'
+          script.async = true
+          
+          script.innerHTML = JSON.stringify({
+            colorTheme: 'light',
+            isTransparent: false,
+            largeChartUrl: '',
+            displayMode: 'regular',
+            width: '100%',
+            height: 400,
+            symbol: symbol.toUpperCase(),
+            locale: 'en'
+          })
 
-      container.current.appendChild(script)
+          container.current.appendChild(script)
+        }
+      }, 100)
+      
+      return () => clearTimeout(timer)
     }
   }, [symbol])
 
