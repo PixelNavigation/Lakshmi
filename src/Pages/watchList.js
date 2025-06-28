@@ -5,7 +5,6 @@ import styles from './watchList.module.css'
 
 // Import TradingView Chart component
 import { StockChart } from '../Components/TradingView/StockChart'
-import { MiniPrice } from '../Components/TradingView/MiniPrice'
 import { PriceWidget } from '../Components/TradingView/PriceWidget'
 
 export default function WatchList() {
