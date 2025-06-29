@@ -560,7 +560,13 @@ export async function POST(request) {
     if (searchResults.length === 0) {
       // Use existing basic search...
       const basicResults = await performBasicSearch(query, type)
-      searchResults = basicResults
+      searchResults = Array.isArray(basicResults) ? basicResults : []
+    }
+
+    // Ensure searchResults is an array before filtering
+    if (!Array.isArray(searchResults)) {
+      console.warn('searchResults is not an array, resetting to empty array')
+      searchResults = []
     }
 
     // Remove duplicates
@@ -583,13 +589,8 @@ export async function POST(request) {
 
 async function performBasicSearch(query, type) {
   try {
-    const { query, type } = await request.json()
-    
     if (!query || query.length < 2) {
-      return NextResponse.json({
-        success: false,
-        error: 'Query must be at least 2 characters long'
-      }, { status: 400 })
+      return []
     }
 
     const searchResults = []
@@ -616,20 +617,11 @@ async function performBasicSearch(query, type) {
       index === self.findIndex(i => i.symbol === item.symbol)
     )
     
-    return NextResponse.json({
-      success: true,
-      data: uniqueResults.slice(0, 10), // Limit to 10 results
-      query,
-      type,
-      timestamp: new Date().toISOString()
-    })
+    return uniqueResults.slice(0, 10) // Return array, not NextResponse
     
   } catch (error) {
-    console.error('Error searching instruments:', error)
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to search instruments'
-    }, { status: 500 })
+    console.error('Error in performBasicSearch:', error)
+    return [] // Return empty array on error
   }
 }
 

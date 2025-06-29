@@ -30,11 +30,35 @@ export async function GET(request) {
       if (yahooResponse.ok) {
         const yahooData = await yahooResponse.json()
         if (yahooData.quotes && yahooData.quotes.length > 0) {
-          searchResults = yahooData.quotes.slice(0, 30).map(quote => ({
+          // Filter to only include Indian stocks and crypto
+          const filteredQuotes = yahooData.quotes.filter(quote => {
+            const symbol = quote.symbol || ''
+            
+            // Allow Indian stocks (NSE/BSE)
+            if (symbol.includes('.NS') || symbol.includes('.BO')) {
+              return true
+            }
+            
+            // Allow crypto pairs with INR
+            if (symbol.includes('-INR') || symbol.includes('INR=X')) {
+              return true
+            }
+            
+            // Allow major crypto symbols (BTC, ETH, etc.)
+            const cryptoSymbols = ['BTC-USD', 'ETH-USD', 'BNB-USD', 'ADA-USD', 'DOT-USD', 'MATIC-USD', 'SOL-USD', 'AVAX-USD']
+            if (cryptoSymbols.includes(symbol)) {
+              return true
+            }
+            
+            // Filter out all other foreign stocks
+            return false
+          })
+          
+          searchResults = filteredQuotes.slice(0, 30).map(quote => ({
             symbol: quote.symbol,
             name: quote.longname || quote.shortname || quote.symbol,
             type: quote.typeDisp || 'stock',
-            region: quote.exchDisp || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'India' : 'Global'),
+            region: quote.exchDisp || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'India' : 'Crypto'),
             currency: quote.currency || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'INR' : 'INR'),
             exchange: quote.exchange,
             marketCap: quote.marketCap,

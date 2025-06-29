@@ -10,7 +10,8 @@ export default function DirectSearch({
   setSelectedMarket, 
   markets, 
   watchlist, 
-  addToWatchlist 
+  addToWatchlist,
+  onTradeComplete 
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -40,6 +41,10 @@ export default function DirectSearch({
       } else if (selectedMarket === 'BSE' && !enhancedQuery.includes('.BO')) {
         enhancedQuery = enhancedQuery + '.BO'
         searchType = 'stocks'
+      } else if (selectedMarket === 'INDIAN' && !enhancedQuery.includes('.NS') && !enhancedQuery.includes('.BO')) {
+        // For combined Indian markets, search both NSE and BSE simultaneously
+        enhancedQuery = query.toUpperCase() // Keep original query for multiple suffix search
+        searchType = 'stocks'
       } else if (selectedMarket === 'CRYPTO') {
         // For crypto, use INR for Indian users only
         if (!enhancedQuery.includes('-INR') && !enhancedQuery.includes('-')) {
@@ -53,11 +58,71 @@ export default function DirectSearch({
 
       // Method 1: Use our comprehensive search API first
       try {
-        const comprehensiveResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(enhancedQuery)}&market=${selectedMarket}&limit=20`)
-        const comprehensiveResult = await comprehensiveResponse.json()
-        if (comprehensiveResult.success && comprehensiveResult.data && comprehensiveResult.data.length > 0) {
-          initialSearchResults = comprehensiveResult.data
-          console.log(`Found ${initialSearchResults.length} results from comprehensive search`)
+        if (selectedMarket === 'INDIAN') {
+          // For Indian markets, search both NSE and BSE simultaneously
+          const searchPromises = [
+            fetch(`/api/comprehensive-search?query=${encodeURIComponent(enhancedQuery + '.NS')}&market=NSE&limit=10`),
+            fetch(`/api/comprehensive-search?query=${encodeURIComponent(enhancedQuery + '.BO')}&market=BSE&limit=10`)
+          ]
+          
+          const responses = await Promise.all(searchPromises.map(p => p.catch(e => ({ ok: false }))))
+          const results = await Promise.all(responses.filter(r => r.ok).map(r => r.json()))
+          
+          const combinedData = []
+          results.forEach(result => {
+            if (result.success && result.data && result.data.length > 0) {
+              combinedData.push(...result.data)
+            }
+          })
+          
+          if (combinedData.length > 0) {
+            // Remove duplicates, actually preferring NSE over BSE
+            const uniqueResults = []
+            const companyMap = new Map()
+            
+            // First pass: collect all results by company name
+            combinedData.forEach(stock => {
+              const companyName = stock.name?.toLowerCase().replace(/limited|ltd|ltd\.|\s+/g, '') || stock.symbol?.replace(/\.(NS|BO)$/, '').toLowerCase()
+              if (!companyMap.has(companyName)) {
+                companyMap.set(companyName, [])
+              }
+              companyMap.get(companyName).push(stock)
+            })
+            
+            // Second pass: select preferred exchange (NSE over BSE)
+            companyMap.forEach((stocks, companyName) => {
+              if (stocks.length === 1) {
+                uniqueResults.push(stocks[0])
+              } else {
+                // Prefer NSE over BSE
+                const nseStock = stocks.find(s => s.symbol?.includes('.NS'))
+                const bseStock = stocks.find(s => s.symbol?.includes('.BO'))
+                
+                if (nseStock && bseStock) {
+                  // If both NSE and BSE exist, add both but NSE first
+                  uniqueResults.push(nseStock, bseStock)
+                } else if (nseStock) {
+                  uniqueResults.push(nseStock)
+                } else if (bseStock) {
+                  uniqueResults.push(bseStock)
+                } else {
+                  // Fallback to first stock
+                  uniqueResults.push(stocks[0])
+                }
+              }
+            })
+            
+            initialSearchResults = uniqueResults
+            console.log(`Found ${initialSearchResults.length} unique results from combined Indian markets search`)
+          }
+        } else {
+          // For other markets, use single search
+          const comprehensiveResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(enhancedQuery)}&market=${selectedMarket}&limit=20`)
+          const comprehensiveResult = await comprehensiveResponse.json()
+          if (comprehensiveResult.success && comprehensiveResult.data && comprehensiveResult.data.length > 0) {
+            initialSearchResults = comprehensiveResult.data
+            console.log(`Found ${initialSearchResults.length} results from comprehensive search`)
+          }
         }
       } catch (error) {
         console.log('Comprehensive search failed:', error)
@@ -66,16 +131,84 @@ export default function DirectSearch({
       // Method 2: Fallback to original watchlist API
       if (initialSearchResults.length === 0) {
         try {
-          const response = await fetch('/api/watchlist', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: enhancedQuery, type: searchType })
-          })
-          
-          const result = await response.json()
-          if (result.success && result.stocks) {
-            initialSearchResults = result.stocks
-            console.log(`Found ${initialSearchResults.length} results from watchlist API`)
+          if (selectedMarket === 'INDIAN') {
+            // For Indian markets, try both NSE and BSE in watchlist API
+            const watchlistPromises = [
+              fetch('/api/watchlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: enhancedQuery + '.NS', type: searchType })
+              }),
+              fetch('/api/watchlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: enhancedQuery + '.BO', type: searchType })
+              })
+            ]
+            
+            const responses = await Promise.all(watchlistPromises.map(p => p.catch(e => ({ ok: false }))))
+            const results = await Promise.all(responses.filter(r => r.ok).map(r => r.json()))
+            
+            const combinedStocks = []
+            results.forEach(result => {
+              if (result.success && result.stocks && result.stocks.length > 0) {
+                combinedStocks.push(...result.stocks)
+              }
+            })
+            
+            if (combinedStocks.length > 0) {
+              // Remove duplicates for Indian markets, showing both NSE and BSE
+              const uniqueStocks = []
+              const companyMap = new Map()
+              
+              // First pass: collect all results by company name
+              combinedStocks.forEach(stock => {
+                const companyName = stock.name?.toLowerCase().replace(/limited|ltd|ltd\.|\s+/g, '') || stock.symbol?.replace(/\.(NS|BO)$/, '').toLowerCase()
+                if (!companyMap.has(companyName)) {
+                  companyMap.set(companyName, [])
+                }
+                companyMap.get(companyName).push(stock)
+              })
+              
+              // Second pass: select preferred exchange (show both NSE and BSE)
+              companyMap.forEach((stocks, companyName) => {
+                if (stocks.length === 1) {
+                  uniqueStocks.push(stocks[0])
+                } else {
+                  // Show both NSE and BSE if available
+                  const nseStock = stocks.find(s => s.symbol?.includes('.NS'))
+                  const bseStock = stocks.find(s => s.symbol?.includes('.BO'))
+                  
+                  if (nseStock && bseStock) {
+                    // Add both, NSE first
+                    uniqueStocks.push(nseStock, bseStock)
+                  } else if (nseStock) {
+                    uniqueStocks.push(nseStock)
+                  } else if (bseStock) {
+                    uniqueStocks.push(bseStock)
+                  } else {
+                    // Fallback to first stock
+                    uniqueStocks.push(stocks[0])
+                  }
+                }
+              })
+              
+              initialSearchResults = uniqueStocks
+              console.log(`Found ${initialSearchResults.length} unique results from combined watchlist API`)
+            }
+          } else {
+            // For other markets, use single watchlist search
+            const response = await fetch('/api/watchlist', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: enhancedQuery, type: searchType })
+            })
+            
+            const result = await response.json()
+            if (result.success && result.stocks) {
+              initialSearchResults = result.stocks
+              console.log(`Found ${initialSearchResults.length} results from watchlist API`)
+            }
           }
         } catch (error) {
           console.log('Watchlist API failed:', error)
@@ -90,14 +223,32 @@ export default function DirectSearch({
           const yahooData = await yahooResponse.json()
           
           if (yahooData.quotes && yahooData.quotes.length > 0) {
-            initialSearchResults = yahooData.quotes.map(quote => ({
+            // Filter to only include Indian stocks and crypto
+            const filteredQuotes = yahooData.quotes.filter(quote => {
+              const symbol = quote.symbol || ''
+              
+              // Allow Indian stocks (NSE/BSE)
+              if (symbol.includes('.NS') || symbol.includes('.BO')) {
+                return true
+              }
+              
+              // Allow crypto pairs with INR only
+              if (symbol.includes('-INR') || symbol.includes('INR=X')) {
+                return true
+              }
+              
+              // Filter out all other foreign stocks and USD crypto pairs
+              return false
+            })
+            
+            initialSearchResults = filteredQuotes.map(quote => ({
               symbol: quote.symbol,
               name: quote.longname || quote.shortname || quote.symbol,
               type: quote.typeDisp || 'stock',
               region: quote.exchDisp || 'Unknown',
               currency: quote.currency || 'INR'
             }))
-            console.log(`Found ${initialSearchResults.length} results from Yahoo Finance`)
+            console.log(`Found ${initialSearchResults.length} filtered results from Yahoo Finance`)
           }
         } catch (error) {
           console.log('Yahoo Finance search failed:', error)
@@ -113,59 +264,108 @@ export default function DirectSearch({
       // Use the comprehensive search results
       let searchResults = initialSearchResults
       
-      // Additional fallbacks for Indian stocks if no results and specific market selected
-      if (searchResults.length === 0 && (selectedMarket === 'NSE' || selectedMarket === 'BSE')) {
-        searchResults = searchIndianStocks(query, selectedMarket)
+      // Additional fallbacks for Indian stocks if no results
+      if (searchResults.length === 0 && selectedMarket === 'INDIAN') {
+        // Search both NSE and BSE for Indian markets
+        const nseResults = searchIndianStocks(query, 'NSE')
+        const bseResults = searchIndianStocks(query, 'BSE')
+        
+        // Combine and show both NSE and BSE results
+        const combinedResults = [...nseResults, ...bseResults]
+        const uniqueResults = []
+        const companyMap = new Map()
+        
+        // Group by company name
+        combinedResults.forEach(stock => {
+          const companyName = stock.name?.toLowerCase().replace(/limited|ltd|ltd\.|\s+/g, '') || stock.symbol?.replace(/\.(NS|BO)$/, '').toLowerCase()
+          if (!companyMap.has(companyName)) {
+            companyMap.set(companyName, [])
+          }
+          companyMap.get(companyName).push(stock)
+        })
+        
+        // Add both NSE and BSE versions if available
+        companyMap.forEach((stocks, companyName) => {
+          if (stocks.length === 1) {
+            uniqueResults.push(stocks[0])
+          } else {
+            // Show both NSE and BSE
+            const nseStock = stocks.find(s => s.symbol?.includes('.NS'))
+            const bseStock = stocks.find(s => s.symbol?.includes('.BO'))
+            
+            if (nseStock && bseStock) {
+              uniqueResults.push(nseStock, bseStock)
+            } else {
+              uniqueResults.push(...stocks)
+            }
+          }
+        })
+        
+        searchResults = uniqueResults
+        console.log(`Found ${searchResults.length} unique results from local Indian stocks search`)
       }
       
-      // If still no results and Indian market selected, try the other Indian market as fallback
-      if (searchResults.length === 0 && selectedMarket === 'NSE') {
-        // Try BSE as fallback
-        const bseQuery = query.toUpperCase() + '.BO'
-        try {
-          const bseResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(bseQuery)}&market=BSE&limit=10`)
-          const bseResult = await bseResponse.json()
-          if (bseResult.success && bseResult.data && bseResult.data.length > 0) {
-            searchResults = bseResult.data
-            console.log(`Found ${searchResults.length} results from BSE fallback`)
-          }
-        } catch (error) {
-          console.log('BSE fallback failed:', error)
-        }
-      } else if (searchResults.length === 0 && selectedMarket === 'BSE') {
-        // Try NSE as fallback
-        const nseQuery = query.toUpperCase() + '.NS'
-        try {
-          const nseResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(nseQuery)}&market=NSE&limit=10`)
-          const nseResult = await nseResponse.json()
-          if (nseResult.success && nseResult.data && nseResult.data.length > 0) {
-            searchResults = nseResult.data
-            console.log(`Found ${searchResults.length} results from NSE fallback`)
-          }
-        } catch (error) {
-          console.log('NSE fallback failed:', error)
-        }
-      } else if (searchResults.length === 0 && selectedMarket === 'ALL') {
-        // For "ALL" market, try both NSE and BSE, plus crypto
-        const fallbackQueries = [
-          { query: query.toUpperCase() + '.NS', market: 'NSE' },
-          { query: query.toUpperCase() + '.BO', market: 'BSE' },
-          { query: query.toUpperCase() + '-INR', market: 'CRYPTO' }
+      // If still no results for Indian market, try the local comprehensive fallback
+      if (searchResults.length === 0 && selectedMarket === 'INDIAN') {
+        // For combined Indian markets, try both NSE and BSE simultaneously for better coverage
+        const searchPromises = [
+          fetch(`/api/comprehensive-search?query=${encodeURIComponent(query.toUpperCase() + '.NS')}&market=NSE&limit=10`)
+            .then(res => res.json())
+            .then(result => ({ ...result, exchange: 'NSE' }))
+            .catch(error => ({ success: false, error, exchange: 'NSE' })),
+          fetch(`/api/comprehensive-search?query=${encodeURIComponent(query.toUpperCase() + '.BO')}&market=BSE&limit=10`)
+            .then(res => res.json())
+            .then(result => ({ ...result, exchange: 'BSE' }))
+            .catch(error => ({ success: false, error, exchange: 'BSE' }))
         ]
         
-        for (const fallback of fallbackQueries) {
-          if (searchResults.length > 0) break
-          try {
-            const response = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(fallback.query)}&market=${fallback.market}&limit=10`)
-            const result = await response.json()
+        try {
+          const results = await Promise.all(searchPromises)
+          const combinedResults = []
+          
+          // Combine results from both exchanges, prioritizing NSE then BSE
+          results.forEach(result => {
             if (result.success && result.data && result.data.length > 0) {
-              searchResults = result.data
-              console.log(`Found ${searchResults.length} results from ${fallback.market} fallback`)
-              break
+              combinedResults.push(...result.data)
+              console.log(`Found ${result.data.length} results from ${result.exchange}`)
             }
-          } catch (error) {
-            console.log(`${fallback.market} fallback failed:`, error)
+          })
+          
+          // Remove duplicates but show both NSE and BSE options
+          const uniqueResults = []
+          const companyMap = new Map()
+          
+          combinedResults.forEach(stock => {
+            const companyName = stock.name?.toLowerCase().replace(/limited|ltd|ltd\.|\s+/g, '') || stock.symbol?.replace(/\.(NS|BO)$/, '').toLowerCase()
+            if (!companyMap.has(companyName)) {
+              companyMap.set(companyName, [])
+            }
+            companyMap.get(companyName).push(stock)
+          })
+          
+          // Add both NSE and BSE versions
+          companyMap.forEach((stocks, companyName) => {
+            if (stocks.length === 1) {
+              uniqueResults.push(stocks[0])
+            } else {
+              // Show both exchanges
+              const nseStock = stocks.find(s => s.symbol?.includes('.NS'))
+              const bseStock = stocks.find(s => s.symbol?.includes('.BO'))
+              
+              if (nseStock && bseStock) {
+                uniqueResults.push(nseStock, bseStock)
+              } else {
+                uniqueResults.push(...stocks)
+              }
+            }
+          })
+          
+          if (uniqueResults.length > 0) {
+            searchResults = uniqueResults
+            console.log(`Combined search found ${searchResults.length} unique results from Indian markets`)
           }
+        } catch (error) {
+          console.log('Combined Indian markets search failed:', error)
         }
       }
       
@@ -469,8 +669,8 @@ export default function DirectSearch({
       <div className={styles.card}>
         <h3>🔍 Search Stocks & Markets</h3>
         <p className={styles.cardDescription}>
-          {selectedMarket === 'NSE' || selectedMarket === 'BSE' 
-            ? `Search for Indian stocks on ${selectedMarket}. Just enter the symbol (e.g., NCC, INFY) - market suffix will be added automatically.`
+          {selectedMarket === 'INDIAN'
+            ? "Search for Indian stocks across NSE and BSE exchanges. Just enter the symbol (e.g., RELIANCE, TCS, INFY) - we'll search both exchanges automatically and show you the best results."
             : selectedMarket === 'CRYPTO'
             ? "Search for cryptocurrencies like Bitcoin, Ethereum, Dogecoin and more. Prices shown in INR (₹) for Indian users."
             : "Search for Indian stocks (NSE/BSE) and cryptocurrencies. Enter stock symbols (e.g., RELIANCE, TCS) or crypto names (e.g., BTC, ETH) to find and add them to your watchlist."}
@@ -490,8 +690,8 @@ export default function DirectSearch({
             
             <input
               type="text"
-              placeholder={selectedMarket === 'NSE' || selectedMarket === 'BSE' 
-                ? "Enter symbol (e.g., NCC, INFY, TCS...)" 
+              placeholder={selectedMarket === 'INDIAN'
+                ? "Enter symbol (e.g., RELIANCE, TCS, INFY...)"
                 : selectedMarket === 'CRYPTO'
                 ? "Enter crypto symbol (e.g., BTC, ETH, DOGE...)"
                 : "Enter symbol (e.g., RELIANCE, BTC, TCS...)"}
@@ -572,6 +772,7 @@ export default function DirectSearch({
         <StockDetail 
           stock={selectedStock} 
           onClose={() => setSelectedStock(null)}
+          onTradeComplete={onTradeComplete}
         />
       )}
     </div>

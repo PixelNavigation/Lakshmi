@@ -3,14 +3,110 @@
 import { useState, useEffect, useRef } from 'react'
 import styles from './StockDetail.module.css'
 
-export default function StockDetail({ stock, onClose }) {
+export default function StockDetail({ stock, onClose, onTradeComplete }) {
   const [liveData, setLiveData] = useState(stock)
   const [isLoading, setIsLoading] = useState(false)
   const [isChartLoading, setIsChartLoading] = useState(true)
   const [timeframe, setTimeframe] = useState('1D')
+  const [showTradeModal, setShowTradeModal] = useState(false)
+  const [tradeType, setTradeType] = useState('BUY')
+  const [quantity, setQuantity] = useState('')
+  const [isTrading, setIsTrading] = useState(false)
+  const [userBalance, setUserBalance] = useState(null)
+  const [userHolding, setUserHolding] = useState(null)
   const chartContainerRef = useRef()
   const chart = useRef()
   const candlestickSeries = useRef()
+
+  // Mock user ID - in a real app, this would come from authentication
+  const userId = 'user123'
+
+  // Fetch user balance and portfolio data
+  useEffect(() => {
+    fetchUserData()
+  }, [])
+
+  const fetchUserData = async () => {
+    try {
+      // Fetch user balance
+      const balanceResponse = await fetch(`/api/user-balance?userId=${userId}`)
+      const balanceResult = await balanceResponse.json()
+      if (balanceResult.success) {
+        setUserBalance(balanceResult.balance)
+      }
+
+      // Fetch user portfolio for this symbol
+      const portfolioResponse = await fetch(`/api/user-portfolio?userId=${userId}`)
+      const portfolioResult = await portfolioResponse.json()
+      if (portfolioResult.success) {
+        const holding = portfolioResult.portfolio.find(item => item.symbol === stock.symbol)
+        setUserHolding(holding)
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+    }
+  }
+
+  const handleTrade = async () => {
+    if (!quantity || parseFloat(quantity) <= 0) {
+      alert('Please enter a valid quantity')
+      return
+    }
+
+    const tradeQuantity = parseFloat(quantity)
+    const tradePrice = liveData.price || stock.price
+
+    if (tradeType === 'BUY' && userBalance && tradeQuantity * tradePrice > parseFloat(userBalance.inr_balance)) {
+      alert('Insufficient balance')
+      return
+    }
+
+    if (tradeType === 'SELL' && (!userHolding || tradeQuantity > parseFloat(userHolding.quantity))) {
+      alert('Insufficient holdings')
+      return
+    }
+
+    setIsTrading(true)
+    try {
+      const response = await fetch('/api/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          symbol: stock.symbol,
+          quantity: tradeQuantity,
+          price: tradePrice,
+          transactionType: tradeType
+        })
+      })
+
+      const result = await response.json()
+      if (result.success) {
+        alert(`${tradeType} order executed successfully!`)
+        setShowTradeModal(false)
+        setQuantity('')
+        // Refresh user data locally
+        fetchUserData()
+        // Notify parent component to refresh Portfolio and Balance data
+        if (onTradeComplete) {
+          onTradeComplete({
+            success: true,
+            action: tradeType.toLowerCase(),
+            symbol: stock.symbol,
+            quantity: tradeQuantity,
+            price: tradePrice
+          })
+        }
+      } else {
+        alert(`Trade failed: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Trade error:', error)
+      alert('Network error while processing trade')
+    } finally {
+      setIsTrading(false)
+    }
+  }
 
   // Initialize chart
   useEffect(() => {
@@ -370,10 +466,23 @@ export default function StockDetail({ stock, onClose }) {
             </div>
 
             <div className={styles.actionButtons}>
-              <button className={styles.buyBtn}>
+              <button 
+                className={styles.buyBtn}
+                onClick={() => {
+                  setTradeType('BUY')
+                  setShowTradeModal(true)
+                }}
+              >
                 BUY {formatCurrency(liveData.price || stock.price, liveData.currency || stock.currency)}
               </button>
-              <button className={styles.sellBtn}>
+              <button 
+                className={styles.sellBtn}
+                onClick={() => {
+                  setTradeType('SELL')
+                  setShowTradeModal(true)
+                }}
+                disabled={!userHolding || parseFloat(userHolding?.quantity || 0) <= 0}
+              >
                 SELL {formatCurrency(liveData.price || stock.price, liveData.currency || stock.currency)}
               </button>
             </div>
@@ -385,37 +494,53 @@ export default function StockDetail({ stock, onClose }) {
               <div className={styles.holdingInfo}>
                 <div className={styles.holdingRow}>
                   <span>Net Quantity</span>
-                  <span>-</span>
+                  <span>{userHolding ? parseFloat(userHolding.quantity).toFixed(4) : '-'}</span>
                 </div>
                 <div className={styles.holdingRow}>
-                  <span>Used quantity</span>
-                  <span>0</span>
+                  <span>Average Price</span>
+                  <span>{userHolding ? formatCurrency(userHolding.avg_buy_price, liveData.currency || stock.currency) : '-'}</span>
                 </div>
                 <div className={styles.holdingRow}>
-                  <span>Total quantity</span>
-                  <span>-</span>
+                  <span>Total Invested</span>
+                  <span>{userHolding ? formatCurrency(userHolding.total_invested, liveData.currency || stock.currency) : '-'}</span>
+                </div>
+                <div className={styles.holdingRow}>
+                  <span>Current Value</span>
+                  <span>{userHolding && (liveData.price || stock.price) ? formatCurrency(parseFloat(userHolding.quantity) * (liveData.price || stock.price), liveData.currency || stock.currency) : '-'}</span>
                 </div>
               </div>
 
               <h4>Profit and loss</h4>
               <div className={styles.pnlInfo}>
                 <div className={styles.holdingRow}>
-                  <span>Day</span>
-                  <span className={styles.negative}>-</span>
+                  <span>Day P&L</span>
+                  <span className={userHolding && (liveData.change || stock.change) ? 
+                    (parseFloat(userHolding.quantity) * (liveData.change || stock.change) >= 0 ? styles.positive : styles.negative) : ''}>
+                    {userHolding && (liveData.change || stock.change) ? 
+                      formatCurrency(parseFloat(userHolding.quantity) * (liveData.change || stock.change), liveData.currency || stock.currency) : '-'}
+                  </span>
                 </div>
                 <div className={styles.holdingRow}>
                   <span>Day return %</span>
-                  <span className={styles.negative}>
+                  <span className={(liveData.changePercent || stock.changePercent) >= 0 ? styles.positive : styles.negative}>
                     {Number(liveData.changePercent || stock.changePercent || 0).toFixed(2)}%
                   </span>
                 </div>
                 <div className={styles.holdingRow}>
-                  <span>Overall</span>
-                  <span className={styles.negative}>-</span>
+                  <span>Overall P&L</span>
+                  <span className={userHolding && (liveData.price || stock.price) ? 
+                    (parseFloat(userHolding.quantity) * (liveData.price || stock.price) - parseFloat(userHolding.total_invested) >= 0 ? styles.positive : styles.negative) : ''}>
+                    {userHolding && (liveData.price || stock.price) ? 
+                      formatCurrency(parseFloat(userHolding.quantity) * (liveData.price || stock.price) - parseFloat(userHolding.total_invested), liveData.currency || stock.currency) : '-'}
+                  </span>
                 </div>
                 <div className={styles.holdingRow}>
                   <span>Overall return %</span>
-                  <span className={styles.negative}>-</span>
+                  <span className={userHolding && (liveData.price || stock.price) ? 
+                    (((parseFloat(userHolding.quantity) * (liveData.price || stock.price) - parseFloat(userHolding.total_invested)) / parseFloat(userHolding.total_invested)) * 100 >= 0 ? styles.positive : styles.negative) : ''}>
+                    {userHolding && (liveData.price || stock.price) ? 
+                      (((parseFloat(userHolding.quantity) * (liveData.price || stock.price) - parseFloat(userHolding.total_invested)) / parseFloat(userHolding.total_invested)) * 100).toFixed(2) + '%' : '-'}
+                  </span>
                 </div>
               </div>
 
@@ -441,6 +566,74 @@ export default function StockDetail({ stock, onClose }) {
             </div>
           </div>
         </div>
+
+        {/* Trade Modal */}
+        {showTradeModal && (
+          <div className={styles.tradeModalOverlay}>
+            <div className={styles.tradeModal}>
+              <div className={styles.tradeModalHeader}>
+                <h3>{tradeType} {liveData.symbol || stock.symbol}</h3>
+                <button className={styles.closeTradeModal} onClick={() => setShowTradeModal(false)}>×</button>
+              </div>
+              <div className={styles.tradeModalContent}>
+                <div className={styles.tradeInfo}>
+                  <div className={styles.tradeRow}>
+                    <span>Current Price:</span>
+                    <span>{formatCurrency(liveData.price || stock.price, liveData.currency || stock.currency)}</span>
+                  </div>
+                  {userBalance && (
+                    <div className={styles.tradeRow}>
+                      <span>Available Balance:</span>
+                      <span>{formatCurrency(userBalance.inr_balance, 'INR')}</span>
+                    </div>
+                  )}
+                  {userHolding && tradeType === 'SELL' && (
+                    <div className={styles.tradeRow}>
+                      <span>Holdings:</span>
+                      <span>{parseFloat(userHolding.quantity).toFixed(4)} shares</span>
+                    </div>
+                  )}
+                </div>
+                <div className={styles.tradeInputs}>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      placeholder="Enter quantity"
+                      min="0"
+                      step="0.0001"
+                    />
+                  </label>
+                  {quantity && (
+                    <div className={styles.tradeSummary}>
+                      <div className={styles.tradeRow}>
+                        <span>Total Amount:</span>
+                        <span>{formatCurrency((parseFloat(quantity) || 0) * (liveData.price || stock.price), liveData.currency || stock.currency)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className={styles.tradeActions}>
+                  <button 
+                    className={styles.cancelBtn}
+                    onClick={() => setShowTradeModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className={`${styles.confirmBtn} ${tradeType === 'BUY' ? styles.buyConfirm : styles.sellConfirm}`}
+                    onClick={handleTrade}
+                    disabled={isTrading || !quantity || parseFloat(quantity) <= 0}
+                  >
+                    {isTrading ? 'Processing...' : `Confirm ${tradeType}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

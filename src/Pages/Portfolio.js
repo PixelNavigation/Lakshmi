@@ -81,6 +81,71 @@ export default function Portfolio() {
       return
     }
 
+    // Get current market price for validation
+    let currentMarketPrice = null
+    let holding = null
+    
+    if (tradeData.symbol) {
+      holding = portfolio.find(h => h.symbol === tradeData.symbol)
+      
+      // Try to get real-time price first, then fallback to avg_buy_price
+      if (stockPrices[tradeData.symbol]) {
+        currentMarketPrice = stockPrices[tradeData.symbol].currentPrice
+      } else if (holding) {
+        currentMarketPrice = holding.avg_buy_price
+      } else {
+        // For new symbols, fetch current price
+        try {
+          const response = await fetch(`/api/stock-detail?symbol=${tradeData.symbol}`)
+          const data = await response.json()
+          if (data.success && data.data) {
+            currentMarketPrice = data.data.price
+          }
+        } catch (err) {
+          console.error('Error fetching current price:', err)
+        }
+      }
+    }
+
+    // Price validation for both BUY and SELL
+    if (currentMarketPrice) {
+      const enteredPrice = parseFloat(tradeData.price)
+      const priceVariation = Math.abs(enteredPrice - currentMarketPrice) / currentMarketPrice
+      
+      // Allow maximum 10% deviation from market price
+      if (priceVariation > 0.1) {
+        const minPrice = (currentMarketPrice * 0.9).toFixed(2)
+        const maxPrice = (currentMarketPrice * 1.1).toFixed(2)
+        alert(`Invalid price! Market price is ₹${currentMarketPrice.toFixed(2)}. Please enter a price between ₹${minPrice} and ₹${maxPrice} (±10% of market price).`)
+        return
+      }
+    }
+
+    // Additional validation for SELL orders
+    if (tradeData.type === 'SELL') {
+      if (!holding) {
+        alert(`You don't own any shares of ${tradeData.symbol}`)
+        return
+      }
+      
+      const availableQuantity = parseFloat(holding.quantity || 0)
+      const sellQuantity = parseFloat(tradeData.quantity)
+      
+      if (sellQuantity > availableQuantity) {
+        alert(`Insufficient holdings. You own ${availableQuantity} shares but trying to sell ${sellQuantity} shares.`)
+        return
+      }
+    }
+
+    // Additional validation for BUY orders
+    if (tradeData.type === 'BUY') {
+      const totalCost = parseFloat(tradeData.quantity) * parseFloat(tradeData.price)
+      if (totalCost > balances.inr) {
+        alert(`Insufficient balance. Required: ₹${totalCost.toLocaleString('en-IN')}, Available: ₹${balances.inr.toLocaleString('en-IN')}`)
+        return
+      }
+    }
+
     try {
       const response = await fetch('/api/trade', {
         method: 'POST',
@@ -114,12 +179,39 @@ export default function Portfolio() {
     }
   }
 
-  const openTradeModal = (symbol = '', type = 'BUY') => {
+  const openTradeModal = async (symbol = '', type = 'BUY') => {
+    let defaultPrice = ''
+    
+    // For any trade, try to get current market price
+    if (symbol) {
+      // First check if we have cached price data
+      if (stockPrices[symbol]) {
+        defaultPrice = stockPrices[symbol].currentPrice.toFixed(2)
+      } else {
+        // Find in portfolio for avg_buy_price
+        const holding = portfolio.find(h => h.symbol === symbol)
+        if (holding && holding.avg_buy_price) {
+          defaultPrice = parseFloat(holding.avg_buy_price).toFixed(2)
+        } else {
+          // Fetch current price from API for new symbols
+          try {
+            const response = await fetch(`/api/stock-detail?symbol=${symbol}`)
+            const data = await response.json()
+            if (data.success && data.data && data.data.price) {
+              defaultPrice = parseFloat(data.data.price).toFixed(2)
+            }
+          } catch (err) {
+            console.error('Error fetching current price for modal:', err)
+          }
+        }
+      }
+    }
+    
     setTradeData({
       symbol: symbol,
       type: type,
       quantity: '',
-      price: ''
+      price: defaultPrice
     })
     setShowTradeModal(true)
   }
@@ -141,23 +233,23 @@ export default function Portfolio() {
         
         if (data.success && data.data) {
           prices[holding.symbol] = {
-            currentPrice: data.data.price || holding.average_price,
+            currentPrice: data.data.price || holding.avg_buy_price,
             change: data.data.change || 0,
             changePercent: data.data.changePercent || 0
           }
         } else {
-          // Fallback to average price if API fails
+          // Fallback to avg_buy_price if API fails
           prices[holding.symbol] = {
-            currentPrice: holding.average_price,
+            currentPrice: holding.avg_buy_price,
             change: 0,
             changePercent: 0
           }
         }
       } catch (err) {
         console.error(`Error fetching price for ${holding.symbol}:`, err)
-        // Fallback to average price
+        // Fallback to avg_buy_price
         prices[holding.symbol] = {
-          currentPrice: holding.average_price,
+          currentPrice: holding.avg_buy_price,
           change: 0,
           changePercent: 0
         }
@@ -176,15 +268,14 @@ export default function Portfolio() {
 
   // Calculate portfolio statistics with real stock prices
   const totalInvested = portfolio.reduce((total, holding) => {
-    const quantity = holding?.quantity || 0
-    const avgPrice = holding?.average_price || 0
-    return total + (quantity * avgPrice)
+    const totalInvestedAmount = holding?.total_invested || 0
+    return total + parseFloat(totalInvestedAmount)
   }, 0)
 
   const currentMarketValue = portfolio.reduce((total, holding) => {
     const quantity = holding?.quantity || 0
-    const currentPrice = stockPrices[holding.symbol]?.currentPrice || holding?.average_price || 0
-    return total + (quantity * currentPrice)
+    const currentPrice = stockPrices[holding.symbol]?.currentPrice || holding?.avg_buy_price || 0
+    return total + (parseFloat(quantity) * parseFloat(currentPrice))
   }, 0)
 
   const totalPnL = currentMarketValue - totalInvested
@@ -284,14 +375,14 @@ export default function Portfolio() {
               <div className={styles.actionsColumn}>Actions</div>
             </div>
             {portfolio.map((holding, index) => {
-              const quantity = holding?.quantity || 0
-              const avgPrice = holding?.average_price || 0
+              const quantity = parseFloat(holding?.quantity || 0)
+              const avgPrice = parseFloat(holding?.avg_buy_price || 0)
+              const totalInvestedForHolding = parseFloat(holding?.total_invested || 0)
               const stockPrice = stockPrices[holding.symbol]
               const currentPrice = stockPrice?.currentPrice || avgPrice
               const currentValue = quantity * currentPrice
-              const totalCost = quantity * avgPrice
-              const pnl = currentValue - totalCost
-              const pnlPercent = totalCost > 0 ? (pnl / totalCost) * 100 : 0
+              const pnl = currentValue - totalInvestedForHolding
+              const pnlPercent = totalInvestedForHolding > 0 ? (pnl / totalInvestedForHolding) * 100 : 0
 
               return (
                 <div key={index} className={styles.holdingRow}>
@@ -425,21 +516,56 @@ export default function Portfolio() {
               </div>
               <div className={styles.inputGroup}>
                 <label>Quantity</label>
+                {tradeData.type === 'SELL' && tradeData.symbol && (
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                    Available: {portfolio.find(h => h.symbol === tradeData.symbol)?.quantity || 0} shares
+                  </div>
+                )}
                 <input
                   type="number"
                   value={tradeData.quantity}
                   onChange={(e) => setTradeData({...tradeData, quantity: e.target.value})}
-                  placeholder="Enter quantity"
+                  placeholder={tradeData.type === 'SELL' && tradeData.symbol ? 
+                    `Max: ${portfolio.find(h => h.symbol === tradeData.symbol)?.quantity || 0}` : 
+                    "Enter quantity"}
+                  max={tradeData.type === 'SELL' && tradeData.symbol ? 
+                    portfolio.find(h => h.symbol === tradeData.symbol)?.quantity || 0 : 
+                    undefined}
                   className={styles.amountInput}
                 />
               </div>
               <div className={styles.inputGroup}>
                 <label>Price per Share (₹)</label>
+                {tradeData.symbol && (
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                    {stockPrices[tradeData.symbol] ? (
+                      <>
+                        Current Market Price: ₹{stockPrices[tradeData.symbol].currentPrice.toFixed(2)}
+                        <br />
+                        Allowed range: ₹{(stockPrices[tradeData.symbol].currentPrice * 0.9).toFixed(2)} - ₹{(stockPrices[tradeData.symbol].currentPrice * 1.1).toFixed(2)} (±10%)
+                      </>
+                    ) : (
+                      (() => {
+                        const holding = portfolio.find(h => h.symbol === tradeData.symbol)
+                        return holding ? (
+                          <>
+                            Reference Price (Avg): ₹{parseFloat(holding.avg_buy_price).toFixed(2)}
+                            <br />
+                            Suggested range: ₹{(parseFloat(holding.avg_buy_price) * 0.9).toFixed(2)} - ₹{(parseFloat(holding.avg_buy_price) * 1.1).toFixed(2)} (±10%)
+                          </>
+                        ) : 'Enter a reasonable market price'
+                      })()
+                    )}
+                  </div>
+                )}
                 <input
                   type="number"
+                  step="0.01"
                   value={tradeData.price}
                   onChange={(e) => setTradeData({...tradeData, price: e.target.value})}
-                  placeholder="Enter price"
+                  placeholder={tradeData.symbol && stockPrices[tradeData.symbol] ? 
+                    `Market: ₹${stockPrices[tradeData.symbol].currentPrice.toFixed(2)}` : 
+                    "Enter market price"}
                   className={styles.amountInput}
                 />
               </div>
@@ -449,10 +575,52 @@ export default function Portfolio() {
                     <span>Total Amount:</span>
                     <span>₹{(parseFloat(tradeData.quantity) * parseFloat(tradeData.price)).toLocaleString('en-IN')}</span>
                   </div>
-                  <div className={styles.summaryItem}>
-                    <span>Available Cash:</span>
-                    <span>₹{balances.inr.toLocaleString('en-IN')}</span>
-                  </div>
+                  {tradeData.type === 'BUY' && (
+                    <div className={styles.summaryItem}>
+                      <span>Available Cash:</span>
+                      <span>₹{balances.inr.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {tradeData.type === 'SELL' && tradeData.symbol && (
+                    <div className={styles.summaryItem}>
+                      <span>Available Shares:</span>
+                      <span>{portfolio.find(h => h.symbol === tradeData.symbol)?.quantity || 0} shares</span>
+                    </div>
+                  )}
+                  {/* Price validation warning */}
+                  {tradeData.symbol && tradeData.price && (
+                    (() => {
+                      const enteredPrice = parseFloat(tradeData.price)
+                      let marketPrice = null
+                      
+                      if (stockPrices[tradeData.symbol]) {
+                        marketPrice = stockPrices[tradeData.symbol].currentPrice
+                      } else {
+                        const holding = portfolio.find(h => h.symbol === tradeData.symbol)
+                        if (holding) marketPrice = parseFloat(holding.avg_buy_price)
+                      }
+                      
+                      if (marketPrice && enteredPrice > 0) {
+                        const variation = Math.abs(enteredPrice - marketPrice) / marketPrice
+                        if (variation > 0.1) {
+                          return (
+                            <div style={{ 
+                              color: '#ef4444', 
+                              fontSize: '0.9rem',
+                              padding: '0.5rem',
+                              backgroundColor: '#fef2f2',
+                              borderRadius: '4px',
+                              border: '1px solid #fecaca'
+                            }}>
+                              ⚠️ Price is {(variation * 100).toFixed(1)}% away from market price (₹{marketPrice.toFixed(2)}).
+                              Maximum allowed deviation is 10%.
+                            </div>
+                          )
+                        }
+                      }
+                      return null
+                    })()
+                  )}
                 </div>
               )}
               <div className={styles.modalActions}>
