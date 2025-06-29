@@ -1,0 +1,9 @@
+requests==2.31.0
+python-dotenv==1.0.0
+flask==2.3.3
+flask-cors==4.0.0mension[mcp]==0.1.0
+python-dotenv==1.0.0
+fastapi==0.104.1
+uvicorn==0.24.0
+requests==2.31.0
+pydantic==2.5.0

@@ -1,19 +1,39 @@
 import { supabase } from '@/lib/supabase'
 
+// CORS headers for cross-origin requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders })
+}
+
 export async function POST(request) {
   try {
     const { userId, symbol, quantity, price, transactionType } = await request.json()
 
     if (!userId || !symbol || !quantity || !price || !transactionType) {
-      return Response.json({ success: false, error: 'Missing required fields' }, { status: 400 })
+      return Response.json({ success: false, error: 'Missing required fields' }, { 
+        status: 400,
+        headers: corsHeaders 
+      })
     }
 
     if (quantity <= 0 || price <= 0) {
-      return Response.json({ success: false, error: 'Quantity and price must be positive' }, { status: 400 })
+      return Response.json({ success: false, error: 'Quantity and price must be positive' }, { 
+        status: 400,
+        headers: corsHeaders 
+      })
     }
 
     if (!['BUY', 'SELL'].includes(transactionType)) {
-      return Response.json({ success: false, error: 'Invalid transaction type' }, { status: 400 })
+      return Response.json({ success: false, error: 'Invalid transaction type' }, { 
+        status: 400,
+        headers: corsHeaders 
+      })
     }
 
     const totalAmount = quantity * price
@@ -26,13 +46,19 @@ export async function POST(request) {
       .single()
 
     if (balanceError) {
-      return Response.json({ success: false, error: 'Failed to fetch balance' }, { status: 500 })
+      return Response.json({ success: false, error: 'Failed to fetch balance' }, { 
+        status: 500,
+        headers: corsHeaders 
+      })
     }
 
     if (transactionType === 'BUY') {
       // Check if user has sufficient INR balance
       if (parseFloat(currentBalance.inr_balance) < totalAmount) {
-        return Response.json({ success: false, error: 'Insufficient balance' }, { status: 400 })
+        return Response.json({ success: false, error: 'Insufficient balance' }, { 
+          status: 400,
+          headers: corsHeaders 
+        })
       }
 
       // Deduct INR balance
@@ -187,10 +213,13 @@ export async function POST(request) {
         total_amount: totalAmount,
         type: transactionType
       }
-    })
+    }, { headers: corsHeaders })
 
   } catch (error) {
     console.error('API error:', error)
-    return Response.json({ success: false, error: 'Internal server error' }, { status: 500 })
+    return Response.json({ success: false, error: 'Internal server error' }, { 
+      status: 500,
+      headers: corsHeaders 
+    })
   }
 }

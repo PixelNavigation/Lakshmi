@@ -1,0 +1,82 @@
+{
+  "integration": {
+    "name": "LakshmiTradingAPI",
+    "description": "Lakshmi stock trading platform with portfolio management",
+    "base_url": "https://wwws68kj-3000.inc1.devtunnels.ms",
+    "endpoints": [
+      {
+        "name": "GetStockDetail",
+        "method": "GET",
+        "path": "/api/stock-detail",
+        "description": "Get detailed information about a specific stock",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "required": true,
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "name": "GetUserPortfolio",
+        "method": "GET",
+        "path": "/api/user-portfolio",
+        "description": "Get user's current portfolio holdings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "name": "PlaceTradeOrder",
+        "method": "POST",
+        "path": "/api/trade",
+        "description": "Place a buy or sell order for stocks",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "body",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "symbol",
+            "in": "body",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "quantity",
+            "in": "body",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "price",
+            "in": "body",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "transactionType",
+            "in": "body",
+            "type": "string",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  "agent": {
+    "name": "LakshmiTradingAgent",
+    "description": "Intelligent stock trading assistant",
+    "system_prompt": "You are a professional stock trading assistant for the Lakshmi Trading Platform. \n\nYou can help users with:\n- Portfolio management and analysis\n- Stock research and price checking  \n- Trade execution (buy/sell orders)\n- Transaction history review\n- Watchlist management\n\nAlways validate trades and consider risk management. Default user ID is 'user123'."
+  },
+  "api_key": "2jN8UJoP9Mj9Sl9ecJiSwndgzc8W7C41KDEyLGYX19g",
+  "setup_timestamp": "2025-06-29T00:00:00Z"
+}

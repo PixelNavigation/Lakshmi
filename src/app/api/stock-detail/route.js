@@ -1,5 +1,16 @@
 import { NextResponse } from 'next/server'
 
+// CORS headers for cross-origin requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders })
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -7,7 +18,9 @@ export async function GET(request) {
     const timeframe = searchParams.get('timeframe') || '1D'
 
     if (!symbol) {
-      return NextResponse.json({ success: false, error: 'Symbol is required' })
+      return NextResponse.json({ success: false, error: 'Symbol is required' }, {
+        headers: corsHeaders
+      })
     }
 
     // Normalize symbol for Indian stocks - try both NSE and BSE if no suffix
@@ -238,7 +251,7 @@ export async function GET(request) {
           success: false,
           error: `No price data available for ${symbol}. Please check the symbol or try again later.`,
           symbol: symbol
-        })
+        }, { headers: corsHeaders })
       }
     }
 
@@ -334,14 +347,14 @@ export async function GET(request) {
       data: stockData,
       chartData: chartData,
       timeframe: timeframe
-    })
+    }, { headers: corsHeaders })
 
   } catch (error) {
     console.error('Stock detail API error:', error)
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch stock details'
-    })
+    }, { headers: corsHeaders })
   }
 }
 

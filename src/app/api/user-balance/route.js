@@ -1,12 +1,27 @@
 import { supabase } from '@/lib/supabase'
 
+// CORS headers for cross-origin requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+export async function OPTIONS(request) {
+  return new Response(null, { status: 200, headers: corsHeaders })
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
+    // Handle both 'userId' and 'keyName' parameters for OmniDimension compatibility
+    const userId = searchParams.get('userId') || searchParams.get('keyName') || 'user123'
 
     if (!userId) {
-      return Response.json({ success: false, error: 'User ID is required' }, { status: 400 })
+      return Response.json({ success: false, error: 'User ID is required' }, { 
+        status: 400,
+        headers: corsHeaders 
+      })
     }
 
     // Get user balances
@@ -53,10 +68,13 @@ export async function GET(request) {
         inr: parseFloat(balanceData.inr_balance),
         eth: parseFloat(balanceData.eth_balance)
       }
-    })
+    }, { headers: corsHeaders })
 
   } catch (error) {
     console.error('API error:', error)
-    return Response.json({ success: false, error: 'Internal server error' }, { status: 500 })
+    return Response.json({ success: false, error: 'Internal server error' }, { 
+      status: 500,
+      headers: corsHeaders 
+    })
   }
 }
