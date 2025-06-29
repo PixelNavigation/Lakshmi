@@ -16,8 +16,18 @@ export async function POST(request) {
           // Try Alpha Vantage first
           const avApiKey = process.env.ALPHA_VANTAGE_API_KEY
           if (avApiKey) {
+            // For Indian stocks, Alpha Vantage might need different format
+            let avSymbol = symbol
+            if (symbol.includes('.NS')) {
+              avSymbol = symbol // Keep .NS for Alpha Vantage
+            } else if (symbol.includes('.BO')) {
+              avSymbol = symbol // Keep .BO for Alpha Vantage
+            } else if (symbol.includes('INR')) {
+              avSymbol = symbol.replace('INR', 'USD') // Convert BTCINR to BTCUSD
+            }
+            
             const avResponse = await fetch(
-              `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${avApiKey}`,
+              `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${avSymbol}&apikey=${avApiKey}`,
               { timeout: 8000 }
             )
             const avData = await avResponse.json()
@@ -26,13 +36,14 @@ export async function POST(request) {
               const quote = avData['Global Quote']
               return {
                 symbol: symbol,
+                displaySymbol: symbol.replace('.NS', '').replace('.BO', '').replace('INR', ''),
                 price: parseFloat(quote['05. price']) || 0,
                 change: parseFloat(quote['09. change']) || 0,
                 changePercent: parseFloat(quote['10. change percent']?.replace('%', '')) || 0,
                 volume: quote['06. volume'] || '0',
-                name: symbol,
+                name: symbol.replace('.NS', '').replace('.BO', '').replace('INR', ''),
                 currency: symbol.includes('.NS') || symbol.includes('.BO') ? 'INR' : 
-                         symbol.includes('-INR') ? 'INR' : 'USD',
+                         symbol.includes('INR') ? 'INR' : 'USD',
                 source: 'alphavantage'
               }
             }
@@ -55,12 +66,13 @@ export async function POST(request) {
               const quote = yahooData.quoteResponse.result[0]
               return {
                 symbol: symbol,
+                displaySymbol: symbol.replace('.NS', '').replace('.BO', '').replace('INR', ''),
                 price: quote.regularMarketPrice || 0,
                 change: quote.regularMarketChange || 0,
                 changePercent: quote.regularMarketChangePercent || 0,
                 volume: quote.regularMarketVolume?.toLocaleString() || '0',
                 name: quote.longName || quote.shortName || symbol,
-                currency: quote.currency || 'USD',
+                currency: quote.currency || (symbol.includes('.NS') || symbol.includes('.BO') ? 'INR' : 'USD'),
                 source: 'yahoo'
               }
             }
@@ -69,25 +81,27 @@ export async function POST(request) {
           // Final fallback - mock data
           return {
             symbol: symbol,
+            displaySymbol: symbol.replace('.NS', '').replace('.BO', '').replace('INR', ''),
             price: Math.random() * 100 + 50,
             change: (Math.random() - 0.5) * 10,
             changePercent: (Math.random() - 0.5) * 5,
             volume: Math.floor(Math.random() * 1000000).toLocaleString(),
-            name: symbol,
+            name: symbol.replace('.NS', '').replace('.BO', '').replace('INR', ''),
             currency: symbol.includes('.NS') || symbol.includes('.BO') ? 'INR' : 
-                     symbol.includes('-INR') ? 'INR' : 'USD',
+                     symbol.includes('INR') ? 'INR' : 'USD',
             source: 'mock'
           }
         } catch (error) {
           console.error(`Error fetching data for ${symbol}:`, error)
           return {
             symbol: symbol,
+            displaySymbol: symbol.replace('.NS', '').replace('.BO', '').replace('INR', ''),
             price: 0,
             change: 0,
             changePercent: 0,
             volume: '0',
-            name: symbol,
-            currency: 'USD',
+            name: symbol.replace('.NS', '').replace('.BO', '').replace('INR', ''),
+            currency: symbol.includes('.NS') || symbol.includes('.BO') ? 'INR' : 'USD',
             source: 'error'
           }
         }

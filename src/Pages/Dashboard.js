@@ -14,8 +14,13 @@ function TradingViewMiniChart({ symbol }) {
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js'
     script.type = 'text/javascript'
     script.async = true
+    
+    // Ensure the symbol is properly formatted for TradingView
+    const tradingViewSymbol = symbol || 'NSE:NIFTY'
+    console.log(`Loading TradingView chart for: ${tradingViewSymbol}`)
+    
     script.innerHTML = JSON.stringify({
-      symbol: symbol,
+      symbol: tradingViewSymbol,
       width: "100%",
       height: "300",
       locale: "en",
