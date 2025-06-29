@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "concurrently \"npm run next\" \"npm run backend\"",
+    "next": "next dev --turbopack",
+    "backend": ".venv\\Scripts\\python.exe stock_influence_analysis.py --watch",
+    "backend-alt": "python stock_influence_analysis.py --watch",
+    "start-backend": ".venv\\Scripts\\python.exe stock_influence_analysis.py --run-server",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -16,10 +20,12 @@
     "nanoid": "^5.1.5",
     "next": "15.3.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-force-graph": "^1.29.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "concurrently": "^9.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.4"
   }

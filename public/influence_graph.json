@@ -1,0 +1,161 @@
+{
+  "nodes": [
+    {
+      "id": "AAPL"
+    },
+    {
+      "id": "TSLA"
+    },
+    {
+      "id": "GOOG"
+    },
+    {
+      "id": "MSFT"
+    },
+    {
+      "id": "AMZN"
+    }
+  ],
+  "links": [
+    {
+      "source": "TSLA",
+      "target": "AAPL",
+      "value": 0.804,
+      "method": "granger",
+      "correlation": -0.804
+    },
+    {
+      "source": "GOOG",
+      "target": "AAPL",
+      "value": 0.33199999999999996,
+      "method": "granger",
+      "correlation": 0.33199999999999996
+    },
+    {
+      "source": "MSFT",
+      "target": "AAPL",
+      "value": 0.72,
+      "method": "granger",
+      "correlation": -0.72
+    },
+    {
+      "source": "AMZN",
+      "target": "AAPL",
+      "value": 0.7963,
+      "method": "granger",
+      "correlation": -0.7963
+    },
+    {
+      "source": "AAPL",
+      "target": "TSLA",
+      "value": 0.25070000000000003,
+      "method": "granger",
+      "correlation": -0.25070000000000003
+    },
+    {
+      "source": "GOOG",
+      "target": "TSLA",
+      "value": 0.9410000000000001,
+      "method": "granger",
+      "correlation": -0.9410000000000001
+    },
+    {
+      "source": "MSFT",
+      "target": "TSLA",
+      "value": 0.9159,
+      "method": "granger",
+      "correlation": 0.9159
+    },
+    {
+      "source": "AMZN",
+      "target": "TSLA",
+      "value": 0.6336999999999999,
+      "method": "granger",
+      "correlation": -0.6336999999999999
+    },
+    {
+      "source": "AAPL",
+      "target": "GOOG",
+      "value": 0.9138,
+      "method": "granger",
+      "correlation": 0.9138
+    },
+    {
+      "source": "TSLA",
+      "target": "GOOG",
+      "value": 0.9991,
+      "method": "granger",
+      "correlation": -0.9991
+    },
+    {
+      "source": "MSFT",
+      "target": "GOOG",
+      "value": 0.9905,
+      "method": "granger",
+      "correlation": 0.9905
+    },
+    {
+      "source": "AMZN",
+      "target": "GOOG",
+      "value": 0.6964,
+      "method": "granger",
+      "correlation": -0.6964
+    },
+    {
+      "source": "AAPL",
+      "target": "MSFT",
+      "value": 0.5637,
+      "method": "granger",
+      "correlation": 0.5637
+    },
+    {
+      "source": "TSLA",
+      "target": "MSFT",
+      "value": 0.5833999999999999,
+      "method": "granger",
+      "correlation": -0.5833999999999999
+    },
+    {
+      "source": "GOOG",
+      "target": "MSFT",
+      "value": 0.8618,
+      "method": "granger",
+      "correlation": 0.8618
+    },
+    {
+      "source": "AMZN",
+      "target": "MSFT",
+      "value": 0.7541,
+      "method": "granger",
+      "correlation": 0.7541
+    },
+    {
+      "source": "AAPL",
+      "target": "AMZN",
+      "value": 0.4649,
+      "method": "granger",
+      "correlation": 0.4649
+    },
+    {
+      "source": "TSLA",
+      "target": "AMZN",
+      "value": 0.8414,
+      "method": "granger",
+      "correlation": 0.8414
+    },
+    {
+      "source": "GOOG",
+      "target": "AMZN",
+      "value": 0.7388,
+      "method": "granger",
+      "correlation": 0.7388
+    },
+    {
+      "source": "MSFT",
+      "target": "AMZN",
+      "value": 0.7074,
+      "method": "granger",
+      "correlation": -0.7074
+    }
+  ]
+}

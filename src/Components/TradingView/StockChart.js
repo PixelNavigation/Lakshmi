@@ -10,7 +10,7 @@ export function StockChart({ symbol, comparisonSymbols = [] }) {
       // Clear previous widget
       container.current.innerHTML = ''
       
-      // Add a small delay to ensure DOM is ready
+      // Add a small d1elay to ensure DOM is ready
       const timer = setTimeout(() => {
         if (container.current) {
           const script = document.createElement('script')
@@ -30,7 +30,22 @@ export function StockChart({ symbol, comparisonSymbols = [] }) {
             enable_publishing: false,
             allow_symbol_change: true,
             width: "100%",
-            height: 400
+            height: 400,
+            hide_side_toolbar: false,
+            hide_top_toolbar: false,
+            hide_legend: false,
+            save_image: false,
+            container_id: `tradingview_${Math.random().toString(36).substr(2, 9)}`,
+            disabled_features: [
+              "use_localstorage_for_settings",
+              "support_multicharts",
+              "header_symbol_search",
+              "symbol_search_hot_key"
+            ],
+            enabled_features: [],
+            studies_overrides: {},
+            overrides: {},
+            loading_screen: { backgroundColor: "#ffffff" }
           })
 
           container.current.appendChild(script)

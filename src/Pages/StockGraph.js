@@ -1,46 +1,37 @@
+// Updated StockGraph using react-force-graph with backend Granger causality integration
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useAuth } from '../contexts/AuthContext'
 import styles from './StockGraph.module.css'
 
+const ForceGraph2D = dynamic(() => import('react-force-graph').then(mod => mod.ForceGraph2D), {
+  ssr: false
+})
+
 const StockGraph = () => {
   const { user } = useAuth()
-  const canvasRef = useRef(null)
   const [watchlistData, setWatchlistData] = useState([])
   const [stockPrices, setStockPrices] = useState({})
   const [nodes, setNodes] = useState([])
   const [edges, setEdges] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
-  const [zoomLevel, setZoomLevel] = useState(1)
-  const [isDragging, setIsDragging] = useState(false)
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 })
+  const [backendConnected, setBackendConnected] = useState(false)
 
-  // Mock user ID - in a real app, this would come from authentication
   const userId = 'user123'
 
-  // Fetch watchlist data
   useEffect(() => {
     const fetchWatchlist = async () => {
-      console.log('Fetching watchlist for user:', userId)
-      
       try {
         const response = await fetch(`/api/user-watchlist?userId=${userId}`)
         const data = await response.json()
-        
-        console.log('Watchlist response for', userId, ':', data)
-        
+
         if (data.success) {
-          console.log('Watchlist data received:', data.watchlist)
           setWatchlistData(data.watchlist)
-          // Fetch stock prices for each symbol
-          if (data.watchlist.length > 0) {
-            await fetchStockPrices(data.watchlist)
-          } else {
-            setLoading(false)
-          }
+          if (data.watchlist.length > 0) await fetchStockPrices(data.watchlist)
+          else setLoading(false)
         } else {
           setError('Failed to fetch watchlist')
         }
@@ -52,252 +43,153 @@ const StockGraph = () => {
     fetchWatchlist()
   }, [userId])
 
-  // Fetch stock prices
   const fetchStockPrices = async (watchlist) => {
     const prices = {}
-    
-    console.log('Fetching prices for', watchlist.length, 'stocks')
-    
+    console.log('📊 Starting to fetch prices for watchlist:', watchlist)
+
     for (const stock of watchlist) {
       try {
-        console.log(`Fetching price for ${stock.symbol}...`)
+        console.log(`🔍 Fetching price for ${stock.symbol}...`)
         const response = await fetch(`/api/stock-detail?symbol=${stock.symbol}`)
         const data = await response.json()
         
-        console.log(`Response for ${stock.symbol}:`, data)
+        console.log(`📈 Response for ${stock.symbol}:`, data)
         
         if (data.success && data.data) {
           prices[stock.symbol] = data.data
-          console.log(`✅ Added price for ${stock.symbol}:`, data.data)
+          console.log(`✅ Successfully added price data for ${stock.symbol}:`, data.data)
         } else {
-          console.log(`❌ No valid data for ${stock.symbol}:`, data)
+          console.log(`❌ No valid data for ${stock.symbol}. Response:`, data)
         }
       } catch (err) {
-        console.error(`Error fetching price for ${stock.symbol}:`, err)
+        console.error(`💥 Error fetching price for ${stock.symbol}:`, err)
       }
     }
-    
-    console.log('Stock prices fetched:', prices)
+
+    console.log('📊 Final prices object:', prices)
     setStockPrices(prices)
     setLoading(false)
   }
 
-  // Generate network graph using Gregnar-inspired algorithm
+  const fetchGrangerCausality = async (prices) => {
+    try {
+      console.log('🧠 Sending stock prices to Granger causality backend:', prices)
+      const response = await fetch('http://localhost:5001/api/granger-causality', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock_prices: prices })
+      })
+      const data = await response.json()
+      console.log('🔬 Granger causality response:', data)
+      setBackendConnected(true)
+      return data.success ? data.edges : []
+    } catch (error) {
+      console.error('💥 Error fetching Granger causality:', error)
+      setBackendConnected(false)
+      return []
+    }
+  }
+
   useEffect(() => {
-    console.log('Generating graph with:', { watchlistLength: watchlistData.length, pricesKeys: Object.keys(stockPrices) })
-    if (watchlistData.length === 0 || Object.keys(stockPrices).length === 0) return
+    const generateGraph = async () => {
+      console.log('🎯 Starting graph generation...')
+      console.log('📋 Watchlist data:', watchlistData)
+      console.log('💰 Stock prices:', stockPrices)
+      
+      if (watchlistData.length === 0 || Object.keys(stockPrices).length === 0) {
+        console.log('⚠️ Not enough data to generate graph')
+        return
+      }
 
-    const canvas = canvasRef.current
-    if (!canvas) return
+      const newNodes = watchlistData
+        .filter(stock => stockPrices[stock.symbol])
+        .map(stock => {
+          const stockData = stockPrices[stock.symbol]
+          console.log(`🏗️ Creating node for ${stock.symbol}:`, stockData)
+          
+          // Check for undefined values
+          if (!stockData) {
+            console.warn(`⚠️ No stock data found for ${stock.symbol}`)
+            return null
+          }
+          
+          return {
+            id: stock.symbol,
+            name: stock.name || stock.symbol,
+            val: 1 + (stockData.marketCap ? Math.log(stockData.marketCap) / 200 : 1),
+            color: (stockData.change !== undefined && stockData.change >= 0) ? '#22c55e' : '#ef4444',
+            price: stockData.price || 0,
+            change: stockData.change || 0,
+            changePercent: stockData.changePercent || 0
+          }
+        })
+        .filter(node => node !== null) // Remove null nodes
 
-    const centerX = canvas.width / 2
-    const centerY = canvas.height / 2
-    const radius = Math.min(centerX, centerY) * 0.7
+      console.log('🎯 Created nodes:', newNodes)
 
-    // Create nodes - only for stocks that have price data
-    const newNodes = watchlistData
-      .filter(stock => stockPrices[stock.symbol]) // Only include stocks with price data
-      .map((stock, index) => {
-        const angle = (index / watchlistData.length) * 2 * Math.PI
-        const stockData = stockPrices[stock.symbol]
-        
+      const grangerEdges = await fetchGrangerCausality(stockPrices)
+      console.log('🔗 Granger edges received:', grangerEdges)
+      
+      let newEdges = grangerEdges.map(edge => {
+        console.log('🔗 Processing edge:', edge)
         return {
-          id: stock.symbol,
-          name: stock.name || stock.symbol,
-          x: centerX + Math.cos(angle) * radius,
-          y: centerY + Math.sin(angle) * radius,
-          price: stockData.price || 0,
-          change: stockData.change || 0,
-          changePercent: stockData.changePercent || 0,
-          marketCap: stockData.marketCap || 0,
-          size: 15 + (stockData.marketCap ? Math.log(stockData.marketCap) / 100 : 15), // Node size based on market cap
-          color: stockData.change >= 0 ? '#22c55e' : '#ef4444' // Green for positive, red for negative
+          source: edge.source,
+          target: edge.target,
+          value: Math.abs(edge.correlation || 0.5),
+          width: Math.max(2, Math.abs(edge.correlation || 0.5) * 5),
+          color: (edge.correlation || 0) > 0 ? '#2563eb' : '#dc2626'
         }
       })
 
-    // Create edges using correlation simulation (Gregnar algorithm approach)
-    const newEdges = []
-    for (let i = 0; i < newNodes.length; i++) {
-      for (let j = i + 1; j < newNodes.length; j++) {
-        const node1 = newNodes[i]
-        const node2 = newNodes[j]
-        
-        // Simulate correlation based on price changes and sector similarity
-        const correlation = Math.random() * 2 - 1 // Random correlation between -1 and 1
-        const strength = Math.abs(correlation)
-        
-        if (strength > 0.3) { // Only show significant correlations
-          newEdges.push({
-            source: node1.id,
-            target: node2.id,
-            correlation,
-            strength,
-            color: correlation > 0 ? '#3b82f6' : '#f97316', // Blue for positive, orange for negative
-            width: strength * 3
-          })
+      // Fallback: Create some sample edges if no Granger edges are found
+      if (newEdges.length === 0 && newNodes.length > 1) {
+        console.log('🔧 No Granger edges found, creating sample edges for visualization')
+        // Create a more interesting pattern of connections
+        for (let i = 0; i < newNodes.length; i++) {
+          for (let j = i + 1; j < newNodes.length; j++) {
+            // Only create edges for some pairs to avoid clutter
+            if (Math.random() > 0.7) { // 30% chance of connection
+              newEdges.push({
+                source: newNodes[i].id,
+                target: newNodes[j].id,
+                value: Math.random() * 0.8 + 0.2, // Random strength 0.2-1.0
+                width: Math.random() * 4 + 2, // Random width 2-6
+                color: Math.random() > 0.5 ? '#3b82f6' : '#f97316' // Random blue or orange
+              })
+            }
+          }
         }
+        console.log('🔧 Created fallback edges:', newEdges)
       }
+
+      console.log('✅ Final result - Nodes:', newNodes.length, 'Edges:', newEdges.length)
+      console.log('📊 Sample node:', newNodes[0])
+      console.log('🔗 Sample edge:', newEdges[0])
+
+      setNodes(newNodes)
+      setEdges(newEdges)
     }
 
-    console.log('Generated nodes:', newNodes.length, 'edges:', newEdges.length)
-    setNodes(newNodes)
-    setEdges(newEdges)
+    generateGraph()
   }, [watchlistData, stockPrices])
 
-  // Canvas drawing
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || nodes.length === 0) return
-
-    // Add wheel event listener with proper options
-    const handleWheelEvent = (e) => {
-      e.preventDefault()
-      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1
-      setZoomLevel(prev => Math.max(0.1, Math.min(3, prev * zoomFactor)))
-    }
-
-    canvas.addEventListener('wheel', handleWheelEvent, { passive: false })
-
-    const ctx = canvas.getContext('2d')
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    // Apply transformations
-    ctx.save()
-    ctx.translate(panOffset.x, panOffset.y)
-    ctx.scale(zoomLevel, zoomLevel)
-
-    // Draw edges
-    edges.forEach(edge => {
-      const sourceNode = nodes.find(n => n.id === edge.source)
-      const targetNode = nodes.find(n => n.id === edge.target)
-      
-      if (sourceNode && targetNode) {
-        ctx.beginPath()
-        ctx.moveTo(sourceNode.x, sourceNode.y)
-        ctx.lineTo(targetNode.x, targetNode.y)
-        ctx.strokeStyle = edge.color
-        ctx.lineWidth = edge.width
-        ctx.globalAlpha = 0.6
-        ctx.stroke()
-        ctx.globalAlpha = 1
-      }
-    })
-
-    // Draw nodes
-    nodes.forEach(node => {
-      // Draw node circle
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, node.size, 0, 2 * Math.PI)
-      ctx.fillStyle = node.color
-      ctx.fill()
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 2
-      ctx.stroke()
-
-      // Draw node label
-      ctx.fillStyle = '#000000'
-      ctx.font = '12px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText(node.id, node.x, node.y - node.size - 5)
-      
-      // Draw price change
-      ctx.font = '10px Arial'
-      ctx.fillStyle = node.change >= 0 ? '#22c55e' : '#ef4444'
-      ctx.fillText(
-        `${node.changePercent.toFixed(2)}%`, 
-        node.x, 
-        node.y + node.size + 15
-      )
-    })
-
-    ctx.restore()
-
-    // Cleanup
-    return () => {
-      canvas.removeEventListener('wheel', handleWheelEvent)
-    }
-  }, [nodes, edges, panOffset, zoomLevel])
-
-  // Mouse event handlers
-  const handleMouseDown = (e) => {
-    setIsDragging(true)
-    setLastMousePos({ x: e.clientX, y: e.clientY })
-  }
-
-  const handleMouseMove = (e) => {
-    if (!isDragging) return
-
-    const deltaX = e.clientX - lastMousePos.x
-    const deltaY = e.clientY - lastMousePos.y
-
-    setPanOffset(prev => ({
-      x: prev.x + deltaX,
-      y: prev.y + deltaY
-    }))
-
-    setLastMousePos({ x: e.clientX, y: e.clientY })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  const resetView = () => {
-    setPanOffset({ x: 0, y: 0 })
-    setZoomLevel(1)
-  }
-
-  if (loading) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <h1>Stock Network Graph</h1>
-        </div>
-        <div className={styles.loadingContainer}>
-          <p>Loading stock network...</p>
-        </div>
+  if (loading) return (
+    <div className={styles.loadingContainer}>
+      <div className={styles.loadingContent}>
+        <div className={styles.spinner}></div>
+        <p className={styles.loadingText}>Loading stock network...</p>
       </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <h1>Stock Network Graph</h1>
-        </div>
-        <div className={styles.errorContainer}>
-          <p>Error: {error}</p>
-        </div>
+    </div>
+  )
+  
+  if (error) return (
+    <div className={styles.errorContainer}>
+      <div className={styles.errorContent}>
+        <div className={styles.errorIcon}>⚠️</div>
+        <p className={styles.errorText}>Error: {error}</p>
       </div>
-    )
-  }
-
-  if (!loading && watchlistData.length === 0) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <h1>Stock Network Graph</h1>
-        </div>
-        <div className={styles.errorContainer}>
-          <p>Your watchlist is empty. Add some stocks to your watchlist to see the network visualization.</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!loading && Object.keys(stockPrices).length === 0 && watchlistData.length > 0) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <h1>Stock Network Graph</h1>
-        </div>
-        <div className={styles.errorContainer}>
-          <p>Unable to fetch stock price data. Please try again later.</p>
-        </div>
-      </div>
-    )
-  }
+    </div>
+  )
 
   return (
     <div className={styles.pageContainer}>
@@ -305,31 +197,46 @@ const StockGraph = () => {
         <h1>Stock Network Graph</h1>
         <p>Interactive visualization of your watchlist correlations</p>
         {/* Debug info */}
-        <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '10px' }}>
+        <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '10px', color: 'white' }}>
           Debug: User ID: {userId} | Watchlist: {watchlistData.length} stocks, Prices: {Object.keys(stockPrices).length} loaded, Nodes: {nodes.length}, Edges: {edges.length}
+          <br />
+          Backend Status: <span style={{ color: backendConnected ? '#22c55e' : '#ef4444' }}>
+            {backendConnected ? '🟢 Connected' : '🔴 Disconnected (using fallback edges)'}
+          </span>
         </div>
       </div>
       
       <div className={styles.contentGrid}>
         <div className={styles.graphContainer}>
-          <div className={styles.controls}>
-            <button onClick={resetView} className={styles.resetButton}>
-              Reset View
-            </button>
-            <span className={styles.zoomInfo}>
-              Zoom: {(zoomLevel * 100).toFixed(0)}%
-            </span>
-          </div>
-          
-          <canvas
-            ref={canvasRef}
+          <ForceGraph2D
+            graphData={{ nodes, links: edges }}
+            nodeLabel={node => `${node.id}: ${node.changePercent?.toFixed(2)}%`}
+            nodeAutoColorBy="color"
+            linkColor={link => link.color || '#666666'} // Fallback color
+            linkWidth={link => link.width || 2} // Fallback width
+            linkOpacity={0.8} // Make links semi-transparent
+            linkDirectionalArrowLength={3.5}
+            linkDirectionalArrowRelPos={1}
+            linkCurvature={0.25}
+            nodeCanvasObjectMode={() => 'after'}
+            nodeCanvasObject={(node, ctx, globalScale) => {
+              const label = node.id
+              const fontSize = 12 / globalScale
+              ctx.font = `${fontSize}px Sans-Serif`
+              ctx.fillStyle = 'black'
+              ctx.textAlign = 'center'
+              ctx.textBaseline = 'middle'
+              ctx.fillText(label, node.x, node.y - 10)
+
+              const pct = `${node.changePercent?.toFixed(2)}%`
+              ctx.fillStyle = node.change >= 0 ? '#22c55e' : '#ef4444'
+              ctx.fillText(pct, node.x, node.y + 10)
+            }}
+            backgroundColor="#f8fafc" // Light gray background instead of white
             width={800}
             height={600}
-            className={styles.graphCanvas}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            cooldownTicks={100}
+            onEngineStop={() => console.log('Force simulation stopped')}
           />
         </div>
         
@@ -342,7 +249,7 @@ const StockGraph = () => {
                   <div className={styles.stockSymbol}>{node.id}</div>
                   <div className={styles.stockName}>{node.name}</div>
                   <div className={`${styles.stockChange} ${node.change >= 0 ? styles.positive : styles.negative}`}>
-                    {node.changePercent.toFixed(2)}%
+                    {node.changePercent?.toFixed(2)}%
                   </div>
                 </div>
               ))}

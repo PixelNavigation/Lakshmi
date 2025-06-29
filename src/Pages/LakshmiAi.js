@@ -171,8 +171,6 @@ function parseAIResponse(message, content) {
   const lowercaseMessage = message.toLowerCase()
   const lowercaseContent = content.toLowerCase()
   
-  console.log('Parsing AI Response - Message:', lowercaseMessage, 'Content:', lowercaseContent.substring(0, 100) + '...')
-  
   // Extract TradingView URLs and parse symbols from them
   const tradingViewUrlPattern = /https?:\/\/(?:www\.)?tradingview\.com\/symbols\/([^\/\?]+)/gi
   const tvUrlMatches = (message + ' ' + content).match(tradingViewUrlPattern)
@@ -252,7 +250,6 @@ function parseAIResponse(message, content) {
   // Priority check: Look for specific widget requests in user message first
   // CHART - highest priority when explicitly requested
   if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show chart')) && mentionedStock) {
-    console.log('Returning CHART widget for symbol:', mentionedStock)
     return {
       type: 'chart',
       symbol: mentionedStock,
@@ -274,7 +271,6 @@ function parseAIResponse(message, content) {
   // FINANCIALS - check before price to avoid conflicts, but not if chart was requested
   if ((lowercaseMessage.includes('financial') || lowercaseMessage.includes('financials')) && 
       !lowercaseMessage.includes('chart') && mentionedStock) {
-    console.log('Returning FINANCIALS widget for symbol:', mentionedStock)
     return {
       type: 'financials',
       symbol: mentionedStock,
@@ -344,6 +340,64 @@ export default function LakshmiAi() {
   const [showScrollToTop, setShowScrollToTop] = useState(false)
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
+
+  // Suppress TradingView console errors and network errors
+  useEffect(() => {
+    const originalConsoleError = console.error
+    const originalConsoleWarn = console.warn
+    
+    console.error = (...args) => {
+      const message = args.join(' ')
+      // Suppress TradingView-related errors
+      if (
+        message.includes('Chart.DataProblemModel') ||
+        message.includes('support-portal-problems') ||
+        message.includes('tradingview') ||
+        message.includes('Property:The state with a data type: unknown') ||
+        message.includes('Fetch:/support/support-portal-problems') ||
+        message.includes('tradingview-widget.com') ||
+        message.includes('Cannot read properties of null')
+      ) {
+        return // Suppress these errors
+      }
+      originalConsoleError.apply(console, args)
+    }
+
+    console.warn = (...args) => {
+      const message = args.join(' ')
+      // Suppress TradingView-related warnings
+      if (
+        message.includes('tradingview') ||
+        message.includes('support-portal-problems') ||
+        message.includes('widget')
+      ) {
+        return // Suppress these warnings
+      }
+      originalConsoleWarn.apply(console, args)
+    }
+
+    // Also suppress window errors related to TradingView
+    const originalWindowError = window.onerror
+    window.onerror = (message, source, lineno, colno, error) => {
+      if (typeof message === 'string' && (
+        message.includes('tradingview') ||
+        message.includes('support-portal-problems') ||
+        message.includes('Chart.DataProblemModel')
+      )) {
+        return true // Suppress the error
+      }
+      if (originalWindowError) {
+        return originalWindowError(message, source, lineno, colno, error)
+      }
+      return false
+    }
+
+    return () => {
+      console.error = originalConsoleError
+      console.warn = originalConsoleWarn
+      window.onerror = originalWindowError
+    }
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

@@ -44,7 +44,8 @@ export function TickerTape() {
             colorTheme: "light",
             isTransparent: false,
             displayMode: "adaptive",
-            locale: "en"
+            locale: "en",
+            container_id: `tickertape_${Math.random().toString(36).substr(2, 9)}`
           })
 
           container.current.appendChild(script)

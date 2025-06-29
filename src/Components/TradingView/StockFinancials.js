@@ -25,7 +25,8 @@ export function StockFinancials({ symbol }) {
             width: '100%',
             height: 400,
             symbol: symbol.toUpperCase(),
-            locale: 'en'
+            locale: 'en',
+            container_id: `financials_${Math.random().toString(36).substr(2, 9)}`
           })
 
           container.current.appendChild(script)
