@@ -14,8 +14,11 @@ export async function OPTIONS(request) {
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const symbol = searchParams.get('symbol')
+    // Handle both 'symbol' and 'keyName' parameters for OmniDimension compatibility
+    const symbol = searchParams.get('symbol') || searchParams.get('keyName')
     const timeframe = searchParams.get('timeframe') || '1D'
+    // Check if this is a 'current price only' request
+    const currentOnly = searchParams.has('current') || searchParams.get('current') === 'true'
 
     if (!symbol) {
       return NextResponse.json({ success: false, error: 'Symbol is required' }, {
@@ -23,9 +26,20 @@ export async function GET(request) {
       })
     }
 
-    // Normalize symbol for Indian stocks - try both NSE and BSE if no suffix
-    const symbolsToTry = getSymbolVariants(symbol)
-    console.log(`Trying symbol variants for ${symbol}:`, symbolsToTry)
+    // Check if this is an Indian stock symbol or convert to Indian format
+    const indianSymbol = convertToIndianSymbol(symbol)
+    
+    if (!indianSymbol) {
+      return NextResponse.json({
+        success: false,
+        error: `${symbol} is not available in the Indian market. Please use Indian stock symbols (e.g., RELIANCE.NS, TCS.NS, INFY.NS)`,
+        symbol: symbol
+      }, { headers: corsHeaders })
+    }
+
+    // For Indian market, try NSE first, then BSE
+    const symbolsToTry = [`${indianSymbol}.NS`, `${indianSymbol}.BO`]
+    console.log(`Indian market lookup for ${symbol} -> trying:`, symbolsToTry)
 
     // Try multiple APIs for real-time data
     let stockData = null
@@ -255,8 +269,8 @@ export async function GET(request) {
       }
     }
 
-    // Fetch historical chart data
-    if (stockData) {
+    // Fetch historical chart data (skip if currentOnly mode)
+    if (stockData && !currentOnly) {
       try {
         // Determine the range and interval based on timeframe
         let range, interval
@@ -342,12 +356,22 @@ export async function GET(request) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: stockData,
-      chartData: chartData,
-      timeframe: timeframe
-    }, { headers: corsHeaders })
+    // Return response based on mode
+    if (currentOnly) {
+      // Return only current price data for OmniDimension
+      return NextResponse.json({
+        success: true,
+        data: stockData
+      }, { headers: corsHeaders })
+    } else {
+      // Return full data with charts for regular requests
+      return NextResponse.json({
+        success: true,
+        data: stockData,
+        chartData: chartData,
+        timeframe: timeframe
+      }, { headers: corsHeaders })
+    }
 
   } catch (error) {
     console.error('Stock detail API error:', error)
@@ -356,6 +380,110 @@ export async function GET(request) {
       error: 'Failed to fetch stock details'
     }, { headers: corsHeaders })
   }
+}
+
+function convertToIndianSymbol(symbol) {
+  // List of valid Indian stock symbols (without exchange suffix)
+  const indianStocks = {
+    // Major Indian Stocks
+    'RELIANCE': 'RELIANCE',
+    'TCS': 'TCS', 
+    'HDFCBANK': 'HDFCBANK',
+    'INFY': 'INFY',
+    'HINDUNILVR': 'HINDUNILVR',
+    'ICICIBANK': 'ICICIBANK',
+    'SBIN': 'SBIN',
+    'ITC': 'ITC',
+    'BHARTIARTL': 'BHARTIARTL',
+    'KOTAKBANK': 'KOTAKBANK',
+    'LT': 'LT',
+    'HCLTECH': 'HCLTECH',
+    'MARUTI': 'MARUTI',
+    'BAJFINANCE': 'BAJFINANCE',
+    'INDIGO': 'INDIGO',
+    'ADANIPORTS': 'ADANIPORTS',
+    'TATAMOTORS': 'TATAMOTORS',
+    'TATASTEEL': 'TATASTEEL',
+    'WIPRO': 'WIPRO',
+    'COALINDIA': 'COALINDIA',
+    'JSWSTEEL': 'JSWSTEEL',
+    'ULTRACEMCO': 'ULTRACEMCO',
+    'SUNPHARMA': 'SUNPHARMA',
+    'ONGC': 'ONGC',
+    'NTPC': 'NTPC',
+    'POWERGRID': 'POWERGRID',
+    'DRREDDY': 'DRREDDY',
+    'CIPLA': 'CIPLA',
+    'DIVISLAB': 'DIVISLAB',
+    'ASIANPAINT': 'ASIANPAINT',
+    'TITAN': 'TITAN',
+    'TECHM': 'TECHM',
+    'NESTLEIND': 'NESTLEIND',
+    'HEROMOTOCO': 'HEROMOTOCO',
+    'AXISBANK': 'AXISBANK',
+    'BRITANNIA': 'BRITANNIA',
+    'EICHERMOT': 'EICHERMOT',
+    'SHREECEM': 'SHREECEM',
+    'PIDILITIND': 'PIDILITIND',
+    'GRASIM': 'GRASIM',
+    // Additional popular stocks
+    'BPCL': 'BPCL',
+    'IOC': 'IOC',
+    'HINDALCO': 'HINDALCO',
+    'VEDL': 'VEDL',
+    'SAIL': 'SAIL',
+    'BHEL': 'BHEL',
+    'PNB': 'PNB',
+    'CANBK': 'CANBK',
+    'BANKBARODA': 'BANKBARODA',
+    'UNIONBANK': 'UNIONBANK',
+    'NCC': 'NCC',
+    'IRCTC': 'IRCTC',
+    'ZOMATO': 'ZOMATO',
+    'PAYTM': 'PAYTM',
+    'NYKAA': 'NYKAA'
+  }
+  
+  // Remove exchange suffix if present
+  const cleanSymbol = symbol.replace(/\.(NS|BO)$/, '').toUpperCase()
+  
+  // Check if it's a known Indian stock
+  if (indianStocks[cleanSymbol]) {
+    return cleanSymbol
+  }
+  
+  // Common mappings for user convenience
+  const symbolMappings = {
+    'APPLE': null,      // Block foreign stocks
+    'AAPL': null,
+    'TESLA': null,
+    'TSLA': null,
+    'GOOGLE': null,
+    'GOOGL': null,
+    'MICROSOFT': null,
+    'MSFT': null,
+    'AMAZON': null,
+    'AMZN': null,
+    'FACEBOOK': null,
+    'META': null,
+    'NETFLIX': null,
+    'NFLX': null,
+    // Common Indian stock aliases
+    'RELIANCEIND': 'RELIANCE',
+    'TATACONSULTANCY': 'TCS',
+    'HDFCBANK': 'HDFCBANK',
+    'INFOSYS': 'INFY',
+    'STATEBANK': 'SBIN',
+    'SBI': 'SBIN',
+    'AIRTEL': 'BHARTIARTL',
+    'BHARTI': 'BHARTIARTL'
+  }
+  
+  if (symbolMappings.hasOwnProperty(cleanSymbol)) {
+    return symbolMappings[cleanSymbol]
+  }
+  
+  return null // Symbol not found in Indian market
 }
 
 function getStockName(symbol) {
@@ -439,17 +567,14 @@ function getStockName(symbol) {
 }
 
 function getCurrency(symbol) {
-  if (symbol.includes('.NS') || symbol.includes('.BO')) return 'INR'
-  if (symbol.includes('-INR')) return 'INR'
-  if (symbol.includes('.L')) return 'GBP'
-  return 'INR' // Default to INR for Indian market focus
+  // All Indian stocks are in INR
+  return 'INR'
 }
 
 function getExchange(symbol) {
   if (symbol.includes('.NS')) return 'NSE'
   if (symbol.includes('.BO')) return 'BSE'
-  if (symbol.includes('.L')) return 'LSE'
-  return 'NASDAQ'
+  return 'NSE' // Default to NSE for Indian stocks
 }
 
 function getStaticRealisticPrice(symbol) {
@@ -592,41 +717,4 @@ function getTypicalVolume(symbol) {
   return volumeMap[symbol] || 1000000
 }
 
-function getSymbolVariants(symbol) {
-  // If symbol already has exchange suffix, use as-is and also try the base symbol
-  if (symbol.includes('.NS') || symbol.includes('.BO')) {
-    return [symbol]
-  }
-  
-  // For symbols without suffix, try to determine if it's likely an Indian stock
-  const commonIndianStocks = [
-    'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK', 'SBIN', 'ITC',
-    'BHARTIARTL', 'KOTAKBANK', 'LT', 'HCLTECH', 'MARUTI', 'BAJFINANCE', 'INDIGO',
-    'ADANIPORTS', 'TATAMOTORS', 'TATASTEEL', 'WIPRO', 'COALINDIA', 'JSWSTEEL',
-    'ULTRACEMCO', 'SUNPHARMA', 'ONGC', 'NTPC', 'POWERGRID', 'DRREDDY', 'CIPLA',
-    'DIVISLAB', 'ADSL', 'ICICI'
-  ]
-  
-  const upperSymbol = symbol.toUpperCase()
-  
-  // Check if it's a likely Indian stock
-  const isLikelyIndianStock = commonIndianStocks.some(stock => 
-    upperSymbol.includes(stock) || stock.includes(upperSymbol)
-  )
-  
-  if (isLikelyIndianStock) {
-    // For Indian stocks, try NSE first (more liquid), then BSE, then original symbol
-    return [
-      `${upperSymbol}.NS`,
-      `${upperSymbol}.BO`,
-      upperSymbol
-    ]
-  } else {
-    // For other stocks, try original symbol first, then with common suffixes
-    return [
-      upperSymbol,
-      `${upperSymbol}.NS`,  // Still try Indian exchanges in case
-      `${upperSymbol}.BO`
-    ]
-  }
-}
+

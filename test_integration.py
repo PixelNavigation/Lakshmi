@@ -69,9 +69,9 @@ def main():
             "url": f"{BASE_URL}/api/stock-detail?symbol=AAPL"
         },
         {
-            "name": "Stock Detail (TSLA)",
+            "name": "Stock Detail (TCS.NS)",
             "method": "GET", 
-            "url": f"{BASE_URL}/api/stock-detail?symbol=TSLA"
+            "url": f"{BASE_URL}/api/stock-detail?symbol=TCS.NS"
         },
         {
             "name": "Place Trade Order",
@@ -79,9 +79,9 @@ def main():
             "url": f"{BASE_URL}/api/trade",
             "data": {
                 "userId": USER_ID,
-                "symbol": "AAPL",
+                "symbol": "TCS",
                 "quantity": 1,
-                "price": 200,
+                "price": 3500,
                 "transactionType": "BUY"
             }
         }

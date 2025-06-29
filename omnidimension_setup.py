@@ -71,13 +71,13 @@ class LakshmiOmniDimensionIntegration:
                         "name": "PlaceTradeOrder",
                         "method": "POST",
                         "path": "/api/trade",
-                        "description": "Place a buy or sell order for stocks",
+                        "description": "Place a buy or sell order for Indian stocks only. Automatically converts symbols to Indian market format (NSE/BSE).",
                         "parameters": [
                             {"name": "userId", "in": "body", "type": "string", "required": True, "description": "User ID"},
-                            {"name": "symbol", "in": "body", "type": "string", "required": True, "description": "Stock symbol"},
-                            {"name": "quantity", "in": "body", "type": "number", "required": True, "description": "Number of shares"},
-                            {"name": "price", "in": "body", "type": "number", "required": True, "description": "Price per share"},
-                            {"name": "transactionType", "in": "body", "type": "string", "required": True, "description": "BUY or SELL"}
+                            {"name": "symbol", "in": "body", "type": "string", "required": True, "description": "Indian stock symbol (e.g., TCS, INFY, RELIANCE)"},
+                            {"name": "quantity", "in": "body", "type": "number", "required": True, "description": "Number of shares (positive)"},
+                            {"name": "price", "in": "body", "type": "number", "required": True, "description": "Price per share in INR (positive)"},
+                            {"name": "transactionType", "in": "body", "type": "string", "required": True, "description": "BUY or SELL (uppercase)"}
                         ]
                     },
                     {
@@ -151,20 +151,22 @@ class LakshmiOmniDimensionIntegration:
         
         try:
             agent = self.client.agent.create(
-                name="LakshmiTradingAgent",
-                description="Intelligent stock trading assistant for the Lakshmi platform",
-                system_prompt="""You are a professional stock trading assistant for the Lakshmi Trading Platform. You can:
+            name="LakshmiTradingAgent",
+            description="Intelligent Indian stock trading assistant for the Lakshmi platform",
+            system_prompt="""You are a professional Indian stock trading assistant for the Lakshmi Trading Platform. You can:
 
 1. **Portfolio Management**: Check user holdings, balances, and calculate performance
-2. **Stock Research**: Get real-time stock prices, company information, and market news
-3. **Trade Execution**: Place buy/sell orders with proper validation and risk management
-4. **Watchlist Management**: Add/remove stocks from user watchlists
+2. **Stock Research**: Get real-time Indian stock prices, company information, and market news
+3. **Trade Execution**: Place buy/sell orders for Indian stocks only with proper validation
+4. **Watchlist Management**: Add/remove Indian stocks from user watchlists
 5. **Transaction History**: Review past trades and analyze performance
 
 **Trading Rules & Guidelines:**
+- ONLY trade Indian stocks (TCS, INFY, RELIANCE, HDFCBANK, ITC, SBIN, etc.)
+- BLOCK foreign stocks (AAPL, TSLA, GOOGL) - they are not supported
 - Always check user's available balance before buy orders
 - Verify user has enough shares before sell orders  
-- Validate stock prices are within reasonable market range (±10% of current price)
+- Validate stock prices are within reasonable market range
 - Provide clear explanations for trade recommendations
 - Ask for confirmation before executing trades
 - Consider risk management and diversification
@@ -172,14 +174,23 @@ class LakshmiOmniDimensionIntegration:
 **User Context:**
 - Default user ID is 'user123' unless specified otherwise
 - All prices are in Indian Rupees (₹)
-- Support both Indian (NSE/BSE) and international stocks
+- Support only Indian (NSE/BSE) stocks
 - Be conversational and helpful while maintaining professionalism
+
+**Supported Indian Stocks Examples:**
+- TCS (Tata Consultancy Services)
+- INFY (Infosys)
+- RELIANCE (Reliance Industries)
+- HDFCBANK (HDFC Bank)
+- ITC (ITC Limited)
+- SBIN (State Bank of India)
 
 **Response Format:**
 - Always provide clear, actionable information
 - Include relevant numbers (prices, quantities, percentages)
 - Explain the reasoning behind recommendations
-- Ask clarifying questions when needed""",
+- Ask clarifying questions when needed
+- If user asks for foreign stocks, explain we only support Indian markets""",
                 model="gpt-4",
                 tools_enabled=True
             )
