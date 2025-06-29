@@ -342,13 +342,19 @@
   margin: 0;
 }
 
+.resultsStats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
 .resultsCount {
-  background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-  color: #667eea;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .noResults {
@@ -487,41 +493,452 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-/* Responsive Design */
+/* Refresh Button */
+.refreshBtn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #10b981;
+  border-radius: 25px;
+  background: white;
+  color: #10b981;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.refreshBtn:hover {
+  background: #10b981;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.refreshBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.refreshBtn:disabled:hover {
+  background: white;
+  color: #10b981;
+  transform: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .refreshBtn {
+    background: var(--background);
+    border-color: #10b981;
+    color: #10b981;
+  }
+  
+  .refreshBtn:hover {
+    background: #10b981;
+    color: white;
+  }
+  
+  .refreshBtn:disabled:hover {
+    background: var(--background);
+    color: #10b981;
+  }
+}
+
+/* Chart Modal Styles */
+.chartModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.chartModal {
+  background: var(--background);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.chartModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  position: relative;
+}
+
+.chartModalHeader h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.chartModalHeader .exchangeBadge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.chartContainer {
+  padding: 0;
+  height: 550px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stock Actions */
+.stockActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.chartBtn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.chartBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.chartBtn:active {
+  transform: translateY(0);
+}
+
+/* Stock Type Badge */
+.stockType {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Improved Stock Card */
+.stockCard {
+  background: var(--background);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stockCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.stockCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .stockCard {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .stockCard:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border-color: rgba(102, 126, 234, 0.5);
+  }
+  
+  .chartModalHeader {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .chartModalOverlay {
+    background: rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* Loading state for watchlist button */
+.addToWatchlistBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.addToWatchlistBtn:disabled:hover {
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+}
+
+/* Real-time Controls */
+.realTimeControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.realTimeBtn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 25px;
+  background: white;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.realTimeBtn:hover {
+  border-color: #3b82f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.realTimeBtn.active {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border-color: #dc2626;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.lastUpdated {
+  font-size: 0.85rem;
+  color: #64748b;
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .realTimeControls {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .realTimeBtn {
+    background: var(--background);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #94a3b8;
+  }
+  
+  .lastUpdated {
+    background: var(--background);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+  }
+}
+
+/* Enhanced Stock Card with Live Updates */
+.stockCard.liveUpdate {
+  animation: glow 0.5s ease-in-out;
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  50% {
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.2);
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Sector Info Badge */
+.sectorInfo {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+/* Enhanced Results Header */
+.resultsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--background);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.resultsHeader h3 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.resultsStats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.resultsCount {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* Live Indicator */
+.liveIndicator {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  animation: pulse 2s infinite;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Chart Info Section */
+.chartInfo {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chartInfo p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.liveLabel {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white !important;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.8rem !important;
+  animation: pulse 2s infinite;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chartInfo {
+    background: rgba(255, 255, 255, 0.05);
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .chartInfo p {
+    color: #94a3b8;
+  }
+}
+
 @media (max-width: 768px) {
-  .pageContainer {
-    padding: 1rem;
-  }
-  
-  .presetScreensGrid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .filterGrid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .quickActions {
+  .realTimeControls {
     flex-direction: column;
+    gap: 0.75rem;
   }
   
-  .runScreenBtn, .saveScreenBtn, .resetBtn {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .stockGrid {
-    grid-template-columns: 1fr;
-  }
-  
-  .tabNavigation {
+  .resultsHeader {
     flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .tab {
+    gap: 1rem;
     text-align: center;
+  }
+  
+  .resultsStats {
+    justify-content: center;
   }
 }

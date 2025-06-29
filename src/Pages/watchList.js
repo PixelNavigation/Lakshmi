@@ -15,14 +15,13 @@ export default function WatchList() {
   const [error, setError] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const [chartModal, setChartModal] = useState({ isOpen: false, symbol: '', name: '' })
+  const [chartModal, setChartModal] = useState({ isOpen: false, symbol: '', displaySymbol: '', name: '' })
   const [priceAnimations, setPriceAnimations] = useState({})
   const [viewMode, setViewMode] = useState('tradingview') // Only TradingView mode
 
-  // Mock user ID - in a real app, this would come from authentication
   const userId = 'user123' // Replace with actual user authentication
 
-  const categories = ['all', 'technology', 'finance', 'healthcare', 'automotive', 'energy', 'crypto']
+  const categories = ['all', 'technology', 'finance', 'fmcg', 'energy', 'automotive', 'healthcare', 'crypto', 'other']
 
   // Load user's watchlist from Supabase
   const loadWatchlist = async () => {
@@ -119,19 +118,46 @@ export default function WatchList() {
 
   // Categorize stocks based on symbol
   const categorizeStock = (symbol) => {
-    if (symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('DOGE') || symbol.includes('-INR')) {
-      return 'crypto'
-    } else if (symbol.includes('.NS') || symbol.includes('.BO')) {
-      return 'indian'
-    } else if (['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA'].includes(symbol)) {
+    // Remove exchange suffixes for categorization
+    const baseSymbol = symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')
+    
+    // Indian Technology stocks
+    if (['TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM', 'LTIM', 'COFORGE', 'PERSISTENT'].includes(baseSymbol)) {
       return 'technology'
-    } else if (['JPM', 'BAC', 'WFC', 'GS'].includes(symbol)) {
+    }
+    // Indian Banking stocks
+    else if (['HDFCBANK', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK', 'INDUSINDBK', 'BANKBARODA', 'PNB', 'IDFCFIRSTB', 'FEDERALBNK'].includes(baseSymbol)) {
       return 'finance'
-    } else if (['JNJ', 'PFE', 'MRK', 'ABT'].includes(symbol)) {
-      return 'healthcare'
-    } else if (['XOM', 'CVX', 'COP'].includes(symbol)) {
+    }
+    // Indian FMCG stocks
+    else if (['ITC', 'HINDUNILVR', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'MARICO', 'COLPAL', 'GODREJCP', 'TATACONSUM', 'EMAMILTD', 'PATANJALI'].includes(baseSymbol)) {
+      return 'fmcg'
+    }
+    // Indian Energy/Renewable stocks
+    else if (['RELIANCE', 'ADANIGREEN', 'SUZLON', 'TATAPOWER', 'NTPC', 'POWERGRID', 'RPOWER', 'JSWENERGY', 'THERMAX'].includes(baseSymbol)) {
       return 'energy'
-    } else {
+    }
+    // Indian Automotive stocks
+    else if (['MARUTI', 'TATAMOTORS', 'M&M', 'BAJAJ-AUTO', 'HEROMOTOCO', 'EICHERMOT'].includes(baseSymbol)) {
+      return 'automotive'
+    }
+    // Indian Healthcare/Pharma stocks
+    else if (['SUNPHARMA', 'DRREDDY', 'CIPLA', 'LUPIN', 'AUROPHARMA', 'BIOCON'].includes(baseSymbol)) {
+      return 'healthcare'
+    }
+    // Cryptocurrencies
+    else if (['BTC', 'ETH', 'ADA', 'DOGE', 'MATIC', 'SOL'].includes(baseSymbol) || symbol.includes('INR')) {
+      return 'crypto'
+    }
+    // US Technology stocks (legacy support)
+    else if (['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA'].includes(baseSymbol)) {
+      return 'technology'
+    }
+    // US Finance stocks (legacy support)
+    else if (['JPM', 'BAC', 'WFC', 'GS'].includes(baseSymbol)) {
+      return 'finance'
+    }
+    else {
       return 'other'
     }
   }
@@ -159,14 +185,20 @@ export default function WatchList() {
 
   // Open chart modal
   const openChart = (symbol, name) => {
-    setChartModal({ isOpen: true, symbol, name })
+    const displaySymbol = symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')
+    setChartModal({ 
+      isOpen: true, 
+      symbol, 
+      displaySymbol,
+      name 
+    })
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden'
   }
 
   // Close chart modal
   const closeChart = () => {
-    setChartModal({ isOpen: false, symbol: '', name: '' })
+    setChartModal({ isOpen: false, symbol: '', displaySymbol: '', name: '' })
     // Restore body scroll
     document.body.style.overflow = 'unset'
   }
@@ -232,15 +264,19 @@ export default function WatchList() {
 
   // Render price cell with TradingView widget
   const renderPriceCell = (item) => {
+    // Use display symbol for TradingView widget (clean symbol without .NS/.BO/INR)
+    const displaySymbol = item.displaySymbol || item.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <PriceWidget symbol={item.symbol} width={200} height={80} />
+        <PriceWidget symbol={displaySymbol} width={200} height={80} />
       </div>
     )
   }
 
   const filteredWatchlist = watchlistItems.filter(item => {
-    const matchesSearch = item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const displaySymbol = item.displaySymbol || item.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')
+    const matchesSearch = displaySymbol.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
     return matchesSearch && matchesCategory
@@ -278,13 +314,6 @@ export default function WatchList() {
     <div className={styles.pageContainer}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>👁️ Watch List</h1>
-        <p className={styles.pageSubtitle}>
-          📈 Real-time stock data powered by TradingView
-          <br />
-          <span style={{ fontSize: '0.8rem', color: '#666', fontStyle: 'italic' }}>
-            📊 Live charts and prices directly from TradingView financial data
-          </span>
-        </p>
         {error && (
           <div style={{ 
             background: '#f8d7da', 
@@ -377,7 +406,7 @@ export default function WatchList() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #eee' }}>
-                      <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold', width: '25%' }}>Symbol</th>
+                      <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold', width: '25%' }}>Symbol / Exchange</th>
                       <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '30%' }}>TradingView Price</th>
                       <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold', width: '15%' }}>Volume</th>
                       <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '10%' }}>Alerts</th>
@@ -389,7 +418,25 @@ export default function WatchList() {
                       <tr key={item.symbol} style={{ borderBottom: '1px solid #eee' }}>
                         <td style={{ padding: '1rem' }}>
                           <div>
-                            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{item.symbol}</div>
+                            <div style={{ fontWeight: 'bold', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {item.displaySymbol || item.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')}
+                              <span style={{ 
+                                fontSize: '0.7rem', 
+                                backgroundColor: item.symbol.includes('.NS') ? '#e3f2fd' : 
+                                                item.symbol.includes('.BO') ? '#fff3e0' : 
+                                                item.symbol.includes('INR') ? '#f3e5f5' : '#f8f9fa',
+                                color: item.symbol.includes('.NS') ? '#1976d2' : 
+                                       item.symbol.includes('.BO') ? '#f57c00' : 
+                                       item.symbol.includes('INR') ? '#7b1fa2' : '#666',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '10px',
+                                fontWeight: 'bold'
+                              }}>
+                                {item.symbol.includes('.NS') ? 'NSE' : 
+                                 item.symbol.includes('.BO') ? 'BSE' : 
+                                 item.symbol.includes('INR') ? 'CRYPTO' : 'OTHER'}
+                              </span>
+                            </div>
                             <div style={{ fontSize: '0.8rem', color: '#666' }}>{item.name}</div>
                             <div style={{ 
                               fontSize: '0.7rem', 
@@ -514,7 +561,9 @@ export default function WatchList() {
               {topGainers.map(stock => (
                 <div key={stock.symbol} className={styles.moverItem}>
                   <div className={styles.moverInfo}>
-                    <div className={styles.moverSymbol}>{stock.symbol}</div>
+                    <div className={styles.moverSymbol}>
+                      {stock.displaySymbol || stock.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')}
+                    </div>
                     <div className={styles.moverPrice}>
                       {formatCurrency(stock.price, stock.currency)}
                     </div>
@@ -533,7 +582,9 @@ export default function WatchList() {
               {topLosers.map(stock => (
                 <div key={stock.symbol} className={styles.moverItem}>
                   <div className={styles.moverInfo}>
-                    <div className={styles.moverSymbol}>{stock.symbol}</div>
+                    <div className={styles.moverSymbol}>
+                      {stock.displaySymbol || stock.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')}
+                    </div>
                     <div className={styles.moverPrice}>
                       {formatCurrency(stock.price, stock.currency)}
                     </div>
@@ -574,8 +625,25 @@ export default function WatchList() {
           >
             <div className={styles.chartModalHeader}>
               <h3 className={styles.chartModalTitle}>
-                📊 {chartModal.symbol} - {chartModal.name}
+                📊 {chartModal.displaySymbol || chartModal.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')} - {chartModal.name}
               </h3>
+              <div style={{ 
+                fontSize: '0.8rem', 
+                backgroundColor: chartModal.symbol.includes('.NS') ? '#e3f2fd' : 
+                                chartModal.symbol.includes('.BO') ? '#fff3e0' : 
+                                chartModal.symbol.includes('INR') ? '#f3e5f5' : '#f8f9fa',
+                color: chartModal.symbol.includes('.NS') ? '#1976d2' : 
+                       chartModal.symbol.includes('.BO') ? '#f57c00' : 
+                       chartModal.symbol.includes('INR') ? '#7b1fa2' : '#666',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '12px',
+                fontWeight: 'bold',
+                marginRight: '1rem'
+              }}>
+                {chartModal.symbol.includes('.NS') ? 'NSE' : 
+                 chartModal.symbol.includes('.BO') ? 'BSE' : 
+                 chartModal.symbol.includes('INR') ? 'CRYPTO' : 'OTHER'}
+              </div>
               <button 
                 onClick={closeChart}
                 className={styles.closeButton}
@@ -585,7 +653,7 @@ export default function WatchList() {
               </button>
             </div>
             <div className={styles.chartContainer}>
-              <StockChart symbol={chartModal.symbol} />
+              <StockChart symbol={chartModal.displaySymbol || chartModal.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')} />
             </div>
           </div>
         </div>

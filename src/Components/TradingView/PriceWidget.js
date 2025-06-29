@@ -20,12 +20,19 @@ export function PriceWidget({ symbol, width = 200, height = 62 }) {
       script.type = 'text/javascript'
       script.async = true
       
-      // Use the symbol directly like the working StockChart component
-      const displaySymbol = symbol.toUpperCase()
-      console.log(`Loading TradingView price widget for: ${displaySymbol}`)
+      // Format symbol for TradingView based on the original symbol pattern
+      let tradingViewSymbol = symbol.toUpperCase()
+      
+      // For crypto pairs, use BINANCE exchange format
+      if (symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('BNB') || 
+          symbol.includes('ADA') || symbol.includes('DOT') || symbol.includes('MATIC')) {
+        tradingViewSymbol = `BINANCE:${symbol.toUpperCase()}INR`
+      }
+      
+      console.log(`Loading TradingView price widget for: ${tradingViewSymbol}`)
       
       script.innerHTML = JSON.stringify({
-        symbol: displaySymbol,
+        symbol: tradingViewSymbol,
         width: width,
         height: height,
         locale: 'en',
@@ -41,7 +48,7 @@ export function PriceWidget({ symbol, width = 200, height = 62 }) {
       }
 
       script.onerror = () => {
-        console.error(`Failed to load TradingView widget for symbol: ${displaySymbol}`)
+        console.error(`Failed to load TradingView widget for symbol: ${tradingViewSymbol}`)
         setHasError(true)
         setIsLoading(false)
       }
