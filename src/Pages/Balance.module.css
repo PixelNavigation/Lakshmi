@@ -1,0 +1,444 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #0f0f23;
+  min-height: 100vh;
+  color: white;
+}
+
+.header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.addFundsButton {
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.addFundsButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);
+}
+
+.balanceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.balanceCard {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1px solid #2d3748;
+  border-radius: 15px;
+  padding: 25px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.balanceCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+}
+
+.balanceCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(79, 172, 254, 0.2);
+}
+
+.balanceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.balanceHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #a0aec0;
+}
+
+.currency {
+  font-size: 1.5rem;
+  opacity: 0.7;
+}
+
+.balanceAmount {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.balanceLabel {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.profit {
+  color: #48bb78;
+}
+
+.loss {
+  color: #f56565;
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.portfolioTable {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid #2d3748;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 15px;
+  padding: 20px;
+  background: #2d3748;
+  font-weight: 600;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 15px;
+  padding: 20px;
+  border-bottom: 1px solid #2d3748;
+  align-items: center;
+  transition: background 0.2s ease;
+}
+
+.tableRow:hover {
+  background: rgba(79, 172, 254, 0.1);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.symbol {
+  font-weight: 600;
+  color: #4facfe;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.buyButton, .sellButton {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.buyButton {
+  background: #48bb78;
+  color: white;
+}
+
+.buyButton:hover {
+  background: #38a169;
+  transform: translateY(-1px);
+}
+
+.sellButton {
+  background: #f56565;
+  color: white;
+}
+
+.sellButton:hover {
+  background: #e53e3e;
+  transform: translateY(-1px);
+}
+
+.transactionsList {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 15px;
+  border: 1px solid #2d3748;
+  overflow: hidden;
+}
+
+.transactionItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 15px;
+  padding: 20px;
+  border-bottom: 1px solid #2d3748;
+  align-items: center;
+  transition: background 0.2s ease;
+}
+
+.transactionItem:hover {
+  background: rgba(79, 172, 254, 0.05);
+}
+
+.transactionItem:last-child {
+  border-bottom: none;
+}
+
+.transactionIcon {
+  font-size: 1.2rem;
+}
+
+.transactionDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transactionSymbol {
+  font-weight: 600;
+  color: #4facfe;
+}
+
+.transactionInfo {
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.transactionAmount {
+  font-weight: 600;
+  color: white;
+}
+
+.transactionDate {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #718096;
+}
+
+.emptyState p {
+  margin: 8px 0;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border-radius: 15px;
+  border: 1px solid #2d3748;
+  max-width: 400px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #2d3748;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.4rem;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: #2d3748;
+  color: white;
+}
+
+.modalBody {
+  padding: 20px;
+}
+
+.inputGroup {
+  margin-bottom: 20px;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 8px;
+  color: #a0aec0;
+  font-weight: 600;
+}
+
+.amountInput, .currencySelect {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: white;
+  font-size: 1rem;
+}
+
+.amountInput:focus, .currencySelect:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancelButton, .confirmButton {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.cancelButton {
+  background: #2d3748;
+  color: #a0aec0;
+}
+
+.cancelButton:hover {
+  background: #4a5568;
+  color: white;
+}
+
+.confirmButton {
+  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  color: white;
+}
+
+.confirmButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+}
+
+.loadingMessage, .errorMessage {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+}
+
+.errorMessage {
+  color: #f56565;
+}
+
+.tradeSummary {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.summaryItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+  
+  .tableHeader, .tableRow {
+    grid-template-columns: 1fr 1fr 1fr;
+    font-size: 0.8rem;
+  }
+  
+  .tableHeader div:nth-child(n+4),
+  .tableRow div:nth-child(n+4) {
+    display: none;
+  }
+  
+  .balanceGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .transactionItem {
+    grid-template-columns: auto 1fr auto;
+    font-size: 0.9rem;
+  }
+  
+  .transactionDate {
+    display: none;
+  }
+}

@@ -1,337 +1,473 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import styles from './Portfolio.module.css'
 
 export default function Portfolio() {
-  const [selectedTab, setSelectedTab] = useState('overview')
+  const { user } = useAuth()
+  const [portfolio, setPortfolio] = useState([])
+  const [transactions, setTransactions] = useState([])
+  const [balances, setBalances] = useState({ inr: 0, eth: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [showTradeModal, setShowTradeModal] = useState(false)
+  const [tradeData, setTradeData] = useState({
+    symbol: '',
+    type: 'BUY',
+    quantity: '',
+    price: ''
+  })
 
-  const portfolioData = {
-    totalValue: 45230.75,
-    dayChange: 1240.30,
-    dayChangePercent: 2.82,
-    totalGainLoss: 8750.25,
-    totalGainLossPercent: 24.01
+  const userId = 'user123' // Replace with actual user ID
+
+  useEffect(() => {
+    fetchPortfolio()
+    fetchTransactions()
+    fetchBalances()
+  }, [userId])
+
+  const fetchPortfolio = async () => {
+    try {
+      const response = await fetch(`/api/user-portfolio?userId=${userId}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setPortfolio(data.portfolio)
+      } else {
+        setError('Failed to fetch portfolio')
+      }
+    } catch (err) {
+      setError('Error fetching portfolio: ' + err.message)
+    }
   }
 
-  const holdings = [
-    {
-      symbol: 'AAPL',
-      name: 'Apple Inc.',
-      shares: 25,
-      avgPrice: 180.50,
-      currentPrice: 185.20,
-      value: 4630.00,
-      gainLoss: 117.50,
-      gainLossPercent: 2.60,
-      allocation: 10.2
-    },
-    {
-      symbol: 'MSFT',
-      name: 'Microsoft Corporation',
-      shares: 15,
-      avgPrice: 335.00,
-      currentPrice: 348.75,
-      value: 5231.25,
-      gainLoss: 206.25,
-      gainLossPercent: 4.11,
-      allocation: 11.6
-    },
-    {
-      symbol: 'GOOGL',
-      name: 'Alphabet Inc.',
-      shares: 12,
-      avgPrice: 125.30,
-      currentPrice: 132.45,
-      value: 1589.40,
-      gainLoss: 85.80,
-      gainLossPercent: 5.71,
-      allocation: 3.5
-    },
-    {
-      symbol: 'TSLA',
-      name: 'Tesla Inc.',
-      shares: 8,
-      avgPrice: 245.00,
-      currentPrice: 238.90,
-      value: 1911.20,
-      gainLoss: -48.80,
-      gainLossPercent: -2.49,
-      allocation: 4.2
-    },
-    {
-      symbol: 'NVDA',
-      name: 'NVIDIA Corporation',
-      shares: 18,
-      avgPrice: 420.75,
-      currentPrice: 485.30,
-      value: 8735.40,
-      gainLoss: 1161.90,
-      gainLossPercent: 15.34,
-      allocation: 19.3
+  const fetchBalances = async () => {
+    try {
+      const response = await fetch(`/api/user-balance?userId=${userId}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setBalances(data.balances)
+      }
+    } catch (err) {
+      console.error('Error fetching balances:', err)
     }
-  ]
+  }
 
-  const recentTransactions = [
-    {
-      id: 1,
-      type: 'buy',
-      symbol: 'NVDA',
-      shares: 5,
-      price: 485.30,
-      date: '2024-01-15',
-      total: 2426.50
-    },
-    {
-      id: 2,
-      type: 'sell',
-      symbol: 'AAPL',
-      shares: 10,
-      price: 185.20,
-      date: '2024-01-14',
-      total: 1852.00
-    },
-    {
-      id: 3,
-      type: 'buy',
-      symbol: 'MSFT',
-      shares: 3,
-      price: 348.75,
-      date: '2024-01-12',
-      total: 1046.25
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch(`/api/user-transactions?userId=${userId}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setTransactions(data.transactions)
+      }
+      setLoading(false)
+    } catch (err) {
+      console.error('Error fetching transactions:', err)
+      setLoading(false)
     }
-  ]
+  }
+
+  const handleTrade = async () => {
+    if (!tradeData.symbol || !tradeData.quantity || !tradeData.price) {
+      alert('Please fill all fields')
+      return
+    }
+
+    if (parseFloat(tradeData.quantity) <= 0 || parseFloat(tradeData.price) <= 0) {
+      alert('Quantity and price must be positive')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/trade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          symbol: tradeData.symbol,
+          quantity: parseFloat(tradeData.quantity),
+          price: parseFloat(tradeData.price),
+          transactionType: tradeData.type
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert(`${tradeData.type} order executed successfully`)
+        setShowTradeModal(false)
+        setTradeData({ symbol: '', type: 'BUY', quantity: '', price: '' })
+        // Refresh data
+        fetchPortfolio()
+        fetchTransactions()
+        fetchBalances()
+      } else {
+        alert('Trade failed: ' + data.error)
+      }
+    } catch (err) {
+      alert('Error executing trade: ' + err.message)
+    }
+  }
+
+  const openTradeModal = (symbol = '', type = 'BUY') => {
+    setTradeData({
+      symbol: symbol,
+      type: type,
+      quantity: '',
+      price: ''
+    })
+    setShowTradeModal(true)
+  }
+
+  // State for real-time stock prices
+  const [stockPrices, setStockPrices] = useState({})
+  const [fetchingPrices, setFetchingPrices] = useState(false)
+
+  // Fetch current stock prices for portfolio holdings
+  const fetchStockPrices = async () => {
+    if (portfolio.length === 0) return
+
+    setFetchingPrices(true)
+    const prices = {}
+    for (const holding of portfolio) {
+      try {
+        const response = await fetch(`/api/stock-detail?symbol=${holding.symbol}`)
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          prices[holding.symbol] = {
+            currentPrice: data.data.price || holding.average_price,
+            change: data.data.change || 0,
+            changePercent: data.data.changePercent || 0
+          }
+        } else {
+          // Fallback to average price if API fails
+          prices[holding.symbol] = {
+            currentPrice: holding.average_price,
+            change: 0,
+            changePercent: 0
+          }
+        }
+      } catch (err) {
+        console.error(`Error fetching price for ${holding.symbol}:`, err)
+        // Fallback to average price
+        prices[holding.symbol] = {
+          currentPrice: holding.average_price,
+          change: 0,
+          changePercent: 0
+        }
+      }
+    }
+    setStockPrices(prices)
+    setFetchingPrices(false)
+  }
+
+  // Fetch stock prices when portfolio changes
+  useEffect(() => {
+    if (portfolio.length > 0) {
+      fetchStockPrices()
+    }
+  }, [portfolio])
+
+  // Calculate portfolio statistics with real stock prices
+  const totalInvested = portfolio.reduce((total, holding) => {
+    const quantity = holding?.quantity || 0
+    const avgPrice = holding?.average_price || 0
+    return total + (quantity * avgPrice)
+  }, 0)
+
+  const currentMarketValue = portfolio.reduce((total, holding) => {
+    const quantity = holding?.quantity || 0
+    const currentPrice = stockPrices[holding.symbol]?.currentPrice || holding?.average_price || 0
+    return total + (quantity * currentPrice)
+  }, 0)
+
+  const totalPnL = currentMarketValue - totalInvested
+  const totalPnLPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loadingMessage}>Loading portfolio...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorMessage}>{error}</div>
+      </div>
+    )
+  }
 
   return (
-    <div className={styles.pageContainer}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>💼 Portfolio</h1>
-        <p className={styles.pageSubtitle}>Track and manage your investment portfolio</p>
-      </div>
-
-      <div className={styles.portfolioTabs} style={{ marginBottom: '2rem' }}>
-        {['overview', 'holdings', 'transactions', 'performance'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setSelectedTab(tab)}
-            className={selectedTab === tab ? styles.activeTab : styles.tab}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: 'none',
-              backgroundColor: selectedTab === tab ? '#007bff' : 'transparent',
-              color: selectedTab === tab ? 'white' : '#666',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              marginRight: '0.5rem',
-              textTransform: 'capitalize'
-            }}
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>📊 Portfolio</h1>
+        <div className={styles.headerActions}>
+          <button 
+            className={styles.refreshButton}
+            onClick={fetchStockPrices}
+            disabled={portfolio.length === 0 || fetchingPrices}
           >
-            {tab}
+            {fetchingPrices ? '⏳ Updating...' : '🔄 Refresh Prices'}
           </button>
-        ))}
+          <button 
+            className={styles.tradeButton}
+            onClick={() => openTradeModal()}
+          >
+            + New Trade
+          </button>
+        </div>
       </div>
 
-      {selectedTab === 'overview' && (
-        <div className={styles.contentGrid}>
-          <div className={styles.mainContent}>
-            <div className={styles.card}>
-              <h3>Portfolio Summary</h3>
-              <div className={styles.summaryGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-                <div className={styles.summaryItem}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#007bff' }}>
-                    ${portfolioData.totalValue.toLocaleString()}
-                  </div>
-                  <div style={{ color: '#666' }}>Total Portfolio Value</div>
-                </div>
-                <div className={styles.summaryItem}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: portfolioData.dayChange >= 0 ? '#28a745' : '#dc3545' }}>
-                    ${portfolioData.dayChange >= 0 ? '+' : ''}${portfolioData.dayChange.toLocaleString()} ({portfolioData.dayChangePercent >= 0 ? '+' : ''}{portfolioData.dayChangePercent}%)
-                  </div>
-                  <div style={{ color: '#666' }}>Today's Change</div>
-                </div>
-                <div className={styles.summaryItem}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: portfolioData.totalGainLoss >= 0 ? '#28a745' : '#dc3545' }}>
-                    ${portfolioData.totalGainLoss >= 0 ? '+' : ''}${portfolioData.totalGainLoss.toLocaleString()} ({portfolioData.totalGainLossPercent >= 0 ? '+' : ''}{portfolioData.totalGainLossPercent}%)
-                  </div>
-                  <div style={{ color: '#666' }}>Total Gain/Loss</div>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <h3>Top Holdings</h3>
-              <div className={styles.holdingsPreview}>
-                {holdings.slice(0, 3).map(holding => (
-                  <div key={holding.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #eee' }}>
-                    <div>
-                      <div style={{ fontWeight: 'bold' }}>{holding.symbol}</div>
-                      <div style={{ fontSize: '0.9rem', color: '#666' }}>{holding.name}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 'bold' }}>${holding.value.toLocaleString()}</div>
-                      <div style={{ fontSize: '0.9rem', color: holding.gainLoss >= 0 ? '#28a745' : '#dc3545' }}>
-                        {holding.gainLoss >= 0 ? '+' : ''}${holding.gainLoss.toFixed(2)} ({holding.gainLossPercent >= 0 ? '+' : ''}{holding.gainLossPercent}%)
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Portfolio Summary */}
+      <div className={styles.summaryGrid}>
+        <div className={styles.summaryCard}>
+          <div className={styles.summaryHeader}>
+            <h3>💰 Total Invested</h3>
           </div>
-
-          <div className={styles.sidebar}>
-            <div className={styles.card}>
-              <h3>Portfolio Allocation</h3>
-              <div className={styles.allocationChart}>
-                {holdings.map(holding => (
-                  <div key={holding.symbol} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
-                    <span>{holding.symbol}</span>
-                    <span>{holding.allocation}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <h3>Quick Actions</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <button className={styles.primaryButton}>Add Funds</button>
-                <button className={styles.secondaryButton}>Rebalance Portfolio</button>
-                <button className={styles.secondaryButton}>Download Report</button>
-              </div>
-            </div>
+          <div className={styles.summaryAmount}>
+            ₹{totalInvested.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
           </div>
         </div>
-      )}
 
-      {selectedTab === 'holdings' && (
-        <div className={styles.card}>
-          <h3>All Holdings</h3>
-          <div className={styles.holdingsTable} style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #eee' }}>
-                  <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold' }}>Symbol</th>
-                  <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold' }}>Shares</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Avg Price</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Current Price</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Market Value</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Gain/Loss</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Allocation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {holdings.map(holding => (
-                  <tr key={holding.symbol} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '1rem' }}>
-                      <div>
-                        <div style={{ fontWeight: 'bold' }}>{holding.symbol}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#666' }}>{holding.name}</div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '1rem' }}>{holding.shares}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>${holding.avgPrice.toFixed(2)}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>${holding.currentPrice.toFixed(2)}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>${holding.value.toLocaleString()}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right', color: holding.gainLoss >= 0 ? '#28a745' : '#dc3545' }}>
-                      {holding.gainLoss >= 0 ? '+' : ''}${holding.gainLoss.toFixed(2)} ({holding.gainLossPercent >= 0 ? '+' : ''}{holding.gainLossPercent}%)
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>{holding.allocation}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className={styles.summaryCard}>
+          <div className={styles.summaryHeader}>
+            <h3>📈 Current Value</h3>
+          </div>
+          <div className={styles.summaryAmount}>
+            ₹{currentMarketValue.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
           </div>
         </div>
-      )}
 
-      {selectedTab === 'transactions' && (
-        <div className={styles.card}>
-          <h3>Recent Transactions</h3>
-          <div className={styles.transactionsTable}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #eee' }}>
-                  <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold' }}>Date</th>
-                  <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold' }}>Type</th>
-                  <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold' }}>Symbol</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Shares</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Price</th>
-                  <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold' }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.map(transaction => (
-                  <tr key={transaction.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '1rem' }}>{transaction.date}</td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ 
-                        padding: '0.25rem 0.5rem', 
-                        borderRadius: '12px', 
-                        fontSize: '0.8rem',
-                        backgroundColor: transaction.type === 'buy' ? '#d4edda' : '#f8d7da',
-                        color: transaction.type === 'buy' ? '#155724' : '#721c24'
+        <div className={styles.summaryCard}>
+          <div className={styles.summaryHeader}>
+            <h3>📊 Total P&L</h3>
+          </div>
+          <div className={`${styles.summaryAmount} ${totalPnL >= 0 ? styles.profit : styles.loss}`}>
+            ₹{totalPnL.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
+          </div>
+          <div className={`${styles.summaryPercent} ${totalPnL >= 0 ? styles.profit : styles.loss}`}>
+            {totalPnLPercent >= 0 ? '+' : ''}{totalPnLPercent.toFixed(2)}%
+          </div>
+        </div>
+      </div>
+
+      {/* Holdings */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>📈 Holdings</h2>
+        {portfolio.length > 0 ? (
+          <div className={styles.holdingsTable}>
+            <div className={styles.tableHeader}>
+              <div className={styles.symbolColumn}>Symbol</div>
+              <div className={styles.quantityColumn}>Quantity</div>
+              <div className={styles.avgPriceColumn}>Avg Price</div>
+              <div className={styles.currentColumn}>Current Price</div>
+              <div className={styles.valueColumn}>Value</div>
+              <div className={styles.pnlColumn}>P&L</div>
+              <div className={styles.actionsColumn}>Actions</div>
+            </div>
+            {portfolio.map((holding, index) => {
+              const quantity = holding?.quantity || 0
+              const avgPrice = holding?.average_price || 0
+              const stockPrice = stockPrices[holding.symbol]
+              const currentPrice = stockPrice?.currentPrice || avgPrice
+              const currentValue = quantity * currentPrice
+              const totalCost = quantity * avgPrice
+              const pnl = currentValue - totalCost
+              const pnlPercent = totalCost > 0 ? (pnl / totalCost) * 100 : 0
+
+              return (
+                <div key={index} className={styles.holdingRow}>
+                  <div className={styles.symbolColumn} data-label="Symbol">
+                    <div className={styles.symbol}>{holding?.symbol || 'N/A'}</div>
+                  </div>
+                  <div className={styles.quantityColumn} data-label="Quantity">{quantity}</div>
+                  <div className={styles.avgPriceColumn} data-label="Avg Price">
+                    ₹{avgPrice.toFixed(2)}
+                  </div>
+                  <div className={styles.currentColumn} data-label="Current Price">
+                    <div>₹{currentPrice.toFixed(2)}</div>
+                    {stockPrice && (
+                      <div style={{ 
+                        fontSize: '0.8rem', 
+                        color: stockPrice.change >= 0 ? '#22c55e' : '#ef4444',
+                        marginTop: '0.25rem'
                       }}>
-                        {transaction.type.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem', fontWeight: 'bold' }}>{transaction.symbol}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>{transaction.shares}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>${transaction.price.toFixed(2)}</td>
-                    <td style={{ padding: '1rem', textAlign: 'right' }}>${transaction.total.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {stockPrice.change >= 0 ? '+' : ''}{stockPrice.changePercent?.toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.valueColumn} data-label="Value">
+                    ₹{currentValue.toLocaleString('en-IN')}
+                  </div>
+                  <div className={`${styles.pnlColumn} ${pnl >= 0 ? styles.profit : styles.loss}`} data-label="P&L">
+                    ₹{pnl.toLocaleString('en-IN')}
+                    <div className={styles.pnlPercent}>
+                      ({pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                    </div>
+                  </div>
+                  <div className={styles.actionsColumn} data-label="Actions">
+                    <button 
+                      className={styles.buyButton}
+                      onClick={() => openTradeModal(holding?.symbol || '', 'BUY')}
+                    >
+                      Buy More
+                    </button>
+                    <button 
+                      className={styles.sellButton}
+                      onClick={() => openTradeModal(holding?.symbol || '', 'SELL')}
+                    >
+                      Sell
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>📊</div>
+            <h3>No Holdings Yet</h3>
+            <p>Start investing by making your first trade!</p>
+            <button 
+              className={styles.startTradingButton}
+              onClick={() => openTradeModal()}
+            >
+              Start Trading
+            </button>
+          </div>
+        )}
+      </div>
 
-      {selectedTab === 'performance' && (
-        <div className={styles.card}>
-          <h3>Performance Metrics</h3>
-          <div className={styles.performanceGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginTop: '2rem' }}>
-            <div className={styles.performanceCard}>
-              <h4>Returns</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>1 Day</span>
-                  <span style={{ color: '#28a745' }}>+2.82%</span>
+      {/* Recent Transactions */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>📜 Recent Transactions</h2>
+        {transactions.length > 0 ? (
+          <div className={styles.transactionsList}>
+            {transactions.slice(0, 10).map((transaction, index) => (
+              <div key={index} className={styles.transactionItem}>
+                <div className={styles.transactionIcon}>
+                  {transaction?.transaction_type === 'BUY' ? '🟢' : '🔴'}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>1 Week</span>
-                  <span style={{ color: '#28a745' }}>+5.67%</span>
+                <div className={styles.transactionDetails}>
+                  <div className={styles.transactionSymbol}>{transaction?.symbol || 'N/A'}</div>
+                  <div className={styles.transactionInfo}>
+                    {transaction?.transaction_type || 'N/A'} {transaction?.quantity || 0} @ ₹{transaction?.price || 0}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>1 Month</span>
-                  <span style={{ color: '#28a745' }}>+12.45%</span>
+                <div className={styles.transactionAmount}>
+                  ₹{(transaction?.total_amount || 0).toLocaleString('en-IN')}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>YTD</span>
-                  <span style={{ color: '#28a745' }}>+24.01%</span>
+                <div className={styles.transactionDate}>
+                  {transaction?.created_at ? new Date(transaction.created_at).toLocaleDateString() : 'N/A'}
                 </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className={styles.emptyState}>
+            <p>No transactions yet.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Trade Modal */}
+      {showTradeModal && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3>{tradeData.type === 'BUY' ? '🟢' : '🔴'} {tradeData.type} Order</h3>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setShowTradeModal(false)}
+              >
+                ×
+              </button>
             </div>
-            
-            <div className={styles.performanceCard}>
-              <h4>Risk Metrics</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Beta</span>
-                  <span>1.15</span>
+            <div className={styles.modalBody}>
+              <div className={styles.inputGroup}>
+                <label>Symbol</label>
+                <input
+                  type="text"
+                  value={tradeData.symbol}
+                  onChange={(e) => setTradeData({...tradeData, symbol: e.target.value})}
+                  placeholder="Enter symbol (e.g., AAPL, RELIANCE.NS)"
+                  className={styles.amountInput}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label>Transaction Type</label>
+                <select
+                  value={tradeData.type}
+                  onChange={(e) => setTradeData({...tradeData, type: e.target.value})}
+                  className={styles.currencySelect}
+                >
+                  <option value="BUY">BUY</option>
+                  <option value="SELL">SELL</option>
+                </select>
+              </div>
+              <div className={styles.inputGroup}>
+                <label>Quantity</label>
+                <input
+                  type="number"
+                  value={tradeData.quantity}
+                  onChange={(e) => setTradeData({...tradeData, quantity: e.target.value})}
+                  placeholder="Enter quantity"
+                  className={styles.amountInput}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label>Price per Share (₹)</label>
+                <input
+                  type="number"
+                  value={tradeData.price}
+                  onChange={(e) => setTradeData({...tradeData, price: e.target.value})}
+                  placeholder="Enter price"
+                  className={styles.amountInput}
+                />
+              </div>
+              {tradeData.quantity && tradeData.price && (
+                <div className={styles.tradeSummary}>
+                  <div className={styles.summaryItem}>
+                    <span>Total Amount:</span>
+                    <span>₹{(parseFloat(tradeData.quantity) * parseFloat(tradeData.price)).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className={styles.summaryItem}>
+                    <span>Available Cash:</span>
+                    <span>₹{balances.inr.toLocaleString('en-IN')}</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Volatility</span>
-                  <span>18.5%</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Sharpe Ratio</span>
-                  <span>1.32</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Max Drawdown</span>
-                  <span>-8.2%</span>
-                </div>
+              )}
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.cancelButton}
+                  onClick={() => setShowTradeModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className={tradeData.type === 'BUY' ? styles.buyButton : styles.sellButton}
+                  onClick={handleTrade}
+                >
+                  {tradeData.type === 'BUY' ? 'Buy Shares' : 'Sell Shares'}
+                </button>
               </div>
             </div>
           </div>

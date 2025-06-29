@@ -125,6 +125,7 @@ export default function Navbar() {
           <nav className="sidebar-navigation">
             <ul className='sidebar-links'>
               <li><button onClick={() => handleNavigation('dashboard')} className={`nav-button ${currentPage === 'dashboard' ? 'active' : ''}`}>📊 Dashboard</button></li>
+              <li><button onClick={() => handleNavigation('balance')} className={`nav-button ${currentPage === 'balance' ? 'active' : ''}`}>💰 Balance</button></li>
               <li><button onClick={() => handleNavigation('stockScreener')} className={`nav-button ${currentPage === 'stockScreener' ? 'active' : ''}`}>🔍 Stock Screener</button></li>
               <li><button onClick={() => handleNavigation('watchList')} className={`nav-button ${currentPage === 'watchList' ? 'active' : ''}`}>👁️ Watch List</button></li>
               <li><button onClick={() => handleNavigation('portfolio')} className={`nav-button ${currentPage === 'portfolio' ? 'active' : ''}`}>💼 Portfolio</button></li>

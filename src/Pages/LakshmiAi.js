@@ -215,10 +215,9 @@ function parseAIResponse(message, content) {
     'BPCL.NS', 'DRREDDY.NS', 'EICHERMOT.NS', 'CIPLA.NS', 'HEROMOTOCO.NS',
     'BAJAJFINSV.NS', 'BRITANNIA.NS', 'SHREECEM.NS', 'DIVISLAB.NS', 'TATACONSUM.NS',
     'JSWSTEEL.NS', 'APOLLOHOSP.NS', 'INDUSINDBK.NS', 'ADANIENT.NS', 'TATAMOTORS.NS',
-    'NCC.NS'  // Added NCC.NS specifically
+    'NCC.NS'
   ]
-  
-  // Find the first mentioned stock symbol - prioritize TradingView parsed symbol
+
   let mentionedStock = tvSymbol
   
   if (!mentionedStock && stockSymbolMatch) {

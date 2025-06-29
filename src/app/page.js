@@ -6,6 +6,7 @@ import styles from "./page.module.css"
 
 // Import all page components
 import Dashboard from '../Pages/Dashboard'
+import Balance from '../Pages/Balance'
 import StockScreener from '../Pages/stockScreener'
 import WatchList from '../Pages/watchList'
 import Portfolio from '../Pages/Portfolio'
@@ -25,6 +26,12 @@ export default function Home() {
       component: Dashboard,
       label: 'Dashboard',
       icon: '📊'
+    },
+    balance: {
+      path: 'balance',
+      component: Balance,
+      label: 'Balance',
+      icon: '💰'
     },
     stockScreener: {
       path: 'stockScreener',

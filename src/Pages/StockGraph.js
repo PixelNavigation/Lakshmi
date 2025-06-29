@@ -6,9 +6,47 @@ import dynamic from 'next/dynamic'
 import { useAuth } from '../contexts/AuthContext'
 import styles from './StockGraph.module.css'
 
-const ForceGraph2D = dynamic(() => import('react-force-graph').then(mod => mod.ForceGraph2D), {
-  ssr: false
-})
+// Suppress Three.js warnings globally for this component
+if (typeof window !== 'undefined') {
+  const originalWarn = console.warn
+  const originalError = console.error
+  
+  console.warn = (...args) => {
+    const message = args.join(' ')
+    if (
+      message.includes('Multiple instances of Three.js') ||
+      message.includes('WARNING: Multiple instances') ||
+      message.includes('three.js') ||
+      message.includes('Three.js')
+    ) {
+      return
+    }
+    originalWarn.apply(console, args)
+  }
+
+  console.error = (...args) => {
+    const message = args.join(' ')
+    if (
+      message.includes('Multiple instances of Three.js') ||
+      message.includes('WARNING: Multiple instances') ||
+      message.includes('three.js') ||
+      message.includes('Three.js')
+    ) {
+      return
+    }
+    originalError.apply(console, args)
+  }
+}
+
+const ForceGraph2D = dynamic(() => 
+  import('react-force-graph').then(mod => ({
+    default: mod.ForceGraph2D
+  })), 
+  { 
+    ssr: false,
+    loading: () => <div style={{padding: '20px', textAlign: 'center', color: 'white'}}>Loading graph...</div>
+  }
+)
 
 const StockGraph = () => {
   const { user } = useAuth()
@@ -21,6 +59,47 @@ const StockGraph = () => {
   const [backendConnected, setBackendConnected] = useState(false)
 
   const userId = 'user123'
+
+  // Suppress Three.js and A-Frame related console warnings
+  useEffect(() => {
+    const originalConsoleWarn = console.warn
+    const originalConsoleError = console.error
+    
+    console.warn = (...args) => {
+      const message = args.join(' ')
+      if (
+        message.includes('Multiple instances of Three.js') ||
+        message.includes('WARNING: Multiple instances') ||
+        message.includes('three.js') ||
+        message.includes('Three.js') ||
+        message.includes('AFRAME') ||
+        message.includes('aframe')
+      ) {
+        return // Suppress these warnings
+      }
+      originalConsoleWarn.apply(console, args)
+    }
+
+    console.error = (...args) => {
+      const message = args.join(' ')
+      if (
+        message.includes('Multiple instances of Three.js') ||
+        message.includes('WARNING: Multiple instances') ||
+        message.includes('three.js') ||
+        message.includes('Three.js') ||
+        message.includes('AFRAME') ||
+        message.includes('aframe')
+      ) {
+        return // Suppress these errors
+      }
+      originalConsoleError.apply(console, args)
+    }
+
+    return () => {
+      console.warn = originalConsoleWarn
+      console.error = originalConsoleError
+    }
+  }, [])
 
   useEffect(() => {
     const fetchWatchlist = async () => {
