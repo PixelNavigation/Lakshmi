@@ -36,16 +36,16 @@ export function MarketOverview() {
         symbolActiveColor: 'rgba(41, 98, 255, 0.12)',
         tabs: [
           {
-            title: 'Indices',
+            title: 'Indian Indices',
             symbols: [
-              { s: 'FOREXCOM:SPXUSD', d: 'S&P 500' },
-              { s: 'FOREXCOM:NSXUSD', d: 'US 100' },
-              { s: 'FOREXCOM:DJI', d: 'Dow 30' },
-              { s: 'INDEX:NKY', d: 'Nikkei 225' },
-              { s: 'INDEX:DEU40', d: 'DAX Index' },
-              { s: 'FOREXCOM:UKXGBP', d: 'UK 100' }
+              { s: 'NSE:NIFTY', d: 'NIFTY 50' },
+              { s: 'BSE:SENSEX', d: 'SENSEX' },
+              { s: 'NSE:BANKNIFTY', d: 'Bank NIFTY' },
+              { s: 'NSE:NIFTYIT', d: 'NIFTY IT' },
+              { s: 'NSE:NIFTYPHARMA', d: 'NIFTY Pharma' },
+              { s: 'NSE:NIFTYAUTO', d: 'NIFTY Auto' }
             ],
-            originalTitle: 'Indices'
+            originalTitle: 'Indian Indices'
           },
           {
             title: 'Futures',
@@ -60,28 +60,28 @@ export function MarketOverview() {
             originalTitle: 'Futures'
           },
           {
-            title: 'Bonds',
+            title: 'Indian Stocks',
             symbols: [
-              { s: 'CME:GE1!', d: 'Eurodollar' },
-              { s: 'CBOT:ZB1!', d: 'T-Bond' },
-              { s: 'CBOT:UB1!', d: 'Ultra T-Bond' },
-              { s: 'EUREX:FGBL1!', d: 'Euro Bund' },
-              { s: 'EUREX:FBTP1!', d: 'Euro BTP' },
-              { s: 'EUREX:FGBM1!', d: 'Euro BOBL' }
+              { s: 'NSE:RELIANCE', d: 'Reliance Industries' },
+              { s: 'NSE:TCS', d: 'TCS' },
+              { s: 'NSE:HDFCBANK', d: 'HDFC Bank' },
+              { s: 'NSE:INFY', d: 'Infosys' },
+              { s: 'NSE:ICICIBANK', d: 'ICICI Bank' },
+              { s: 'NSE:SBIN', d: 'SBI' }
             ],
-            originalTitle: 'Bonds'
+            originalTitle: 'Indian Stocks'
           },
           {
-            title: 'Forex',
+            title: 'Cryptocurrency',
             symbols: [
-              { s: 'FX:EURUSD', d: 'EUR to USD' },
-              { s: 'FX:GBPUSD', d: 'GBP to USD' },
-              { s: 'FX:USDJPY', d: 'USD to JPY' },
-              { s: 'FX:USDCHF', d: 'USD to CHF' },
-              { s: 'FX:AUDUSD', d: 'AUD to USD' },
-              { s: 'FX:USDCAD', d: 'USD to CAD' }
+              { s: 'BINANCE:BTCINR', d: 'Bitcoin INR' },
+              { s: 'BINANCE:ETHINR', d: 'Ethereum INR' },
+              { s: 'BINANCE:ADAINR', d: 'Cardano INR' },
+              { s: 'BINANCE:SOLINR', d: 'Solana INR' },
+              { s: 'BINANCE:DOTINR', d: 'Polkadot INR' },
+              { s: 'BINANCE:XRPINR', d: 'XRP INR' }
             ],
-            originalTitle: 'Forex'
+            originalTitle: 'Cryptocurrency'
           }
         ]
       })

@@ -99,7 +99,7 @@ export default function WatchList() {
             change: stockData?.change || 0,
             changePercent: stockData?.changePercent || 0,
             volume: stockData?.volume || '0',
-            currency: stockData?.currency || 'USD',
+            currency: stockData?.currency || 'INR',
             category: categorizeStock(watchlistItem.symbol),
             alerts: [] // TODO: Implement alerts system
           }
@@ -119,7 +119,7 @@ export default function WatchList() {
 
   // Categorize stocks based on symbol
   const categorizeStock = (symbol) => {
-    if (symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('DOGE') || symbol.includes('-INR') || symbol.includes('-USD')) {
+    if (symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('DOGE') || symbol.includes('-INR')) {
       return 'crypto'
     } else if (symbol.includes('.NS') || symbol.includes('.BO')) {
       return 'indian'
@@ -208,9 +208,9 @@ export default function WatchList() {
   }, [watchlistItems, refreshing, viewMode])
 
   // Format currency based on type
-  const formatCurrency = (value, currency = 'USD') => {
+  const formatCurrency = (value, currency = 'INR') => {
     if (value === null || value === undefined || isNaN(value)) {
-      return `${currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency} --`
+      return `${currency === 'INR' ? '₹' : currency} --`
     }
     
     if (currency === 'INR') {

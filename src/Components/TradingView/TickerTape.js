@@ -20,24 +20,28 @@ export function TickerTape() {
           script.innerHTML = JSON.stringify({
             symbols: [
               {
-                proName: "FOREXCOM:SPXUSD",
-                title: "S&P 500"
+                proName: "NSE:NIFTY",
+                title: "NIFTY 50"
               },
               {
-                proName: "FOREXCOM:NSXUSD", 
-                title: "US 100"
+                proName: "BSE:SENSEX", 
+                title: "SENSEX"
               },
               {
-                proName: "FX:EURUSD",
-                title: "EUR to USD"
+                proName: "NSE:RELIANCE",
+                title: "Reliance Industries"
               },
               {
-                proName: "BITSTAMP:BTCUSD",
-                title: "Bitcoin"
+                proName: "NSE:TCS",
+                title: "TCS"
               },
               {
-                proName: "NASDAQ:AAPL",
-                title: "Apple Inc"
+                proName: "NSE:HDFCBANK",
+                title: "HDFC Bank"
+              },
+              {
+                proName: "BITSTAMP:BTCINR",
+                title: "Bitcoin INR"
               }
             ],
             showSymbolLogo: true,
