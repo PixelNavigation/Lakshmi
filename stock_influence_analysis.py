@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from sklearn.naive_bayes import GaussianNB
 from statsmodels.tsa.stattools import grangercausalitytests
-import json
 import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -10,7 +9,6 @@ import subprocess
 import sys
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import os
 
 class ChangeHandler(FileSystemEventHandler):
     """Restarts the server on file changes."""
@@ -29,7 +27,11 @@ class ChangeHandler(FileSystemEventHandler):
         print(f"Started {self.script_name} with PID: {self.process.pid}")
 
     def on_any_event(self, event):
-        if event.is_directory or not event.src_path.endswith('.py'):
+        src_path = event.src_path
+        if isinstance(src_path, (bytes, memoryview)):
+            src_path = src_path.tobytes() if isinstance(src_path, memoryview) else src_path
+            src_path = src_path.decode()
+        if event.is_directory or not str(src_path).endswith('.py'):
             return
         print(f"Detected change in {event.src_path}. Restarting server...")
         self.start_process()

@@ -41,8 +41,8 @@ export default function DirectSearch({
         enhancedQuery = enhancedQuery + '.BO'
         searchType = 'stocks'
       } else if (selectedMarket === 'CRYPTO') {
-        // For crypto, use INR instead of USD for Indian users
-        if (!enhancedQuery.includes('-INR') && !enhancedQuery.includes('-USD') && !enhancedQuery.includes('-')) {
+        // For crypto, use INR for Indian users only
+        if (!enhancedQuery.includes('-INR') && !enhancedQuery.includes('-')) {
           enhancedQuery = enhancedQuery + '-INR'
         }
         searchType = 'crypto'
@@ -95,7 +95,7 @@ export default function DirectSearch({
               name: quote.longname || quote.shortname || quote.symbol,
               type: quote.typeDisp || 'stock',
               region: quote.exchDisp || 'Unknown',
-              currency: quote.currency || 'USD'
+              currency: quote.currency || 'INR'
             }))
             console.log(`Found ${initialSearchResults.length} results from Yahoo Finance`)
           }
@@ -145,26 +145,27 @@ export default function DirectSearch({
         } catch (error) {
           console.log('NSE fallback failed:', error)
         }
-      }
-      
-      // Crypto fallback: if INR pair not found, try USD pair and mark for conversion
-      if (searchResults.length === 0 && selectedMarket === 'CRYPTO' && enhancedQuery.includes('-INR')) {
-        const usdQuery = enhancedQuery.replace('-INR', '-USD')
-        try {
-          const usdResponse = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(usdQuery)}&market=ALL&limit=10`)
-          const usdResult = await usdResponse.json()
-          if (usdResult.success && usdResult.data && usdResult.data.length > 0) {
-            // Mark these results as needing conversion from USD to INR
-            searchResults = usdResult.data.map(result => ({
-              ...result,
-              symbol: result.symbol.replace('-USD', '-INR'),
-              currency: 'INR',
-              needsConversion: true
-            }))
-            console.log(`Found ${searchResults.length} results from USD crypto fallback`)
+      } else if (searchResults.length === 0 && selectedMarket === 'ALL') {
+        // For "ALL" market, try both NSE and BSE, plus crypto
+        const fallbackQueries = [
+          { query: query.toUpperCase() + '.NS', market: 'NSE' },
+          { query: query.toUpperCase() + '.BO', market: 'BSE' },
+          { query: query.toUpperCase() + '-INR', market: 'CRYPTO' }
+        ]
+        
+        for (const fallback of fallbackQueries) {
+          if (searchResults.length > 0) break
+          try {
+            const response = await fetch(`/api/comprehensive-search?query=${encodeURIComponent(fallback.query)}&market=${fallback.market}&limit=10`)
+            const result = await response.json()
+            if (result.success && result.data && result.data.length > 0) {
+              searchResults = result.data
+              console.log(`Found ${searchResults.length} results from ${fallback.market} fallback`)
+              break
+            }
+          } catch (error) {
+            console.log(`${fallback.market} fallback failed:`, error)
           }
-        } catch (error) {
-          console.log('USD crypto fallback failed:', error)
         }
       }
       
@@ -253,27 +254,30 @@ export default function DirectSearch({
     const queryUpper = query.toUpperCase()
     const allSymbols = []
     
-    // Basic symbol matches
+    // Basic symbol matches - Indian stocks and INR crypto only
     const knownSymbols = [
-      { symbol: 'AAPL', name: 'Apple Inc.', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'MSFT', name: 'Microsoft Corporation', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'GOOGL', name: 'Alphabet Inc.', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'TSLA', name: 'Tesla, Inc.', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'NVDA', name: 'NVIDIA Corporation', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'META', name: 'Meta Platforms, Inc.', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'AMZN', name: 'Amazon.com, Inc.', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'NFLX', name: 'Netflix, Inc.', type: 'stock', region: 'United States', currency: 'USD' },
-      { symbol: 'BTC-USD', name: 'Bitcoin', type: 'crypto', region: 'Crypto', currency: 'USD' },
-      { symbol: 'ETH-USD', name: 'Ethereum', type: 'crypto', region: 'Crypto', currency: 'USD' },
+      // Indian Stocks
+      { symbol: 'RELIANCE.NS', name: 'Reliance Industries Limited', type: 'stock', region: 'India', currency: 'INR' },
+      { symbol: 'TCS.NS', name: 'Tata Consultancy Services', type: 'stock', region: 'India', currency: 'INR' },
+      { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Limited', type: 'stock', region: 'India', currency: 'INR' },
+      { symbol: 'INFY.NS', name: 'Infosys Limited', type: 'stock', region: 'India', currency: 'INR' },
+      { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Limited', type: 'stock', region: 'India', currency: 'INR' },
+      { symbol: 'SBIN.NS', name: 'State Bank of India', type: 'stock', region: 'India', currency: 'INR' },
+      { symbol: 'ITC.NS', name: 'ITC Limited', type: 'stock', region: 'India', currency: 'INR' },
+      { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Limited', type: 'stock', region: 'India', currency: 'INR' },
+      
+      // Cryptocurrencies in INR
       { symbol: 'BTC-INR', name: 'Bitcoin', type: 'crypto', region: 'Crypto', currency: 'INR' },
       { symbol: 'ETH-INR', name: 'Ethereum', type: 'crypto', region: 'Crypto', currency: 'INR' },
       { symbol: 'DOGE-INR', name: 'Dogecoin', type: 'crypto', region: 'Crypto', currency: 'INR' },
       { symbol: 'ADA-INR', name: 'Cardano', type: 'crypto', region: 'Crypto', currency: 'INR' },
-      { symbol: 'SOL-INR', name: 'Solana', type: 'crypto', region: 'Crypto', currency: 'INR' }
+      { symbol: 'SOL-INR', name: 'Solana', type: 'crypto', region: 'Crypto', currency: 'INR' },
+      { symbol: 'XRP-INR', name: 'XRP', type: 'crypto', region: 'Crypto', currency: 'INR' },
+      { symbol: 'BNB-INR', name: 'BNB', type: 'crypto', region: 'Crypto', currency: 'INR' }
     ]
     
     knownSymbols.forEach(symbol => {
-      const cleanSymbol = symbol.symbol.replace(/\.(NS|BO|-USD|\.L)$/, '')
+      const cleanSymbol = symbol.symbol.replace(/\.(NS|BO|-INR|\.L)$/, '')
       if (cleanSymbol.includes(queryUpper) || symbol.symbol.includes(queryUpper) || symbol.name.toUpperCase().includes(queryUpper)) {
         allSymbols.push(symbol)
       }
@@ -290,138 +294,9 @@ export default function DirectSearch({
     const queryUpper = query.toUpperCase()
     const results = []
     
-    // Major US stocks database (200+ stocks)
-    const usStocks = [
-      // Technology
-      { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology' },
-      { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology' },
-      { symbol: 'GOOGL', name: 'Alphabet Inc. Class A', sector: 'Technology' },
-      { symbol: 'GOOG', name: 'Alphabet Inc. Class C', sector: 'Technology' },
-      { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'E-commerce' },
-      { symbol: 'TSLA', name: 'Tesla Inc.', sector: 'Electric Vehicles' },
-      { symbol: 'META', name: 'Meta Platforms Inc.', sector: 'Social Media' },
-      { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Semiconductors' },
-      { symbol: 'NFLX', name: 'Netflix Inc.', sector: 'Streaming' },
-      { symbol: 'ORCL', name: 'Oracle Corporation', sector: 'Software' },
-      { symbol: 'CRM', name: 'Salesforce Inc.', sector: 'Cloud Software' },
-      { symbol: 'ADBE', name: 'Adobe Inc.', sector: 'Software' },
-      { symbol: 'NOW', name: 'ServiceNow Inc.', sector: 'Cloud Software' },
-      { symbol: 'INTU', name: 'Intuit Inc.', sector: 'Financial Software' },
-      { symbol: 'IBM', name: 'International Business Machines', sector: 'Enterprise Software' },
-      { symbol: 'SNOW', name: 'Snowflake Inc.', sector: 'Data Cloud' },
-      { symbol: 'PLTR', name: 'Palantir Technologies Inc.', sector: 'Data Analytics' },
-      { symbol: 'ZM', name: 'Zoom Video Communications', sector: 'Communication Software' },
-      { symbol: 'TEAM', name: 'Atlassian Corporation', sector: 'Collaboration Software' },
-      { symbol: 'DDOG', name: 'Datadog Inc.', sector: 'Monitoring Software' },
-      
-      // Semiconductors
-      { symbol: 'INTC', name: 'Intel Corporation', sector: 'Semiconductors' },
-      { symbol: 'AMD', name: 'Advanced Micro Devices', sector: 'Semiconductors' },
-      { symbol: 'QCOM', name: 'QUALCOMM Incorporated', sector: 'Semiconductors' },
-      { symbol: 'AVGO', name: 'Broadcom Inc.', sector: 'Semiconductors' },
-      { symbol: 'TXN', name: 'Texas Instruments', sector: 'Semiconductors' },
-      { symbol: 'ADI', name: 'Analog Devices Inc.', sector: 'Semiconductors' },
-      { symbol: 'MRVL', name: 'Marvell Technology', sector: 'Semiconductors' },
-      { symbol: 'MU', name: 'Micron Technology', sector: 'Memory' },
-      { symbol: 'LRCX', name: 'Lam Research Corporation', sector: 'Semiconductor Equipment' },
-      { symbol: 'AMAT', name: 'Applied Materials', sector: 'Semiconductor Equipment' },
-      
-      // Financial Services
-      { symbol: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Banking' },
-      { symbol: 'BAC', name: 'Bank of America Corp', sector: 'Banking' },
-      { symbol: 'WFC', name: 'Wells Fargo & Company', sector: 'Banking' },
-      { symbol: 'GS', name: 'Goldman Sachs Group', sector: 'Investment Banking' },
-      { symbol: 'MS', name: 'Morgan Stanley', sector: 'Investment Banking' },
-      { symbol: 'C', name: 'Citigroup Inc.', sector: 'Banking' },
-      { symbol: 'AXP', name: 'American Express Company', sector: 'Financial Services' },
-      { symbol: 'V', name: 'Visa Inc.', sector: 'Financial Technology' },
-      { symbol: 'MA', name: 'Mastercard Incorporated', sector: 'Financial Technology' },
-      { symbol: 'PYPL', name: 'PayPal Holdings Inc.', sector: 'Fintech' },
-      { symbol: 'SQ', name: 'Block Inc.', sector: 'Fintech' },
-      { symbol: 'BRK-A', name: 'Berkshire Hathaway Class A', sector: 'Conglomerate' },
-      { symbol: 'BRK-B', name: 'Berkshire Hathaway Class B', sector: 'Conglomerate' },
-      
-      // Healthcare
-      { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare' },
-      { symbol: 'PFE', name: 'Pfizer Inc.', sector: 'Pharmaceuticals' },
-      { symbol: 'UNH', name: 'UnitedHealth Group', sector: 'Healthcare' },
-      { symbol: 'ABBV', name: 'AbbVie Inc.', sector: 'Pharmaceuticals' },
-      { symbol: 'TMO', name: 'Thermo Fisher Scientific', sector: 'Life Sciences' },
-      { symbol: 'ABT', name: 'Abbott Laboratories', sector: 'Healthcare' },
-      { symbol: 'LLY', name: 'Eli Lilly and Company', sector: 'Pharmaceuticals' },
-      { symbol: 'BMY', name: 'Bristol-Myers Squibb', sector: 'Pharmaceuticals' },
-      { symbol: 'MDT', name: 'Medtronic plc', sector: 'Medical Devices' },
-      { symbol: 'AMGN', name: 'Amgen Inc.', sector: 'Biotechnology' },
-      { symbol: 'GILD', name: 'Gilead Sciences', sector: 'Biotechnology' },
-      { symbol: 'BIIB', name: 'Biogen Inc.', sector: 'Biotechnology' },
-      { symbol: 'REGN', name: 'Regeneron Pharmaceuticals', sector: 'Biotechnology' },
-      { symbol: 'VRTX', name: 'Vertex Pharmaceuticals', sector: 'Biotechnology' },
-      { symbol: 'MRNA', name: 'Moderna Inc.', sector: 'Biotechnology' },
-      { symbol: 'BNTX', name: 'BioNTech SE', sector: 'Biotechnology' },
-      
-      // Consumer & Retail
-      { symbol: 'WMT', name: 'Walmart Inc.', sector: 'Retail' },
-      { symbol: 'HD', name: 'Home Depot Inc.', sector: 'Home Improvement' },
-      { symbol: 'PG', name: 'Procter & Gamble', sector: 'Consumer Goods' },
-      { symbol: 'KO', name: 'Coca-Cola Company', sector: 'Beverages' },
-      { symbol: 'PEP', name: 'PepsiCo Inc.', sector: 'Beverages' },
-      { symbol: 'COST', name: 'Costco Wholesale Corp', sector: 'Retail' },
-      { symbol: 'NKE', name: 'NIKE Inc.', sector: 'Apparel' },
-      { symbol: 'MCD', name: 'McDonald\'s Corporation', sector: 'Restaurants' },
-      { symbol: 'SBUX', name: 'Starbucks Corporation', sector: 'Restaurants' },
-      { symbol: 'TGT', name: 'Target Corporation', sector: 'Retail' },
-      
-      // Industrial
-      { symbol: 'BA', name: 'Boeing Company', sector: 'Aerospace' },
-      { symbol: 'CAT', name: 'Caterpillar Inc.', sector: 'Heavy Machinery' },
-      { symbol: 'MMM', name: '3M Company', sector: 'Industrial Conglomerate' },
-      { symbol: 'HON', name: 'Honeywell International', sector: 'Industrial Technology' },
-      { symbol: 'GE', name: 'General Electric', sector: 'Industrial Conglomerate' },
-      { symbol: 'LMT', name: 'Lockheed Martin Corp', sector: 'Defense' },
-      { symbol: 'RTX', name: 'Raytheon Technologies', sector: 'Defense' },
-      { symbol: 'UPS', name: 'United Parcel Service', sector: 'Logistics' },
-      { symbol: 'FDX', name: 'FedEx Corporation', sector: 'Logistics' },
-      { symbol: 'DE', name: 'Deere & Company', sector: 'Agricultural Equipment' },
-      
-      // Energy
-      { symbol: 'XOM', name: 'Exxon Mobil Corporation', sector: 'Oil & Gas' },
-      { symbol: 'CVX', name: 'Chevron Corporation', sector: 'Oil & Gas' },
-      { symbol: 'COP', name: 'ConocoPhillips', sector: 'Oil & Gas' },
-      { symbol: 'SLB', name: 'Schlumberger Limited', sector: 'Oilfield Services' },
-      { symbol: 'NEE', name: 'NextEra Energy Inc.', sector: 'Utilities' },
-      { symbol: 'DUK', name: 'Duke Energy Corporation', sector: 'Utilities' },
-      
-      // Electric Vehicles & Clean Energy
-      { symbol: 'NIO', name: 'NIO Inc.', sector: 'Electric Vehicles' },
-      { symbol: 'RIVN', name: 'Rivian Automotive', sector: 'Electric Vehicles' },
-      { symbol: 'LCID', name: 'Lucid Group Inc.', sector: 'Electric Vehicles' },
-      { symbol: 'F', name: 'Ford Motor Company', sector: 'Automotive' },
-      { symbol: 'GM', name: 'General Motors Company', sector: 'Automotive' },
-      { symbol: 'ENPH', name: 'Enphase Energy Inc.', sector: 'Solar Energy' },
-      
-      // E-commerce & Digital
-      { symbol: 'BABA', name: 'Alibaba Group Holding', sector: 'E-commerce' },
-      { symbol: 'SHOP', name: 'Shopify Inc.', sector: 'E-commerce Platform' },
-      { symbol: 'EBAY', name: 'eBay Inc.', sector: 'E-commerce' },
-      { symbol: 'ETSY', name: 'Etsy Inc.', sector: 'E-commerce' },
-      { symbol: 'PINS', name: 'Pinterest Inc.', sector: 'Social Media' },
-      { symbol: 'SNAP', name: 'Snap Inc.', sector: 'Social Media' },
-      { symbol: 'UBER', name: 'Uber Technologies', sector: 'Ride Sharing' },
-      { symbol: 'LYFT', name: 'Lyft Inc.', sector: 'Ride Sharing' },
-      { symbol: 'DASH', name: 'DoorDash Inc.', sector: 'Food Delivery' },
-      
-      // Media & Entertainment
-      { symbol: 'DIS', name: 'Walt Disney Company', sector: 'Entertainment' },
-      { symbol: 'CMCSA', name: 'Comcast Corporation', sector: 'Media' },
-      { symbol: 'VZ', name: 'Verizon Communications', sector: 'Telecommunications' },
-      { symbol: 'T', name: 'AT&T Inc.', sector: 'Telecommunications' },
-      { symbol: 'TMUS', name: 'T-Mobile US Inc.', sector: 'Telecommunications' },
-      { symbol: 'ROKU', name: 'Roku Inc.', sector: 'Streaming' },
-      { symbol: 'SPOT', name: 'Spotify Technology', sector: 'Music Streaming' }
-    ]
-
-    // Indian stocks
+    // Indian stocks database (expanded)
     const indianStocks = [
+      // NSE Stocks
       { symbol: 'RELIANCE.NS', name: 'Reliance Industries Limited', sector: 'Energy' },
       { symbol: 'TCS.NS', name: 'Tata Consultancy Services', sector: 'IT' },
       { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Limited', sector: 'Banking' },
@@ -441,7 +316,40 @@ export default function DirectSearch({
       { symbol: 'TITAN.NS', name: 'Titan Company Limited', sector: 'Jewellery' },
       { symbol: 'NESTLEIND.NS', name: 'Nestle India Limited', sector: 'FMCG' },
       { symbol: 'TECHM.NS', name: 'Tech Mahindra Limited', sector: 'IT' },
-      { symbol: 'SUNPHARMA.NS', name: 'Sun Pharmaceutical', sector: 'Pharmaceuticals' }
+      { symbol: 'SUNPHARMA.NS', name: 'Sun Pharmaceutical', sector: 'Pharmaceuticals' },
+      { symbol: 'ULTRACEMCO.NS', name: 'UltraTech Cement', sector: 'Cement' },
+      { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance', sector: 'Financial Services' },
+      { symbol: 'BAJAJFINSV.NS', name: 'Bajaj Finserv', sector: 'Financial Services' },
+      { symbol: 'ADANIPORTS.NS', name: 'Adani Ports', sector: 'Infrastructure' },
+      { symbol: 'POWERGRID.NS', name: 'Power Grid Corporation', sector: 'Utilities' },
+      { symbol: 'NTPC.NS', name: 'NTPC Limited', sector: 'Power' },
+      { symbol: 'ONGC.NS', name: 'Oil & Natural Gas Corporation', sector: 'Oil & Gas' },
+      { symbol: 'COALINDIA.NS', name: 'Coal India Limited', sector: 'Mining' },
+      { symbol: 'DRREDDY.NS', name: 'Dr. Reddy\'s Laboratories', sector: 'Pharmaceuticals' },
+      { symbol: 'CIPLA.NS', name: 'Cipla Limited', sector: 'Pharmaceuticals' },
+      { symbol: 'DIVISLAB.NS', name: 'Divi\'s Laboratories', sector: 'Pharmaceuticals' },
+      { symbol: 'BRITANNIA.NS', name: 'Britannia Industries', sector: 'FMCG' },
+      { symbol: 'HEROMOTOCO.NS', name: 'Hero MotoCorp', sector: 'Automotive' },
+      { symbol: 'BAJAJ-AUTO.NS', name: 'Bajaj Auto', sector: 'Automotive' },
+      { symbol: 'M&M.NS', name: 'Mahindra & Mahindra', sector: 'Automotive' },
+      { symbol: 'TATAMOTORS.NS', name: 'Tata Motors', sector: 'Automotive' },
+      { symbol: 'TATASTEEL.NS', name: 'Tata Steel', sector: 'Steel' },
+      { symbol: 'JSWSTEEL.NS', name: 'JSW Steel', sector: 'Steel' },
+      { symbol: 'HINDALCO.NS', name: 'Hindalco Industries', sector: 'Metals' },
+      { symbol: 'VEDL.NS', name: 'Vedanta Limited', sector: 'Metals' },
+      { symbol: 'INDUSINDBK.NS', name: 'IndusInd Bank', sector: 'Banking' },
+      { symbol: 'BANDHANBNK.NS', name: 'Bandhan Bank', sector: 'Banking' },
+      { symbol: 'FEDERALBNK.NS', name: 'Federal Bank', sector: 'Banking' },
+      { symbol: 'YESBANK.NS', name: 'Yes Bank', sector: 'Banking' },
+      { symbol: 'PNB.NS', name: 'Punjab National Bank', sector: 'Banking' },
+      { symbol: 'BANKBARODA.NS', name: 'Bank of Baroda', sector: 'Banking' },
+      
+      // BSE Stocks (alternative symbols)
+      { symbol: 'RELIANCE.BO', name: 'Reliance Industries Limited', sector: 'Energy' },
+      { symbol: 'TCS.BO', name: 'Tata Consultancy Services', sector: 'IT' },
+      { symbol: 'HDFCBANK.BO', name: 'HDFC Bank Limited', sector: 'Banking' },
+      { symbol: 'INFY.BO', name: 'Infosys Limited', sector: 'IT' },
+      { symbol: 'ITC.BO', name: 'ITC Limited', sector: 'FMCG' }
     ]
 
     // Cryptocurrencies (INR pairs for Indian users)
@@ -470,14 +378,13 @@ export default function DirectSearch({
 
     // Search all stocks
     const allStocks = [
-      ...usStocks.map(stock => ({ ...stock, type: 'stock', region: 'United States', currency: 'USD' })),
       ...indianStocks.map(stock => ({ ...stock, type: 'stock', region: 'India', currency: 'INR' })),
       ...cryptos.map(stock => ({ ...stock, type: 'crypto', region: 'Global', currency: 'INR' }))
     ]
 
     // Filter results
     allStocks.forEach(stock => {
-      const symbolClean = stock.symbol.replace(/\.(NS|BO|-USD)$/, '')
+      const symbolClean = stock.symbol.replace(/\.(NS|BO|-INR)$/, '')
       const symbolMatch = symbolClean.includes(queryUpper) || stock.symbol.includes(queryUpper)
       const nameMatch = stock.name.toUpperCase().includes(queryUpper)
       const sectorMatch = stock.sector && stock.sector.toUpperCase().includes(queryUpper)
@@ -533,9 +440,9 @@ export default function DirectSearch({
     }
   }
 
-  const formatCurrency = (value, currency = 'USD') => {
+  const formatCurrency = (value, currency = 'INR') => {
     if (value === null || value === undefined || isNaN(value)) {
-      return `${currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency} --`
+      return `${currency === 'INR' ? '₹' : currency} --`
     }
     
     if (currency === 'INR') {
@@ -547,7 +454,7 @@ export default function DirectSearch({
       }).format(Number(value))
     }
     
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 2,
@@ -566,7 +473,7 @@ export default function DirectSearch({
             ? `Search for Indian stocks on ${selectedMarket}. Just enter the symbol (e.g., NCC, INFY) - market suffix will be added automatically.`
             : selectedMarket === 'CRYPTO'
             ? "Search for cryptocurrencies like Bitcoin, Ethereum, Dogecoin and more. Prices shown in INR (₹) for Indian users."
-            : "Search for stocks, cryptocurrencies, commodities, or forex pairs and add them to your watchlist"}
+            : "Search for Indian stocks (NSE/BSE) and cryptocurrencies. Enter stock symbols (e.g., RELIANCE, TCS) or crypto names (e.g., BTC, ETH) to find and add them to your watchlist."}
         </p>
         
         <div className={styles.searchContainer}>
@@ -587,7 +494,7 @@ export default function DirectSearch({
                 ? "Enter symbol (e.g., NCC, INFY, TCS...)" 
                 : selectedMarket === 'CRYPTO'
                 ? "Enter crypto symbol (e.g., BTC, ETH, DOGE...)"
-                : "Enter symbol (e.g., AAPL, BTC, TSLA...)"}
+                : "Enter symbol (e.g., RELIANCE, BTC, TCS...)"}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}

@@ -19,7 +19,7 @@ export function StockScreener() {
         height: 400,
         defaultColumn: 'overview',
         screener_type: 'stock_market',
-        displayCurrency: 'USD',
+        displayCurrency: 'INR',
         colorTheme: 'light',
         locale: 'en'
       })

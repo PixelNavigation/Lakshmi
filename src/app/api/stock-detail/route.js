@@ -35,7 +35,7 @@ export async function GET(request) {
             const quote = alphaData['Global Quote']
             stockData = {
               symbol: quote['01. symbol'],
-              name: quote['01. symbol'],
+              name: getStockName(currentSymbol),
               price: parseFloat(quote['05. price']),
               change: parseFloat(quote['09. change']),
               changePercent: parseFloat(quote['10. change percent'].replace('%', '')),
@@ -300,6 +300,35 @@ export async function GET(request) {
       }
     }
 
+    // Generate fallback data if no real data was obtained
+    if (!stockData) {
+      const fallbackPrices = {
+        'RELIANCE.NS': 3010, 'TCS.NS': 4095, 'INFY.NS': 1729, 'HDFCBANK.NS': 1609, 
+        'SBIN.NS': 855, 'ICICIBANK.NS': 1205, 'ITC.NS': 462, 'BHARTIARTL.NS': 1685, 
+        'LT.NS': 3845, 'WIPRO.NS': 569
+      }
+      
+      const basePrice = fallbackPrices[symbol] || 100
+      const randomChange = (Math.random() - 0.5) * basePrice * 0.02 // ±1% random change
+      const currentPrice = basePrice + randomChange
+      
+      stockData = {
+        symbol: symbol,
+        name: getStockName(symbol),
+        price: Number(currentPrice.toFixed(2)),
+        change: Number(randomChange.toFixed(2)),
+        changePercent: Number((randomChange / basePrice * 100).toFixed(2)),
+        volume: Math.floor(Math.random() * 1000000) + 100000,
+        dayHigh: Number((currentPrice * 1.02).toFixed(2)),
+        dayLow: Number((currentPrice * 0.98).toFixed(2)),
+        previousClose: Number(basePrice.toFixed(2)),
+        currency: getCurrency(symbol),
+        exchange: getExchange(symbol),
+        timestamp: Date.now(),
+        isRealData: false
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: stockData,
@@ -318,16 +347,7 @@ export async function GET(request) {
 
 function getStockName(symbol) {
   const nameMap = {
-    'AAPL': 'Apple Inc.',
-    'MSFT': 'Microsoft Corporation',
-    'GOOGL': 'Alphabet Inc.',
-    'TSLA': 'Tesla, Inc.',
-    'NVDA': 'NVIDIA Corporation',
-    'META': 'Meta Platforms, Inc.',
-    'AMZN': 'Amazon.com, Inc.',
-    'NFLX': 'Netflix, Inc.',
-    'BTC-USD': 'Bitcoin',
-    'ETH-USD': 'Ethereum',
+    // Indian Stocks
     'SBIN.NS': 'State Bank of India',
     'SBIN.BO': 'State Bank of India',
     'RELIANCE.NS': 'Reliance Industries Limited',
@@ -336,24 +356,34 @@ function getStockName(symbol) {
     'TCS.BO': 'Tata Consultancy Services',
     'INFY.NS': 'Infosys Limited',
     'INFY.BO': 'Infosys Limited',
-    'ICICIBANK.NS': 'ICICI Bank Limited',
-    'ICICIBANK.BO': 'ICICI Bank Limited',
     'HDFCBANK.NS': 'HDFC Bank Limited',
     'HDFCBANK.BO': 'HDFC Bank Limited',
+    'ICICIBANK.NS': 'ICICI Bank Limited',
+    'ICICIBANK.BO': 'ICICI Bank Limited',
     'ITC.NS': 'ITC Limited',
     'ITC.BO': 'ITC Limited',
-    'HINDUNILVR.NS': 'Hindustan Unilever Limited',
-    'HINDUNILVR.BO': 'Hindustan Unilever Limited',
     'BHARTIARTL.NS': 'Bharti Airtel Limited',
     'BHARTIARTL.BO': 'Bharti Airtel Limited',
-    'KOTAKBANK.NS': 'Kotak Mahindra Bank Limited',
-    'KOTAKBANK.BO': 'Kotak Mahindra Bank Limited',
     'LT.NS': 'Larsen & Toubro Limited',
     'LT.BO': 'Larsen & Toubro Limited',
-    'HCLTECH.NS': 'HCL Technologies Limited',
-    'HCLTECH.BO': 'HCL Technologies Limited',
+    'WIPRO.NS': 'Wipro Limited',
+    'WIPRO.BO': 'Wipro Limited',
+    'KOTAKBANK.NS': 'Kotak Mahindra Bank Limited',
+    'KOTAKBANK.BO': 'Kotak Mahindra Bank Limited',
+    'HINDUNILVR.NS': 'Hindustan Unilever Limited',
+    'HINDUNILVR.BO': 'Hindustan Unilever Limited',
+    'ASIANPAINT.NS': 'Asian Paints Limited',
+    'ASIANPAINT.BO': 'Asian Paints Limited',
     'MARUTI.NS': 'Maruti Suzuki India Limited',
     'MARUTI.BO': 'Maruti Suzuki India Limited',
+    'TITAN.NS': 'Titan Company Limited',
+    'TITAN.BO': 'Titan Company Limited',
+    'HCLTECH.NS': 'HCL Technologies Limited',
+    'HCLTECH.BO': 'HCL Technologies Limited',
+    'TECHM.NS': 'Tech Mahindra Limited',
+    'TECHM.BO': 'Tech Mahindra Limited',
+    'SUNPHARMA.NS': 'Sun Pharmaceutical Industries Limited',
+    'SUNPHARMA.BO': 'Sun Pharmaceutical Industries Limited',
     'BAJFINANCE.NS': 'Bajaj Finance Limited',
     'BAJFINANCE.BO': 'Bajaj Finance Limited',
     'INDIGO.NS': 'InterGlobe Aviation Limited',
@@ -364,16 +394,12 @@ function getStockName(symbol) {
     'TATAMOTORS.BO': 'Tata Motors Limited',
     'TATASTEEL.NS': 'Tata Steel Limited',
     'TATASTEEL.BO': 'Tata Steel Limited',
-    'WIPRO.NS': 'Wipro Limited',
-    'WIPRO.BO': 'Wipro Limited',
     'COALINDIA.NS': 'Coal India Limited',
     'COALINDIA.BO': 'Coal India Limited',
     'JSWSTEEL.NS': 'JSW Steel Limited',
     'JSWSTEEL.BO': 'JSW Steel Limited',
     'ULTRACEMCO.NS': 'UltraTech Cement Limited',
     'ULTRACEMCO.BO': 'UltraTech Cement Limited',
-    'SUNPHARMA.NS': 'Sun Pharmaceutical Industries Limited',
-    'SUNPHARMA.BO': 'Sun Pharmaceutical Industries Limited',
     'ONGC.NS': 'Oil and Natural Gas Corporation Limited',
     'ONGC.BO': 'Oil and Natural Gas Corporation Limited',
     'NTPC.NS': 'NTPC Limited',
@@ -385,17 +411,25 @@ function getStockName(symbol) {
     'CIPLA.NS': 'Cipla Limited',
     'CIPLA.BO': 'Cipla Limited',
     'DIVISLAB.NS': 'Divi\'s Laboratories Limited',
-    'DIVISLAB.BO': 'Divi\'s Laboratories Limited'
+    'DIVISLAB.BO': 'Divi\'s Laboratories Limited',
+    // Crypto pairs in INR
+    'BTC-INR': 'Bitcoin',
+    'ETH-INR': 'Ethereum',
+    'DOGE-INR': 'Dogecoin',
+    'ADA-INR': 'Cardano',
+    'SOL-INR': 'Solana',
+    'BTC-USD': 'Bitcoin',
+    'ETH-USD': 'Ethereum'
   }
   
-  return nameMap[symbol] || symbol.replace(/\.(NS|BO|-USD|\.L)$/, '') + ' Corp.'
+  return nameMap[symbol] || symbol.replace(/\.(NS|BO|-INR|-USD|\.L)$/, '') + ' Limited'
 }
 
 function getCurrency(symbol) {
   if (symbol.includes('.NS') || symbol.includes('.BO')) return 'INR'
-  if (symbol.includes('-USD')) return 'USD'
+  if (symbol.includes('-INR')) return 'INR'
   if (symbol.includes('.L')) return 'GBP'
-  return 'USD'
+  return 'INR' // Default to INR for Indian market focus
 }
 
 function getExchange(symbol) {
@@ -406,18 +440,9 @@ function getExchange(symbol) {
 }
 
 function getStaticRealisticPrice(symbol) {
-  // Only provide realistic prices for well-known stocks
+  // Only provide realistic prices for well-known Indian stocks and crypto
   const staticPrices = {
-    'AAPL': 175.50,
-    'MSFT': 345.00,
-    'GOOGL': 135.00,
-    'TSLA': 245.00,
-    'NVDA': 450.00,
-    'META': 315.00,
-    'AMZN': 140.00,
-    'NFLX': 400.00,
-    'BTC-USD': 43000.00,
-    'ETH-USD': 2500.00,
+    // Indian Stocks
     'SBIN.NS': 550.00,
     'SBIN.BO': 550.00,
     'RELIANCE.NS': 2450.00,
@@ -456,34 +481,50 @@ function getStaticRealisticPrice(symbol) {
     'TATASTEEL.BO': 145.00,
     'WIPRO.NS': 550.00,
     'WIPRO.BO': 550.00,
-    'SPY': 450.00,
-    'QQQ': 375.00,
-    'IWM': 195.00,
-    'JPM': 155.00,
-    'BAC': 32.00,
-    'WMT': 160.00,
-    'JNJ': 165.00,
-    'V': 250.00,
-    'MA': 390.00,
-    'UNH': 520.00
+    'COALINDIA.NS': 400.00,
+    'COALINDIA.BO': 400.00,
+    'JSWSTEEL.NS': 800.00,
+    'JSWSTEEL.BO': 800.00,
+    'ULTRACEMCO.NS': 8500.00,
+    'ULTRACEMCO.BO': 8500.00,
+    'SUNPHARMA.NS': 1200.00,
+    'SUNPHARMA.BO': 1200.00,
+    'ONGC.NS': 250.00,
+    'ONGC.BO': 250.00,
+    'NTPC.NS': 350.00,
+    'NTPC.BO': 350.00,
+    'POWERGRID.NS': 300.00,
+    'POWERGRID.BO': 300.00,
+    'DRREDDY.NS': 6200.00,
+    'DRREDDY.BO': 6200.00,
+    'CIPLA.NS': 1400.00,
+    'CIPLA.BO': 1400.00,
+    'DIVISLAB.NS': 5500.00,
+    'DIVISLAB.BO': 5500.00,
+    'ASIANPAINT.NS': 3200.00,
+    'ASIANPAINT.BO': 3200.00,
+    'TITAN.NS': 3000.00,
+    'TITAN.BO': 3000.00,
+    'TECHM.NS': 1600.00,
+    'TECHM.BO': 1600.00,
+    // Crypto in INR
+    'BTC-INR': 3500000.00,
+    'ETH-INR': 210000.00,
+    'DOGE-INR': 30.00,
+    'ADA-INR': 45.00,
+    'SOL-INR': 14000.00,
+    // Crypto in USD
+    'BTC-USD': 43000.00,
+    'ETH-USD': 2500.00
   }
   
   return staticPrices[symbol] || null
 }
 
 function getTypicalVolume(symbol) {
-  // Provide realistic volume data for known stocks
+  // Provide realistic volume data for known Indian stocks and crypto
   const volumeMap = {
-    'AAPL': 65000000,
-    'MSFT': 35000000,
-    'GOOGL': 25000000,
-    'TSLA': 85000000,
-    'NVDA': 55000000,
-    'META': 30000000,
-    'AMZN': 45000000,
-    'NFLX': 8000000,
-    'BTC-USD': 0,
-    'ETH-USD': 0,
+    // Indian Stocks
     'SBIN.NS': 15000000,
     'SBIN.BO': 15000000,
     'RELIANCE.NS': 8000000,
@@ -503,7 +544,36 @@ function getTypicalVolume(symbol) {
     'BHARTIARTL.NS': 15000000,
     'BHARTIARTL.BO': 15000000,
     'INDIGO.NS': 2000000,
-    'INDIGO.BO': 2000000
+    'INDIGO.BO': 2000000,
+    'LT.NS': 4000000,
+    'LT.BO': 4000000,
+    'WIPRO.NS': 8000000,
+    'WIPRO.BO': 8000000,
+    'KOTAKBANK.NS': 6000000,
+    'KOTAKBANK.BO': 6000000,
+    'HCLTECH.NS': 5000000,
+    'HCLTECH.BO': 5000000,
+    'MARUTI.NS': 2500000,
+    'MARUTI.BO': 2500000,
+    'BAJFINANCE.NS': 3000000,
+    'BAJFINANCE.BO': 3000000,
+    'TATAMOTORS.NS': 12000000,
+    'TATAMOTORS.BO': 12000000,
+    'TATASTEEL.NS': 10000000,
+    'TATASTEEL.BO': 10000000,
+    'ASIANPAINT.NS': 1500000,
+    'ASIANPAINT.BO': 1500000,
+    'TITAN.NS': 3000000,
+    'TITAN.BO': 3000000,
+    'TECHM.NS': 4000000,
+    'TECHM.BO': 4000000,
+    'SUNPHARMA.NS': 5000000,
+    'SUNPHARMA.BO': 5000000,
+    // Crypto typically has very high volume but we'll set to 0 for display
+    'BTC-INR': 0,
+    'ETH-INR': 0,
+    'BTC-USD': 0,
+    'ETH-USD': 0
   }
   
   return volumeMap[symbol] || 1000000

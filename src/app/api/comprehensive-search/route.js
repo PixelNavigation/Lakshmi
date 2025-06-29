@@ -34,8 +34,8 @@ export async function GET(request) {
             symbol: quote.symbol,
             name: quote.longname || quote.shortname || quote.symbol,
             type: quote.typeDisp || 'stock',
-            region: quote.exchDisp || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'India' : 'United States'),
-            currency: quote.currency || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'INR' : 'USD'),
+            region: quote.exchDisp || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'India' : 'Global'),
+            currency: quote.currency || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'INR' : 'INR'),
             exchange: quote.exchange,
             marketCap: quote.marketCap,
             source: 'yahoo'
@@ -64,8 +64,8 @@ export async function GET(request) {
               symbol: stock.symbol,
               name: stock.description,
               type: stock.type || 'stock',
-              region: 'United States',
-              currency: 'USD',
+              region: 'Global',
+              currency: 'INR',
               source: 'finnhub'
             }))
           }
@@ -91,7 +91,7 @@ export async function GET(request) {
               name: match['2. name'],
               type: match['3. type'] || 'stock',
               region: match['4. region'],
-              currency: match['8. currency'] || 'USD',
+              currency: match['8. currency'] || 'INR',
               source: 'alphavantage'
             }))
           }
@@ -135,8 +135,8 @@ export async function GET(request) {
                   symbol: quote.symbol,
                   name: quote.longname || quote.shortname || quote.symbol,
                   type: quote.typeDisp || 'stock',
-                  region: quote.exchDisp || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'India' : 'United States'),
-                  currency: quote.currency || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'INR' : 'USD'),
+                  region: quote.exchDisp || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'India' : 'Global'),
+                  currency: quote.currency || (quote.symbol.includes('.NS') || quote.symbol.includes('.BO') ? 'INR' : 'INR'),
                   exchange: quote.exchange,
                   source: 'yahoo'
                 }))
@@ -173,15 +173,24 @@ export async function GET(request) {
         uniqueResults = uniqueResults.filter(stock => 
           stock.symbol.includes('.BO') || stock.region === 'India' || stock.exchange === 'BSE'
         )
-      } else if (market === 'NASDAQ') {
-        uniqueResults = uniqueResults.filter(stock => 
-          stock.exchange === 'NMS' || stock.exchange === 'NASDAQ'
-        )
-      } else if (market === 'NYSE') {
-        uniqueResults = uniqueResults.filter(stock => 
-          stock.exchange === 'NYQ' || stock.exchange === 'NYSE'
-        )
       }
+    } else {
+      // For "ALL" market, only show Indian stocks and cryptocurrencies
+      uniqueResults = uniqueResults.filter(stock => {
+        const isIndianStock = stock.symbol.includes('.NS') || 
+                             stock.symbol.includes('.BO') || 
+                             stock.region === 'India' || 
+                             stock.exchange === 'NSE' || 
+                             stock.exchange === 'BSE' ||
+                             stock.exchange === 'NSI'
+        
+        const isCrypto = stock.symbol.includes('-INR') || 
+                        stock.type === 'crypto' || 
+                        stock.type === 'cryptocurrency' ||
+                        (stock.symbol.match(/^(BTC|ETH|DOGE|ADA|SOL|XRP|BNB|MATIC|DOT|LINK|LTC|UNI|AVAX|SHIB|TRX|ATOM|FIL|ICP|VET)/i) && !stock.symbol.includes('.'))
+        
+        return isIndianStock || isCrypto
+      })
     }
 
     // Sort by relevance
