@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import styles from './Portfolio.module.css'
 
 export default function Portfolio() {
@@ -19,17 +20,30 @@ export default function Portfolio() {
     price: ''
   })
 
-  const userId = 'user123' // Replace with actual user ID
+  // Get the actual authenticated user ID
+  const userId = user?.id || 'user123' // Fallback for demo purposes
 
   useEffect(() => {
-    fetchPortfolio()
-    fetchTransactions()
-    fetchBalances()
-  }, [userId])
+    if (user) {
+      fetchPortfolio()
+      fetchTransactions()
+      fetchBalances()
+    }
+  }, [user])
 
   const fetchPortfolio = async () => {
     try {
-      const response = await fetch(`/api/user-portfolio?userId=${userId}`)
+      const headers = {}
+      
+      // Add authentication header if user is logged in
+      if (user) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`
+        }
+      }
+      
+      const response = await fetch(`/api/user-portfolio?userId=${userId}`, { headers })
       const data = await response.json()
       
       if (data.success) {
@@ -44,7 +58,17 @@ export default function Portfolio() {
 
   const fetchBalances = async () => {
     try {
-      const response = await fetch(`/api/user-balance?userId=${userId}`)
+      const headers = {}
+      
+      // Add authentication header if user is logged in
+      if (user) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`
+        }
+      }
+      
+      const response = await fetch(`/api/user-balance?userId=${userId}`, { headers })
       const data = await response.json()
       
       if (data.success) {
@@ -57,7 +81,17 @@ export default function Portfolio() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`/api/user-transactions?userId=${userId}`)
+      const headers = {}
+      
+      // Add authentication header if user is logged in
+      if (user) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`
+        }
+      }
+      
+      const response = await fetch(`/api/user-transactions?userId=${userId}`, { headers })
       const data = await response.json()
       
       if (data.success) {

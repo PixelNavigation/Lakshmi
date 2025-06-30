@@ -7,6 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+// Helper function to get authenticated user
+async function getAuthenticatedUser(request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader) return null
+  
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user }, error } = await supabase.auth.getUser(token)
+  return error ? null : user
+}
+
 export async function OPTIONS(request) {
   return new Response(null, { status: 200, headers: corsHeaders })
 }
@@ -14,8 +24,27 @@ export async function OPTIONS(request) {
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    // Handle both 'userId' and 'keyName' parameters for OmniDimension compatibility
-    const userId = searchParams.get('userId') || searchParams.get('keyName') || 'user123'
+    
+    // First, try to get authenticated user
+    const authUser = await getAuthenticatedUser(request)
+    
+    // Then check for userId parameter (for OmniDimension compatibility)
+    let userId = searchParams.get('userId') || searchParams.get('keyName')
+    
+    // Use authenticated user ID if available, otherwise fall back to parameter
+    if (authUser) {
+      userId = authUser.id
+      console.log('✅ Using authenticated user:', userId)
+    } else if (!userId) {
+      // REQUIRE authentication - no more default demo user
+      return Response.json({ 
+        success: false, 
+        error: 'Authentication required. Please provide valid Authorization header with Bearer token.' 
+      }, { 
+        status: 401,
+        headers: corsHeaders 
+      })
+    }
 
     if (!userId) {
       return Response.json({ success: false, error: 'User ID is required' }, { 
@@ -42,7 +71,7 @@ export async function GET(request) {
         .from('user_balances')
         .insert({
           user_id: userId,
-          inr_balance: 100000.00, // Starting with 1 lakh INR
+          inr_balance: 0.00, // Starting with zero balance
           eth_balance: 0.00000000
         })
         .select()

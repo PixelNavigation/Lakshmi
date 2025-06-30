@@ -60,7 +60,7 @@ const StockGraph = () => {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
-  const userId = 'user123'
+  const userId = user?.id || 'user123' // Fallback for demo purposes
 
   // Suppress Three.js and A-Frame related console warnings
   useEffect(() => {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import styles from './Balance.module.css'
 
 export default function Balance() {
@@ -17,17 +18,29 @@ export default function Balance() {
   const [addAmount, setAddAmount] = useState('')
   const [addCurrency, setAddCurrency] = useState('inr')
 
-
-  const userId = 'user123' // Replace with actual user ID
+  // Get the actual authenticated user ID
+  const userId = user?.id || 'user123' // Fallback for demo purposes
 
   useEffect(() => {
-    fetchBalances()
-    fetchTransactions()
-  }, [userId])
+    if (user) {
+      fetchBalances()
+      fetchTransactions()
+    }
+  }, [user])
 
   const fetchBalances = async () => {
     try {
-      const response = await fetch(`/api/user-balance?userId=${userId}`)
+      const headers = {}
+      
+      // Add authentication header if user is logged in
+      if (user) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`
+        }
+      }
+      
+      const response = await fetch(`/api/user-balance?userId=${userId}`, { headers })
       const data = await response.json()
       
       if (data.success) {
@@ -42,7 +55,17 @@ export default function Balance() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`/api/user-transactions?userId=${userId}`)
+      const headers = {}
+      
+      // Add authentication header if user is logged in
+      if (user) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`
+        }
+      }
+      
+      const response = await fetch(`/api/user-transactions?userId=${userId}`, { headers })
       const data = await response.json()
       
       if (data.success) {

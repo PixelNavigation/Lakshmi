@@ -1,0 +1,105 @@
+{
+  "omnidimension_lakshmi_config": {
+    "agent_id": "3057",
+    "agent_name": "Lakshmi Trading Assistant",
+    "user_email": "babelgautam16@gmail.com",
+    "user_id": "789a2385-bee9-4635-827a-e7ccef55477a",
+    "base_url": "https://wwws68kj-3000.inc1.devtunnels.ms",
+    "authentication_token": "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjBPenUvMmVjOGtBTU9Ub2giLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2d0aXBxYWppYWJkYnFhcGFrZmRvLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3ODlhMjM4NS1iZWU5LTQ2MzUtODI3YS1lN2NjZWY1NTQ3N2EiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzUxMjc2ODMxLCJpYXQiOjE3NTEyNzMyMzEsImVtYWlsIjoiYmFiZWxnYXV0YW0xNkBnbWFpbC5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsIjoiYmFiZWxnYXV0YW0xNkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZnVsbF9uYW1lIjoiR2F1dGFtIEJhYmVsIEphaW4iLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6Ijc4OWEyMzg1LWJlZTktNDYzNS04MjdhLWU3Y2NlZjU1NDc3YSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzUxMjczMjMxfV0sInNlc3Npb25faWQiOiI0YjA3N2NiNi0xMDhlLTQxNDMtODIyMC05MGI5NzQ4MGJmMmUiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.xFEGgFTJmIYKXC8YMqmGrBQ-vJnbZutWYx4c4NVgzjg"
+  },
+  
+  "buy_stock_api": {
+    "name": "Buy Stock",
+    "description": "Execute a BUY order for Indian stocks",
+    "url": "https://wwws68kj-3000.inc1.devtunnels.ms/api/trade",
+    "method": "GET",
+    "headers": {
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjBPenUvMmVjOGtBTU9Ub2giLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2d0aXBxYWppYWJkYnFhcGFrZmRvLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3ODlhMjM4NS1iZWU5LTQ2MzUtODI3YS1lN2NjZWY1NTQ3N2EiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzUxMjc2ODMxLCJpYXQiOjE3NTEyNzMyMzEsImVtYWlsIjoiYmFiZWxnYXV0YW0xNkBnbWFpbC5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsIjoiYmFiZWxnYXV0YW0xNkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZnVsbF9uYW1lIjoiR2F1dGFtIEJhYmVsIEphaW4iLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6Ijc4OWEyMzg1LWJlZTktNDYzNS04MjdhLWU3Y2NlZjU1NDc3YSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzUxMjczMjMxfV0sInNlc3Npb25faWQiOiI0YjA3N2NiNi0xMDhlLTQxNDMtODIyMC05MGI5NzQ4MGJmMmUiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.xFEGgFTJmIYKXC8YMqmGrBQ-vJnbZutWYx4c4NVgzjg",
+      "Content-Type": "application/json"
+    },
+    "query_parameters": {
+      "keyName": "JSON string containing trade data"
+    },
+    "trade_data_format": {
+      "symbol": "string - Stock symbol (e.g., TCS, RELIANCE)",
+      "quantity": "number - Number of shares to buy",
+      "transactionType": "BUY"
+    },
+    "examples": {
+      "buy_tcs": {
+        "keyName": "{\"symbol\":\"TCS\",\"quantity\":10,\"transactionType\":\"BUY\"}"
+      },
+      "buy_reliance": {
+        "keyName": "{\"symbol\":\"RELIANCE\",\"quantity\":5,\"transactionType\":\"BUY\"}"
+      },
+      "buy_infy": {
+        "keyName": "{\"symbol\":\"INFY\",\"quantity\":20,\"transactionType\":\"BUY\"}"
+      }
+    },
+    "voice_commands": [
+      "Buy 10 shares of TCS",
+      "Purchase 5 shares of Reliance", 
+      "Buy 20 shares of Infosys",
+      "Get me 15 shares of HDFC Bank"
+    ]
+  },
+
+  "sell_stock_api": {
+    "name": "Sell Stock",
+    "description": "Execute a SELL order for Indian stocks",
+    "url": "https://wwws68kj-3000.inc1.devtunnels.ms/api/trade",
+    "method": "GET",
+    "headers": {
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjBPenUvMmVjOGtBTU9Ub2giLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2d0aXBxYWppYWJkYnFhcGFrZmRvLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3ODlhMjM4NS1iZWU5LTQ2MzUtODI3YS1lN2NjZWY1NTQ3N2EiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzUxMjc2ODMxLCJpYXQiOjE3NTEyNzMyMzEsImVtYWlsIjoiYmFiZWxnYXV0YW0xNkBnbWFpbC5jb20iLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsIjoiYmFiZWxnYXV0YW0xNkBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZnVsbF9uYW1lIjoiR2F1dGFtIEJhYmVsIEphaW4iLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6Ijc4OWEyMzg1LWJlZTktNDYzNS04MjdhLWU3Y2NlZjU1NDc3YSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzUxMjczMjMxfV0sInNlc3Npb25faWQiOiI0YjA3N2NiNi0xMDhlLTQxNDMtODIyMC05MGI5NzQ4MGJmMmUiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.xFEGgFTJmIYKXC8YMqmGrBQ-vJnbZutWYx4c4NVgzjg",
+      "Content-Type": "application/json"
+    },
+    "query_parameters": {
+      "keyName": "JSON string containing trade data"
+    },
+    "trade_data_format": {
+      "symbol": "string - Stock symbol (e.g., TCS, RELIANCE)",
+      "quantity": "number - Number of shares to sell",
+      "transactionType": "SELL"
+    },
+    "examples": {
+      "sell_reliance": {
+        "keyName": "{\"symbol\":\"RELIANCE\",\"quantity\":50,\"transactionType\":\"SELL\"}"
+      },
+      "sell_tcs": {
+        "keyName": "{\"symbol\":\"TCS\",\"quantity\":1,\"transactionType\":\"SELL\"}"
+      },
+      "sell_infy": {
+        "keyName": "{\"symbol\":\"INFY\",\"quantity\":10,\"transactionType\":\"SELL\"}"
+      }
+    },
+    "voice_commands": [
+      "Sell 50 shares of Reliance",
+      "Sell 1 share of TCS",
+      "Dispose 10 shares of Infosys",
+      "Sell all my HDFC Bank shares"
+    ]
+  },
+
+  "supported_stocks": [
+    "TCS.NS", "RELIANCE.NS", "INFY.NS", "HDFCBANK.NS", 
+    "ITC.NS", "SBIN.NS", "ICICIBANK.NS", "BHARTIARTL.NS",
+    "HINDUNILVR.NS", "KOTAKBANK.NS", "NCC.NS"
+  ],
+
+  "important_notes": {
+    "authentication": "Bearer token is REQUIRED for all trade operations",
+    "real_trading": "These APIs execute REAL trades with your account",
+    "balance_check": "Sufficient balance is required for BUY orders",
+    "holdings_check": "Sufficient holdings are required for SELL orders", 
+    "stock_format": "Use Indian stock symbols (TCS, RELIANCE, INFY, etc.) - API will auto-convert to .NS format",
+    "foreign_stocks": "Foreign stocks (AAPL, GOOGL, etc.) are blocked",
+    "automatic_pricing": "Price is automatically fetched using current market price - no need to specify price",
+    "required_fields": "Only symbol, quantity, and transactionType are required"
+  },
+
+  "current_portfolio": {
+    "RELIANCE.NS": "100 shares",
+    "TCS.NS": "2 shares",
+    "total_balance": "₹41,750 INR"
+  }
+}

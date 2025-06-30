@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import { StockChart } from '../Components/TradingView/StockChart'
 import styles from './stockScreener.module.css'
 
 export default function StockScreener() {
+  const { user } = useAuth()
   const [filters, setFilters] = useState({
     marketCap: 'all',
     sector: 'all',
@@ -22,7 +24,7 @@ export default function StockScreener() {
   const [addingToWatchlist, setAddingToWatchlist] = useState({})
   const [lastUpdated, setLastUpdated] = useState(null)
   const [realTimeEnabled, setRealTimeEnabled] = useState(false)
-  const userId = 'user123' // Mock user ID - replace with actual authentication
+  const userId = user?.id || 'user123' // Fallback for demo purposes
   const [savedScreens, setSavedScreens] = useState([
     'Tech Giants India',
     'High Dividend Indian Stocks', 

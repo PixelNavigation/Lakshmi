@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import styles from './StockDetail.module.css'
 
 export default function StockDetail({ stock, onClose, onTradeComplete }) {
+  const { user } = useAuth()
   const [liveData, setLiveData] = useState(stock)
   const [isLoading, setIsLoading] = useState(false)
   const [isChartLoading, setIsChartLoading] = useState(true)
@@ -19,7 +21,7 @@ export default function StockDetail({ stock, onClose, onTradeComplete }) {
   const candlestickSeries = useRef()
 
   // Mock user ID - in a real app, this would come from authentication
-  const userId = 'user123'
+  const userId = user?.id || 'user123' // Fallback for demo purposes
 
   // Fetch user balance and portfolio data
   useEffect(() => {
@@ -28,15 +30,28 @@ export default function StockDetail({ stock, onClose, onTradeComplete }) {
 
   const fetchUserData = async () => {
     try {
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add authorization header if user is authenticated
+      if (user?.access_token) {
+        headers['Authorization'] = `Bearer ${user.access_token}`
+      }
+
       // Fetch user balance
-      const balanceResponse = await fetch(`/api/user-balance?userId=${userId}`)
+      const balanceResponse = await fetch(`/api/user-balance?userId=${userId}`, {
+        headers
+      })
       const balanceResult = await balanceResponse.json()
       if (balanceResult.success) {
         setUserBalance(balanceResult.balance)
       }
 
       // Fetch user portfolio for this symbol
-      const portfolioResponse = await fetch(`/api/user-portfolio?userId=${userId}`)
+      const portfolioResponse = await fetch(`/api/user-portfolio?userId=${userId}`, {
+        headers
+      })
       const portfolioResult = await portfolioResponse.json()
       if (portfolioResult.success) {
         const holding = portfolioResult.portfolio.find(item => item.symbol === stock.symbol)

@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import styles from './watchList.module.css'
 
 // Import TradingView Chart component
@@ -8,6 +9,7 @@ import { StockChart } from '../Components/TradingView/StockChart'
 import { PriceWidget } from '../Components/TradingView/PriceWidget'
 
 export default function WatchList() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [watchlistItems, setWatchlistItems] = useState([])
@@ -19,7 +21,7 @@ export default function WatchList() {
   const [priceAnimations, setPriceAnimations] = useState({})
   const [viewMode, setViewMode] = useState('tradingview') // Only TradingView mode
 
-  const userId = 'user123' // Replace with actual user authentication
+  const userId = user?.id || 'user123' // Fallback for demo purposes
 
   const categories = ['all', 'technology', 'finance', 'fmcg', 'energy', 'automotive', 'healthcare', 'crypto', 'other']
 
@@ -27,7 +29,18 @@ export default function WatchList() {
   const loadWatchlist = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/user-watchlist?userId=${userId}`)
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add authorization header if user is authenticated
+      if (user?.access_token) {
+        headers['Authorization'] = `Bearer ${user.access_token}`
+      }
+      
+      const response = await fetch(`/api/user-watchlist?userId=${userId}`, {
+        headers
+      })
       const result = await response.json()
       
       if (result.success) {
@@ -165,8 +178,18 @@ export default function WatchList() {
   // Remove stock from watchlist
   const removeFromWatchlist = async (symbol) => {
     try {
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add authorization header if user is authenticated
+      if (user?.access_token) {
+        headers['Authorization'] = `Bearer ${user.access_token}`
+      }
+      
       const response = await fetch(`/api/user-watchlist?userId=${userId}&symbol=${symbol}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       })
       
       const result = await response.json()

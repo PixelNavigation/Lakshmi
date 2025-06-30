@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import styles from './Dashboard.module.css'
 import DirectSearch from '../Components/DirectSearch'
 import { convertToTradingViewSymbol } from '../Components/TradingView/TradingViewHelper'
@@ -233,12 +234,13 @@ function MarketIndexCard({ name, symbol, indexKey }) {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const [selectedMarket, setSelectedMarket] = useState('INDIAN')
   const [watchlist, setWatchlist] = useState([])
   const [isAddingToWatchlist, setIsAddingToWatchlist] = useState(false)
 
   // Mock user ID - in a real app, this would come from authentication
-  const userId = 'user123' // Replace with actual user authentication
+  const userId = user?.id || 'user123' // Fallback for demo purposes
 
   const markets = [
     { value: 'INDIAN', label: 'Indian Markets (NSE/BSE)' },
@@ -252,7 +254,18 @@ export default function Dashboard() {
 
   const loadWatchlistSymbols = async () => {
     try {
-      const response = await fetch(`/api/user-watchlist?userId=${userId}`)
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add authorization header if user is authenticated
+      if (user?.access_token) {
+        headers['Authorization'] = `Bearer ${user.access_token}`
+      }
+      
+      const response = await fetch(`/api/user-watchlist?userId=${userId}`, {
+        headers
+      })
       const result = await response.json()
       
       if (result.success) {

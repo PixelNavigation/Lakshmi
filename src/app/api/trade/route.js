@@ -8,6 +8,16 @@ const corsHeaders = {
   'Access-Control-Allow-Credentials': 'true',
 }
 
+// Helper function to get authenticated user
+async function getAuthenticatedUser(request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader) return null
+  
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user }, error } = await supabase.auth.getUser(token)
+  return error ? null : user
+}
+
 export async function OPTIONS(request) {
   return new Response(null, { status: 200, headers: corsHeaders })
 }
@@ -19,31 +29,49 @@ export async function GET(request) {
     // Check if this is a trade execution request or just endpoint discovery
     const keyName = searchParams.get('keyName')
     
-    // If keyName contains JSON data, parse it and execute the trade
-    if (keyName && keyName.includes('userId')) {
+    // If keyName contains JSON data with trade fields, parse it and execute the trade
+    if (keyName && (keyName.includes('symbol') || keyName.includes('quantity') || keyName.includes('transactionType'))) {
       try {
         // Parse the JSON from keyName parameter
         const tradeData = JSON.parse(keyName)
         
+        // First, try to get authenticated user
+        const authUser = await getAuthenticatedUser(request)
+        
         // Support both original and OmniDimension parameter names
-        const userId = tradeData.userId || "user123"
-        const symbol = tradeData.symbol
-        const quantity = tradeData.quantity 
-        const price = tradeData.price
-        const transactionType = tradeData.transactionType
-
-        if (!symbol || !quantity || !price || !transactionType) {
+        let userId = tradeData.userId
+        
+        // Use authenticated user ID if available, otherwise fall back to parameter
+        if (authUser) {
+          userId = authUser.id
+          console.log('✅ Using authenticated user for trade:', userId)
+        } else if (!userId) {
+          // REQUIRE authentication for trades - no more default demo user
           return Response.json({ 
             success: false, 
-            error: 'Missing required fields: symbol, quantity, price, transactionType' 
+            error: 'Authentication required for trading. Please provide valid Authorization header with Bearer token.' 
+          }, { 
+            status: 401,
+            headers: corsHeaders 
+          })
+        }
+        const symbol = tradeData.symbol
+        const quantity = tradeData.quantity 
+        // Remove price requirement - we'll fetch current price
+        const transactionType = tradeData.transactionType
+
+        if (!symbol || !quantity || !transactionType) {
+          return Response.json({ 
+            success: false, 
+            error: 'Missing required fields: symbol, quantity, transactionType' 
           }, { 
             status: 400,
             headers: corsHeaders 
           })
         }
 
-        if (quantity <= 0 || price <= 0) {
-          return Response.json({ success: false, error: 'Quantity and price must be positive' }, { 
+        if (quantity <= 0) {
+          return Response.json({ success: false, error: 'Quantity must be positive' }, { 
             status: 400,
             headers: corsHeaders 
           })
@@ -106,7 +134,38 @@ export async function GET(request) {
           })
         }
 
-        const totalAmount = quantity * price
+        // Function to get current stock price
+        const getCurrentStockPrice = async (symbol) => {
+          try {
+            // For demo purposes, we'll simulate current prices based on existing portfolio data
+            // In production, you'd integrate with a real stock price API
+            const priceMap = {
+              'TCS.NS': 3500 + (Math.random() - 0.5) * 200, // 3400-3600 range
+              'RELIANCE.NS': 1500 + (Math.random() - 0.5) * 100, // 1450-1550 range
+              'INFY.NS': 1200 + (Math.random() - 0.5) * 80, // 1160-1240 range
+              'HDFCBANK.NS': 1300 + (Math.random() - 0.5) * 100, // 1250-1350 range
+              'ITC.NS': 400 + (Math.random() - 0.5) * 40, // 380-420 range
+              'SBIN.NS': 600 + (Math.random() - 0.5) * 50, // 575-625 range
+              'ICICIBANK.NS': 1100 + (Math.random() - 0.5) * 80, // 1060-1140 range
+              'NCC.NS': 200 + (Math.random() - 0.5) * 20, // 190-210 range
+              'BHARTIARTL.NS': 1000 + (Math.random() - 0.5) * 60, // 970-1030 range
+              'HINDUNILVR.NS': 2800 + (Math.random() - 0.5) * 200, // 2700-2900 range
+              'KOTAKBANK.NS': 1700 + (Math.random() - 0.5) * 100 // 1650-1750 range
+            }
+            
+            const basePrice = priceMap[symbol] || 100 + (Math.random() * 50)
+            return Math.round(basePrice * 100) / 100 // Round to 2 decimal places
+          } catch (error) {
+            console.error('Error fetching stock price:', error)
+            return 100 // Default fallback price
+          }
+        }
+
+        // Get current price for the stock
+        const currentPrice = await getCurrentStockPrice(indianSymbol)
+        console.log(`📈 Current price for ${indianSymbol}: ₹${currentPrice}`)
+
+        const totalAmount = quantity * currentPrice
 
         // Execute the trade logic (same as POST method)
         const { data: currentBalance, error: balanceError } = await supabase
@@ -193,7 +252,7 @@ export async function GET(request) {
                 user_id: userId,
                 symbol: indianSymbol,
                 quantity: quantity.toFixed(8),
-                avg_buy_price: price.toFixed(2),
+                avg_buy_price: currentPrice.toFixed(2),
                 total_invested: totalAmount.toFixed(2)
               })
 
@@ -291,7 +350,7 @@ export async function GET(request) {
             symbol: indianSymbol,
             transaction_type: transactionType,
             quantity: quantity.toFixed(8),
-            price: price.toFixed(2),
+            price: currentPrice.toFixed(2),
             total_amount: totalAmount.toFixed(2)
           })
 
@@ -307,7 +366,7 @@ export async function GET(request) {
             symbol: indianSymbol,
             original_symbol: symbol,
             quantity,
-            price,
+            price: currentPrice,
             total_amount: totalAmount,
             type: transactionType
           }
@@ -326,18 +385,15 @@ export async function GET(request) {
       description: "Supports both GET and POST methods for OmniDimension compatibility",
       methods: ["GET", "POST"],
       parameters: {
-        userId: "string (required) - User ID",
+        userId: "string (optional) - User ID (auto-detected from auth)",
         symbol: "string (required) - Indian stock symbol (TCS, INFY, RELIANCE)",
         quantity: "number (required) - Number of shares (positive)",
-        price: "number (required) - Price per share in INR (positive)",
         transactionType: "string (required) - BUY or SELL (uppercase)"
       },
-      example_get: "?keyName={\"userId\":\"user123\",\"symbol\":\"TCS\",\"quantity\":5,\"price\":3500.50,\"transactionType\":\"BUY\"}",
+      example_get: "?keyName={\"symbol\":\"TCS\",\"quantity\":5,\"transactionType\":\"BUY\"}",
       example_post: {
-        userId: "user123",
         symbol: "TCS",
         quantity: 5,
-        price: 3500.50,
         transactionType: "BUY"
       },
       supported_stocks: ["TCS", "INFY", "RELIANCE", "HDFCBANK", "ITC", "SBIN", "ICICIBANK"],
@@ -357,25 +413,44 @@ export async function POST(request) {
   try {
     const body = await request.json()
     
+    // First, try to get authenticated user
+    const authUser = await getAuthenticatedUser(request)
+    
     // Support both original and OmniDimension parameter names
-    const userId = body.userId || body.keyName
-    const symbol = body.symbol || body.keyName
-    const quantity = body.quantity 
-    const price = body.price
-    const transactionType = body.transactionType
-
-    if (!userId || !symbol || !quantity || !price || !transactionType) {
+    let userId = body.userId || body.keyName
+    
+    // Use authenticated user ID if available, otherwise fall back to parameter
+    if (authUser) {
+      userId = authUser.id
+      console.log('✅ Using authenticated user for POST trade:', userId)
+    } else if (!userId) {
+      // REQUIRE authentication for trades - no more default demo user
       return Response.json({ 
         success: false, 
-        error: 'Missing required fields: userId, symbol, quantity, price, transactionType' 
+        error: 'Authentication required for trading. Please provide valid Authorization header with Bearer token.' 
+      }, { 
+        status: 401,
+        headers: corsHeaders 
+      })
+    }
+    
+    const symbol = body.symbol || body.keyName
+    const quantity = body.quantity 
+    // Remove price requirement - we'll fetch current price
+    const transactionType = body.transactionType
+
+    if (!symbol || !quantity || !transactionType) {
+      return Response.json({ 
+        success: false, 
+        error: 'Missing required fields: symbol, quantity, transactionType' 
       }, { 
         status: 400,
         headers: corsHeaders 
       })
     }
 
-    if (quantity <= 0 || price <= 0) {
-      return Response.json({ success: false, error: 'Quantity and price must be positive' }, { 
+    if (quantity <= 0) {
+      return Response.json({ success: false, error: 'Quantity must be positive' }, { 
         status: 400,
         headers: corsHeaders 
       })
@@ -438,7 +513,38 @@ export async function POST(request) {
       })
     }
 
-    const totalAmount = quantity * price
+    // Function to get current stock price
+    const getCurrentStockPrice = async (symbol) => {
+      try {
+        // For demo purposes, we'll simulate current prices based on existing portfolio data
+        // In production, you'd integrate with a real stock price API
+        const priceMap = {
+          'TCS.NS': 3500 + (Math.random() - 0.5) * 200, // 3400-3600 range
+          'RELIANCE.NS': 1500 + (Math.random() - 0.5) * 100, // 1450-1550 range
+          'INFY.NS': 1200 + (Math.random() - 0.5) * 80, // 1160-1240 range
+          'HDFCBANK.NS': 1300 + (Math.random() - 0.5) * 100, // 1250-1350 range
+          'ITC.NS': 400 + (Math.random() - 0.5) * 40, // 380-420 range
+          'SBIN.NS': 600 + (Math.random() - 0.5) * 50, // 575-625 range
+          'ICICIBANK.NS': 1100 + (Math.random() - 0.5) * 80, // 1060-1140 range
+          'NCC.NS': 200 + (Math.random() - 0.5) * 20, // 190-210 range
+          'BHARTIARTL.NS': 1000 + (Math.random() - 0.5) * 60, // 970-1030 range
+          'HINDUNILVR.NS': 2800 + (Math.random() - 0.5) * 200, // 2700-2900 range
+          'KOTAKBANK.NS': 1700 + (Math.random() - 0.5) * 100 // 1650-1750 range
+        }
+        
+        const basePrice = priceMap[symbol] || 100 + (Math.random() * 50)
+        return Math.round(basePrice * 100) / 100 // Round to 2 decimal places
+      } catch (error) {
+        console.error('Error fetching stock price:', error)
+        return 100 // Default fallback price
+      }
+    }
+
+    // Get current price for the stock
+    const currentPrice = await getCurrentStockPrice(indianSymbol)
+    console.log(`📈 Current price for ${indianSymbol}: ₹${currentPrice}`)
+
+    const totalAmount = quantity * currentPrice
 
     // Start a transaction
     const { data: currentBalance, error: balanceError } = await supabase
@@ -516,7 +622,7 @@ export async function POST(request) {
             user_id: userId,
             symbol: indianSymbol,
             quantity: quantity.toFixed(8),
-            avg_buy_price: price.toFixed(2),
+            avg_buy_price: currentPrice.toFixed(2),
             total_invested: totalAmount.toFixed(2)
           })
 
@@ -596,7 +702,7 @@ export async function POST(request) {
         symbol: indianSymbol,
         transaction_type: transactionType,
         quantity: quantity.toFixed(8),
-        price: price.toFixed(2),
+        price: currentPrice.toFixed(2),
         total_amount: totalAmount.toFixed(2)
       })
 
@@ -612,7 +718,7 @@ export async function POST(request) {
         symbol: indianSymbol,
         original_symbol: symbol,
         quantity,
-        price,
+        price: currentPrice,
         total_amount: totalAmount,
         type: transactionType
       }

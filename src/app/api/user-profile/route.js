@@ -28,22 +28,15 @@ export async function GET(request) {
     // First, try to get authenticated user
     const authUser = await getAuthenticatedUser(request)
     
-    // Then check for userId parameter (for OmniDimension compatibility)
+    // Check for userId parameter (for OmniDimension compatibility)
     let userId = searchParams.get('userId') || searchParams.get('keyName')
     
     // Use authenticated user ID if available, otherwise fall back to parameter
     if (authUser) {
       userId = authUser.id
-      console.log('✅ Using authenticated user:', userId)
     } else if (!userId) {
-      // REQUIRE authentication - no more default demo user
-      return Response.json({ 
-        success: false, 
-        error: 'Authentication required. Please provide valid Authorization header with Bearer token.' 
-      }, { 
-        status: 401,
-        headers: corsHeaders 
-      })
+      // If no auth and no userId parameter, use default for demo purposes
+      userId = 'user123'
     }
 
     if (!userId) {
@@ -53,38 +46,40 @@ export async function GET(request) {
       })
     }
 
-    // Get user portfolio with current prices
-    const { data: portfolioData, error: portfolioError } = await supabase
-      .from('user_portfolio')
-      .select('*')
-      .eq('user_id', userId)
-
-    if (portfolioError) {
-      console.error('Portfolio fetch error:', portfolioError)
-      return Response.json({ success: false, error: 'Failed to fetch portfolio' }, { 
-        status: 500,
-        headers: corsHeaders 
-      })
+    // Get user profile information
+    let userProfile = null
+    
+    if (authUser) {
+      // For authenticated users, get profile from auth
+      userProfile = {
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.user_metadata?.name || authUser.email.split('@')[0],
+        authenticated: true,
+        created_at: authUser.created_at
+      }
+    } else {
+      // For demo user or unauthenticated access
+      userProfile = {
+        id: userId,
+        email: userId === 'user123' ? 'demo@lakshmi.ai' : `${userId}@demo.com`,
+        name: userId === 'user123' ? 'Demo User' : `User ${userId}`,
+        authenticated: false,
+        created_at: new Date().toISOString()
+      }
     }
-
-    // For now, we'll use the avg_buy_price as current_price
-    // In a real app, you'd fetch current prices from an API
-    const portfolioWithPrices = portfolioData.map(holding => ({
-      ...holding,
-      current_price: parseFloat(holding.avg_buy_price) * (0.95 + Math.random() * 0.1), // Simulate price movement
-      quantity: parseFloat(holding.quantity),
-      avg_buy_price: parseFloat(holding.avg_buy_price),
-      total_invested: parseFloat(holding.total_invested)
-    }))
 
     return Response.json({
       success: true,
-      portfolio: portfolioWithPrices
+      user: userProfile
     }, { headers: corsHeaders })
 
   } catch (error) {
-    console.error('API error:', error)
-    return Response.json({ success: false, error: 'Internal server error' }, { 
+    console.error('User profile error:', error)
+    return Response.json({ 
+      success: false, 
+      error: 'Internal server error' 
+    }, { 
       status: 500,
       headers: corsHeaders 
     })
