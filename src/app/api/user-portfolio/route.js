@@ -79,6 +79,7 @@ export async function GET(request) {
 
     return Response.json({
       success: true,
+      data: portfolioWithPrices,
       portfolio: portfolioWithPrices
     }, { headers: corsHeaders })
 

@@ -84,6 +84,10 @@ export async function GET(request) {
 
       return Response.json({
         success: true,
+        data: {
+          inr_balance: parseFloat(newBalance.inr_balance),
+          eth_balance: parseFloat(newBalance.eth_balance)
+        },
         balances: {
           inr: parseFloat(newBalance.inr_balance),
           eth: parseFloat(newBalance.eth_balance)
@@ -93,6 +97,10 @@ export async function GET(request) {
 
     return Response.json({
       success: true,
+      data: {
+        inr_balance: parseFloat(balanceData.inr_balance),
+        eth_balance: parseFloat(balanceData.eth_balance)
+      },
       balances: {
         inr: parseFloat(balanceData.inr_balance),
         eth: parseFloat(balanceData.eth_balance)

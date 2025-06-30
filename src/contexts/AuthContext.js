@@ -15,6 +15,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }) => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
+      setSession(session)
       setLoading(false)
     }
 
@@ -31,6 +33,7 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setUser(session?.user ?? null)
+        setSession(session)
         setLoading(false)
       }
     )
@@ -44,6 +47,8 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    session,
+    token: session?.access_token,
     loading,
     signOut,
   }
