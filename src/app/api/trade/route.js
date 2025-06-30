@@ -137,27 +137,19 @@ export async function GET(request) {
         // Function to get current stock price
         const getCurrentStockPrice = async (symbol) => {
           try {
-            // For demo purposes, we'll simulate current prices based on existing portfolio data
-            // In production, you'd integrate with a real stock price API
-            const priceMap = {
-              'TCS.NS': 3500 + (Math.random() - 0.5) * 200, // 3400-3600 range
-              'RELIANCE.NS': 1500 + (Math.random() - 0.5) * 100, // 1450-1550 range
-              'INFY.NS': 1200 + (Math.random() - 0.5) * 80, // 1160-1240 range
-              'HDFCBANK.NS': 1300 + (Math.random() - 0.5) * 100, // 1250-1350 range
-              'ITC.NS': 400 + (Math.random() - 0.5) * 40, // 380-420 range
-              'SBIN.NS': 600 + (Math.random() - 0.5) * 50, // 575-625 range
-              'ICICIBANK.NS': 1100 + (Math.random() - 0.5) * 80, // 1060-1140 range
-              'NCC.NS': 200 + (Math.random() - 0.5) * 20, // 190-210 range
-              'BHARTIARTL.NS': 1000 + (Math.random() - 0.5) * 60, // 970-1030 range
-              'HINDUNILVR.NS': 2800 + (Math.random() - 0.5) * 200, // 2700-2900 range
-              'KOTAKBANK.NS': 1700 + (Math.random() - 0.5) * 100 // 1650-1750 range
+            // Call your own stock-detail API for real-time price
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/stock-detail?symbol=${encodeURIComponent(symbol)}&current=true`
+            );
+            const result = await response.json();
+            if (result.success && result.data && typeof result.data.price === 'number') {
+              return result.data.price;
+            } else {
+              throw new Error(result.error || 'No price data');
             }
-            
-            const basePrice = priceMap[symbol] || 100 + (Math.random() * 50)
-            return Math.round(basePrice * 100) / 100 // Round to 2 decimal places
           } catch (error) {
-            console.error('Error fetching stock price:', error)
-            return 100 // Default fallback price
+            console.error('Error fetching real-time stock price:', error);
+            return 100; // Fallback price
           }
         }
 
@@ -516,27 +508,19 @@ export async function POST(request) {
     // Function to get current stock price
     const getCurrentStockPrice = async (symbol) => {
       try {
-        // For demo purposes, we'll simulate current prices based on existing portfolio data
-        // In production, you'd integrate with a real stock price API
-        const priceMap = {
-          'TCS.NS': 3500 + (Math.random() - 0.5) * 200, // 3400-3600 range
-          'RELIANCE.NS': 1500 + (Math.random() - 0.5) * 100, // 1450-1550 range
-          'INFY.NS': 1200 + (Math.random() - 0.5) * 80, // 1160-1240 range
-          'HDFCBANK.NS': 1300 + (Math.random() - 0.5) * 100, // 1250-1350 range
-          'ITC.NS': 400 + (Math.random() - 0.5) * 40, // 380-420 range
-          'SBIN.NS': 600 + (Math.random() - 0.5) * 50, // 575-625 range
-          'ICICIBANK.NS': 1100 + (Math.random() - 0.5) * 80, // 1060-1140 range
-          'NCC.NS': 200 + (Math.random() - 0.5) * 20, // 190-210 range
-          'BHARTIARTL.NS': 1000 + (Math.random() - 0.5) * 60, // 970-1030 range
-          'HINDUNILVR.NS': 2800 + (Math.random() - 0.5) * 200, // 2700-2900 range
-          'KOTAKBANK.NS': 1700 + (Math.random() - 0.5) * 100 // 1650-1750 range
+        // Call your own stock-detail API for real-time price
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/stock-detail?symbol=${encodeURIComponent(symbol)}&current=true`
+        );
+        const result = await response.json();
+        if (result.success && result.data && typeof result.data.price === 'number') {
+          return result.data.price;
+        } else {
+          throw new Error(result.error || 'No price data');
         }
-        
-        const basePrice = priceMap[symbol] || 100 + (Math.random() * 50)
-        return Math.round(basePrice * 100) / 100 // Round to 2 decimal places
       } catch (error) {
-        console.error('Error fetching stock price:', error)
-        return 100 // Default fallback price
+        console.error('Error fetching real-time stock price:', error);
+        return 100; // Fallback price
       }
     }
 
