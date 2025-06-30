@@ -18,6 +18,25 @@ async function getAuthenticatedUser(request) {
   return error ? null : user
 }
 
+// Function to get current stock price (shared for both GET and POST)
+const getCurrentStockPrice = async (symbol) => {
+  try {
+    // Call your own stock-detail API for real-time price
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/stock-detail?symbol=${encodeURIComponent(symbol)}&current=true`
+    );
+    const result = await response.json();
+    if (result.success && result.data && typeof result.data.price === 'number') {
+      return result.data.price;
+    } else {
+      throw new Error(result.error || 'No price data');
+    }
+  } catch (error) {
+    console.error('Error fetching real-time stock price:', error);
+    return 100; // Fallback price
+  }
+}
+
 export async function OPTIONS(request) {
   return new Response(null, { status: 200, headers: corsHeaders })
 }
@@ -132,25 +151,6 @@ export async function GET(request) {
             status: 400,
             headers: corsHeaders 
           })
-        }
-
-        // Function to get current stock price
-        const getCurrentStockPrice = async (symbol) => {
-          try {
-            // Call your own stock-detail API for real-time price
-            const response = await fetch(
-              `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/stock-detail?symbol=${encodeURIComponent(symbol)}&current=true`
-            );
-            const result = await response.json();
-            if (result.success && result.data && typeof result.data.price === 'number') {
-              return result.data.price;
-            } else {
-              throw new Error(result.error || 'No price data');
-            }
-          } catch (error) {
-            console.error('Error fetching real-time stock price:', error);
-            return 100; // Fallback price
-          }
         }
 
         // Get current price for the stock
@@ -503,25 +503,6 @@ export async function POST(request) {
         status: 400,
         headers: corsHeaders 
       })
-    }
-
-    // Function to get current stock price
-    const getCurrentStockPrice = async (symbol) => {
-      try {
-        // Call your own stock-detail API for real-time price
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/stock-detail?symbol=${encodeURIComponent(symbol)}&current=true`
-        );
-        const result = await response.json();
-        if (result.success && result.data && typeof result.data.price === 'number') {
-          return result.data.price;
-        } else {
-          throw new Error(result.error || 'No price data');
-        }
-      } catch (error) {
-        console.error('Error fetching real-time stock price:', error);
-        return 100; // Fallback price
-      }
     }
 
     // Get current price for the stock
