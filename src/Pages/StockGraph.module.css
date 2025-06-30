@@ -1,29 +1,35 @@
-/* StockGraph.module.css */
+/* StockGraph.module.css - Gold & Grey Dark Theme */
 
 .pageContainer {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #171717 0%, #232526 100%);
   padding: 2rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #FFD700;
 }
 
 .pageHeader {
   text-align: center;
   margin-bottom: 2rem;
-  color: white;
+  color: #FFD700;
 }
 
 .pageHeader h1 {
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 0 1rem 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px #B8860B;
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .pageHeader p {
   font-size: 1.2rem;
   margin: 0;
   opacity: 0.9;
+  color: #B8860B;
 }
 
 .contentGrid {
@@ -36,9 +42,9 @@
 }
 
 .graphContainer {
-  background: white;
+  background: #232526;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.22);
   overflow: hidden;
   position: relative;
 }
@@ -51,10 +57,11 @@
 
 .watchlistSection,
 .guideSection {
-  background: white;
+  background: #232526;
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+  color: #FFD700;
 }
 
 .watchlistSection h3,
@@ -62,8 +69,8 @@
   margin: 0 0 1rem 0;
   font-size: 1.3rem;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #667eea;
+  color: #FFD700;
+  border-bottom: 2px solid #FFD700;
   padding-bottom: 0.5rem;
 }
 
@@ -71,7 +78,7 @@
   max-height: 300px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #667eea #f1f1f1;
+  scrollbar-color: #FFD700 #232526;
 }
 
 .stockList::-webkit-scrollbar {
@@ -79,12 +86,12 @@
 }
 
 .stockList::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #232526;
   border-radius: 3px;
 }
 
 .stockList::-webkit-scrollbar-thumb {
-  background: #667eea;
+  background: #FFD700;
   border-radius: 3px;
 }
 
@@ -94,27 +101,27 @@
   align-items: center;
   padding: 0.75rem;
   margin-bottom: 0.5rem;
-  background: #f8f9fa;
+  background: #232526;
   border-radius: 8px;
-  border-left: 4px solid transparent;
+  border-left: 4px solid #FFD700;
   transition: all 0.3s ease;
+  color: #FFD700;
 }
 
 .stockItem:hover {
-  background: #e9ecef;
-  transform: translateX(5px);
-  border-left-color: #667eea;
+  background: #434343;
+  color: #FFD700;
 }
 
 .stockSymbol {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #333;
+  color: #FFD700;
 }
 
 .stockName {
   font-size: 0.8rem;
-  color: #666;
+  color: #B8860B;
   flex: 1;
   margin: 0 0.5rem;
   white-space: nowrap;
@@ -130,13 +137,13 @@
 }
 
 .stockChange.positive {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
 }
 
 .stockChange.negative {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
 .guideItem {
@@ -144,7 +151,7 @@
   align-items: center;
   margin-bottom: 1rem;
   font-size: 0.9rem;
-  color: #333;
+  color: #FFD700;
 }
 
 .guideItem span {
@@ -400,7 +407,7 @@
 
 .watchlistSection,
 .guideSection {
-  background: white;
+  background: #232526;
   border-radius: 15px;
   padding: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -409,9 +416,9 @@
 .watchlistSection h3,
 .guideSection h3 {
   margin: 0 0 15px 0;
-  color: #333;
+  color: #FFD700;
   font-size: 1.2rem;
-  border-bottom: 2px solid #667eea;
+  border-bottom: 2px solid #FFD700;
   padding-bottom: 8px;
 }
 
@@ -434,14 +441,14 @@
 
 .stockSymbol {
   font-weight: bold;
-  color: #333;
+  color: #FFD700;
   font-size: 0.9rem;
 }
 
 .stockName {
   flex: 1;
   margin-left: 10px;
-  color: #666;
+  color: #B8860B;
   font-size: 0.8rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -471,7 +478,7 @@
   align-items: center;
   margin-bottom: 10px;
   font-size: 0.9rem;
-  color: #666;
+  color: #FFD700;
 }
 
 .guideItem span {

@@ -7,16 +7,16 @@
 .stockGroupsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 20px;
+  gap: 24px;
   margin-bottom: 24px;
 }
 
 .stockGroupCard {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid #2d3748;
+  background: var(--background-elevated);
+  border: 1px solid var(--grey-700);
   border-radius: 16px;
-  padding: 20px;
-  transition: all 0.3s ease;
+  padding: 24px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -25,8 +25,8 @@
 
 .stockGroupCard:hover {
   transform: translateY(-4px);
-  border-color: #63b3ed;
-  box-shadow: 0 8px 32px rgba(99, 179, 237, 0.2);
+  border-color: var(--gold-secondary);
+  box-shadow: 0 8px 32px rgba(218, 165, 32, 0.15);
 }
 
 .stockGroupCard::before {
@@ -35,8 +35,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3182ce, #63b3ed, #90cdf4);
+  height: 3px;
+  background: var(--gradient-gold);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -49,13 +49,16 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   gap: 12px;
 }
 
 .groupTitle {
-  color: #ffffff;
-  font-size: 1.2rem;
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.3rem;
   font-weight: 600;
   margin: 0;
   line-height: 1.3;
@@ -63,22 +66,28 @@
 }
 
 .groupCategory {
-  background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
-  color: #ffffff;
-  padding: 4px 12px;
+  background: var(--gradient-dark);
+  color: var(--gold-primary);
+  padding: 6px 14px;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(49, 130, 206, 0.3);
+  border: 1px solid var(--gold-secondary);
+  transition: all 0.3s ease;
+}
+
+.stockGroupCard:hover .groupCategory {
+  background: var(--gradient-gold);
+  color: var(--background-primary);
 }
 
 .groupDescription {
-  color: #a0aec0;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
   margin-bottom: 16px;
   min-height: 3em;
 }
@@ -88,17 +97,22 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  padding: 8px 0;
-  border-top: 1px solid #2d3748;
+  padding: 12px 0;
+  border-top: 1px solid var(--grey-700);
+  transition: border-color 0.3s ease;
+}
+
+.stockGroupCard:hover .groupMeta {
+  border-top-color: var(--gold-secondary);
 }
 
 .groupMarket {
-  color: #63b3ed;
-  font-size: 0.85rem;
+  color: var(--gold-primary);
+  font-size: 0.9rem;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .groupMarket::before {

@@ -1,12 +1,21 @@
 /* DirectSearch.module.css */
 
+:root {
+  --gold-primary: #ffd700;
+  --gold-secondary: #daa520;
+  --background-primary: #121212;
+  --background-elevated: #242424;
+  --text-primary: #e5e5e5;
+  --gradient-gold: linear-gradient(135deg, var(--gold-primary), var(--gold-secondary));
+}
+
 .searchTab {
   width: 100%;
 }
 
 .card {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid #2d3748;
+  background: #232526;
+  border: 1px solid #434343;
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
@@ -14,7 +23,7 @@
 }
 
 .card h3 {
-  color: #ffffff;
+  color: #FFD700;
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 8px;
@@ -24,7 +33,7 @@
 }
 
 .cardDescription {
-  color: #a0aec0;
+  color: #FFD700;
   margin-bottom: 20px;
   line-height: 1.5;
 }
@@ -41,9 +50,9 @@
 }
 
 .marketSelect {
-  background: #2d3748;
-  color: #ffffff;
-  border: 1px solid #4a5568;
+  background: #232526;
+  color: #FFD700;
+  border: 1px solid #434343;
   border-radius: 8px;
   padding: 12px 16px;
   min-width: 180px;
@@ -52,20 +61,20 @@
 }
 
 .marketSelect:hover {
-  border-color: #63b3ed;
+  border-color: #FFD700;
 }
 
 .marketSelect:focus {
   outline: none;
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+  border-color: #FFD700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
 }
 
 .searchInput {
   flex: 1;
-  background: #2d3748;
-  color: #ffffff;
-  border: 1px solid #4a5568;
+  background: #232526;
+  color: #FFD700;
+  border: 1px solid #434343;
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 14px;
@@ -74,22 +83,23 @@
 }
 
 .searchInput:hover {
-  border-color: #63b3ed;
+  border-color: #FFD700;
 }
 
 .searchInput:focus {
   outline: none;
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+  border-color: #FFD700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
 }
 
 .searchInput::placeholder {
-  color: #718096;
+  color: #FFD700;
+  opacity: 0.6;
 }
 
 .searchButton {
-  background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #FFD700, #FFD700);
+  color: #232526;
   border: none;
   border-radius: 8px;
   padding: 12px 20px;
@@ -101,13 +111,14 @@
 }
 
 .searchButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2c5aa0 0%, #2a4c8c 100%);
+  background: linear-gradient(135deg, #FFD700, #FFD700);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
 }
 
 .searchButton:disabled {
-  background: #4a5568;
+  background: #434343;
+  color: #FFD700;
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -327,4 +338,42 @@
     align-items: flex-start;
     gap: 4px;
   }
+}
+
+.directSearchContainer {
+  background: var(--background-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.directSearchCard {
+  background: #232526;
+  border-radius: 10px;
+  border: 1px solid #434343;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.08);
+  transition: all 0.3s ease;
+  padding: 1.5rem;
+}
+
+.directSearchCard:hover {
+  border-color: #FFD700;
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.directSearchButton {
+  background: linear-gradient(135deg, #FFD700, #FFD700);
+  color: #232526;
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.directSearchButton:hover {
+  opacity: 0.9;
+  transform: scale(1.03);
 }

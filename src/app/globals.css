@@ -1,12 +1,42 @@
 :root {
   --background: #ffffff;
   --foreground: #000223;
+  --gold-primary: #FFD700;
+  --gold-secondary: #FFA500;
+  --gold-dark: #B8860B;
+  --gold-light: #FFFACD;
+  --silver-primary: #C0C0C0;
+  --silver-secondary: #A8A8A8;
+  --silver-dark: #696969;
+  --silver-light: #F5F5F5;
+  --background-dark: #0A0A0A;
+  --background-secondary: #1A1A1A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #CCCCCC;
+  --text-muted: #888888;
+  --success-green: #00D084;
+  --danger-red: #FF4757;
+  --shadow-gold: 0 0 20px rgba(255, 215, 0, 0.3);
+  --shadow-silver: 0 0 20px rgba(192, 192, 192, 0.2);
+  --gradient-gold: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  --gradient-silver: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
+  --gradient-bg: linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 50%, #2A2A2A 100%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #000223;
     --foreground: #ededed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -70,5 +100,50 @@ a {
   .left-sidebar.open {
     transform: translateX(0);
   }
+}
+
+.featuresSection {
+  padding: 8rem 2rem 6rem 2rem;
+  background: linear-gradient(180deg, #23232b 0%, #181818 100%);
+  position: relative;
+  z-index: 2;
+  border-radius: 0 0 2rem 2rem;
+  box-shadow: 0 -8px 32px 0 rgba(0,0,0,0.18);
+}
+
+.ctaSection {
+  padding: 6rem 2rem 8rem 2rem;
+  background: linear-gradient(180deg, #181818 0%, #23232b 100%);
+  position: relative;
+  z-index: 3;
+  border-radius: 2rem 2rem 0 0;
+  box-shadow: 0 -8px 32px 0 rgba(0,0,0,0.18);
+}
+
+/* --- Confetti/Coin Burst Global Styles --- */
+.confettiSvg {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+@keyframes coinSpin {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+.coinSpin {
+  animation: coinSpin 1.2s linear infinite;
+}
+
+/* --- Parallax Utility --- */
+.parallax {
+  will-change: transform;
+}
+
+/* --- Ticker Tape Utility --- */
+.tickerShadow {
+  text-shadow: 0 0 8px #FFD70099, 0 0 16px #FFD70055;
 }
 

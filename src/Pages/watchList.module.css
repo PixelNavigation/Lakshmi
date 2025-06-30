@@ -1,30 +1,28 @@
-/* Modern watchList.module.css with improved design */
+/* Modern watchList.module.css - Gold & Grey Dark Theme */
 
 /* CSS Variables for consistent theming */
 :root {
-  --primary-color: #667eea;
-  --primary-dark: #5a67d8;
-  --secondary-color: #764ba2;
-  --success-color: #10b981;
-  --danger-color: #ef4444;
-  --warning-color: #f59e0b;
-  --info-color: #3b82f6;
-  --background: #ffffff;
-  --foreground: #1a202c;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --card-bg: #ffffff;
-  --surface: #f8fafc;
+  --gold-primary: #FFD700;
+  --gold-secondary: #B8860B;
+  --grey-900: #171717;
+  --grey-800: #232526;
+  --grey-700: #434343;
+  --background: #171717;
+  --foreground: #FFD700;
+  --muted: #B8860B;
+  --border: #434343;
+  --card-bg: #232526;
+  --surface: #232526;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-    --muted: #94a3b8;
-    --border: #334155;
-    --card-bg: #1e293b;
-    --surface: #0f172a;
+    --background: #171717;
+    --foreground: #FFD700;
+    --muted: #B8860B;
+    --border: #434343;
+    --card-bg: #232526;
+    --surface: #232526;
   }
 }
 
@@ -46,7 +44,7 @@
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -82,10 +80,11 @@
   background: var(--card-bg);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
   border: 1px solid var(--border);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  color: var(--gold-primary);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -96,7 +95,7 @@
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 30px rgba(218, 165, 32, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -186,23 +185,22 @@
 }
 
 .filterButton:hover {
-  background: var(--primary-color);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: var(--gold-primary);
+  color: var(--background);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.18);
 }
 
 .activeFilter {
   padding: 0.6rem 1.2rem;
-  border: 1px solid var(--primary-color);
+  border: 1px solid var(--gold-primary);
   border-radius: 25px;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-secondary) 100%);
+  color: var(--background);
   text-transform: capitalize;
   font-size: 0.9rem;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.22);
   transform: translateY(-1px);
 }
 
@@ -270,28 +268,28 @@
 
 /* Category colors */
 .categoryTechnology {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: rgba(255, 215, 0, 0.12); /* gold */
+  color: var(--gold-primary);
 }
 
 .categoryFinance {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+  background: rgba(184, 134, 11, 0.12); /* muted gold */
+  color: var(--gold-secondary);
 }
 
 .categoryCrypto {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: rgba(255, 215, 0, 0.18); /* gold, slightly more intense */
+  color: var(--gold-primary);
 }
 
 .categoryIndian {
-  background: rgba(139, 69, 19, 0.1);
-  color: #8b4513;
+  background: rgba(184, 134, 11, 0.10); /* muted gold/bronze */
+  color: var(--muted);
 }
 
 .categoryOther {
-  background: rgba(107, 114, 128, 0.1);
-  color: #6b7280;
+  background: rgba(67, 67, 67, 0.10); /* grey */
+  color: var(--border);
 }
 
 /* Action buttons */
@@ -315,40 +313,40 @@
 }
 
 .chartButton {
-  border-color: var(--info-color);
-  color: var(--info-color);
+  border-color: var(--gold-primary);
+  color: var(--gold-primary);
 }
 
 .chartButton:hover {
-  background: var(--info-color);
-  color: white;
+  background: var(--gold-primary);
+  color: var(--background);
 }
 
 .alertButton {
-  border-color: var(--success-color);
-  color: var(--success-color);
+  border-color: var(--gold-primary);
+  color: var(--gold-primary);
 }
 
 .alertButton:hover {
-  background: var(--success-color);
-  color: white;
+  background: var(--gold-primary);
+  color: var(--background);
 }
 
 .removeButton {
-  border-color: var(--danger-color);
-  color: var(--danger-color);
+  border-color: var(--gold-primary);
+  color: var(--gold-primary);
 }
 
 .removeButton:hover {
-  background: var(--danger-color);
-  color: white;
+  background: var(--gold-primary);
+  color: var(--background);
 }
 
 /* Button Styles */
 .primaryButton {
   padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--gold-primary) 0%, var(--gold-secondary) 100%);
+  color: var(--background);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -356,14 +354,13 @@
   font-size: 0.95rem;
   transition: all 0.3s ease;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.18);
   position: relative;
   overflow: hidden;
 }
 
 .primaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.28);
 }
 
 .primaryButton:active {
@@ -385,8 +382,8 @@
 
 .secondaryButton:hover {
   background: var(--border);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: var(--gold-primary);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.10);
 }
 
 .secondaryButton:disabled {
@@ -763,7 +760,7 @@
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid var(--primary-color);
+  border-top: 4px solid var(--gold-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -841,8 +838,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.75rem;
-  background: linear-gradient(45deg, #28a745, #20c997);
-  color: white;
+  background: linear-gradient(45deg, var(--gold-primary), var(--gold-secondary));
+  color: var(--background);
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;

@@ -1,16 +1,16 @@
-/* LakshmiAI - Modern UI matching app design */
+/* LakshmiAI - Gold & Grey Dark Theme */
 .fullScreenContainer {
   min-height: 100vh;
-  background: var(--background);
-  color: var(--foreground);
+  background: #171717;
+  color: #FFD700;
   display: flex;
   flex-direction: column;
 }
 
 .tickerContainer {
   height: 60px;
-  background: var(--background);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: #232526;
+  border-bottom: 1px solid #434343;
   z-index: 10;
   flex-shrink: 0;
 }
@@ -30,6 +30,7 @@
   padding: 2rem;
   width: 100%;
   min-height: 0; /* Important for proper flex behavior */
+  color: #FFD700;
 }
 
 /* Welcome Screen Styles */
@@ -56,7 +57,7 @@
   font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -68,11 +69,12 @@
 
 .robotIcon {
   font-size: 4rem;
+  color: #FFD700;
 }
 
 .welcomeSubtitle {
   font-size: 1.1rem;
-  color: #666;
+  color: #B8860B;
   margin: 0;
 }
 
@@ -86,8 +88,8 @@
 }
 
 .examplePrompt {
-  background: var(--background);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #232526;
+  border: 1px solid #434343;
   border-radius: 12px;
   padding: 1.5rem;
   cursor: pointer;
@@ -96,7 +98,8 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  color: #FFD700;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -107,9 +110,8 @@
 }
 
 .examplePrompt:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  border-color: #667eea;
+  background: #434343;
+  color: #FFD700;
 }
 
 @media (prefers-color-scheme: dark) {

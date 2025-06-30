@@ -2,42 +2,44 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  background: #0f0f23;
+  background: #171717;
   min-height: 100vh;
-  color: white;
+  color: #FFD700;
 }
 
 .header {
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+  gap: 1.5rem;
 }
 
 .title {
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  background: linear-gradient(45deg, #FFD700, #B8860B);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .addFundsButton {
-  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  background: linear-gradient(45deg, #FFD700, #B8860B);
   border: none;
-  color: white;
+  color: #232526;
   padding: 12px 24px;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
+  margin-left: 1.5rem;
 }
 
 .addFundsButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);
+  box-shadow: 0 10px 25px rgba(218, 165, 32, 0.18);
 }
 
 .balanceGrid {
@@ -48,13 +50,14 @@
 }
 
 .balanceCard {
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
-  border: 1px solid #2d3748;
+  background: linear-gradient(135deg, #232526, #434343);
+  border: 1px solid #434343;
   border-radius: 15px;
   padding: 25px;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  color: #FFD700;
 }
 
 .balanceCard::before {
@@ -64,12 +67,12 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(45deg, #4facfe, #00f2fe);
+  background: linear-gradient(45deg, #FFD700, #B8860B);
 }
 
 .balanceCard:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(79, 172, 254, 0.2);
+  box-shadow: 0 15px 35px rgba(218, 165, 32, 0.18);
 }
 
 .balanceHeader {
@@ -82,23 +85,24 @@
 .balanceHeader h3 {
   margin: 0;
   font-size: 1.1rem;
-  color: #a0aec0;
+  color: #FFD700;
 }
 
 .currency {
   font-size: 1.5rem;
   opacity: 0.7;
+  color: #B8860B;
 }
 
 .balanceAmount {
   font-size: 2.2rem;
   font-weight: 700;
-  color: white;
+  color: #FFD700;
   margin-bottom: 8px;
 }
 
 .balanceLabel {
-  color: #718096;
+  color: #B8860B;
   font-size: 0.9rem;
 }
 
@@ -200,9 +204,9 @@
 }
 
 .transactionsList {
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  background: linear-gradient(135deg, #232526, #434343);
   border-radius: 15px;
-  border: 1px solid #2d3748;
+  border: 1px solid #434343;
   overflow: hidden;
 }
 
@@ -211,13 +215,15 @@
   grid-template-columns: auto 1fr auto auto;
   gap: 15px;
   padding: 20px;
-  border-bottom: 1px solid #2d3748;
+  border-bottom: 1px solid #434343;
   align-items: center;
   transition: background 0.2s ease;
+  background: #232526;
+  color: #FFD700;
 }
 
 .transactionItem:hover {
-  background: rgba(79, 172, 254, 0.05);
+  background: #434343;
 }
 
 .transactionItem:last-child {
@@ -226,6 +232,7 @@
 
 .transactionIcon {
   font-size: 1.2rem;
+  color: #FFD700;
 }
 
 .transactionDetails {
@@ -236,21 +243,21 @@
 
 .transactionSymbol {
   font-weight: 600;
-  color: #4facfe;
+  color: #FFD700;
 }
 
 .transactionInfo {
-  color: #a0aec0;
+  color: #B8860B;
   font-size: 0.9rem;
 }
 
 .transactionAmount {
   font-weight: 600;
-  color: white;
+  color: #FFD700;
 }
 
 .transactionDate {
-  color: #718096;
+  color: #B8860B;
   font-size: 0.9rem;
 }
 

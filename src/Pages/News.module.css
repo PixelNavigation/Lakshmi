@@ -1,8 +1,10 @@
-/* News.module.css */
+/* News.module.css - Gold & Grey Dark Theme */
 .pageContainer {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  background: #171717;
+  color: var(--text-primary, #E5E5E5);
 }
 
 .pageHeader {
@@ -13,7 +15,7 @@
   font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -21,7 +23,7 @@
 
 .pageSubtitle {
   font-size: 1.1rem;
-  color: #666;
+  color: #B8860B;
   margin: 0;
 }
 
@@ -44,18 +46,19 @@
 }
 
 .card {
-  background: white;
+  background: #232526;
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  border: 1px solid #434343;
+  color: #FFD700;
 }
 
 .card h3 {
   margin: 0 0 1rem 0;
   font-size: 1.2rem;
   font-weight: 600;
-  color: #374151;
+  color: #FFD700;
 }
 
 .categoryFilters {
@@ -70,10 +73,16 @@
   border: none;
   border-radius: 20px;
   cursor: pointer;
-  background: #f8f9fa;
-  color: #333;
+  background: #232526;
+  color: #FFD700;
   text-transform: capitalize;
   transition: all 0.2s;
+  border: 1px solid #B8860B;
+}
+
+.filterButton:hover {
+  background: #434343;
+  color: #FFD700;
 }
 
 .activeFilter {
@@ -81,8 +90,8 @@
   border: none;
   border-radius: 20px;
   cursor: pointer;
-  background: #3b82f6;
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B);
+  color: #232526;
   text-transform: capitalize;
 }
 
@@ -103,6 +112,7 @@
   margin: 0;
   font-size: 1.2rem;
   line-height: 1.4;
+  color: #FFD700;
 }
 
 .impactBadge {
@@ -111,10 +121,13 @@
   font-size: 0.8rem;
   font-weight: bold;
   text-transform: uppercase;
+  background: #434343;
+  color: #FFD700;
+  border: 1px solid #B8860B;
 }
 
 .newsSummary {
-  color: #6b7280;
+  color: #B8860B;
   line-height: 1.6;
   margin-bottom: 1rem;
 }
@@ -124,14 +137,15 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
-  color: #9ca3af;
-  border-top: 1px solid #f3f4f6;
+  color: #B8860B;
+  border-top: 1px solid #434343;
   padding-top: 0.75rem;
 }
 
 .sentimentIndicator {
   text-align: center;
   padding: 1.5rem;
+  color: #FFD700;
 }
 
 .sentimentIndicator div:first-child {
@@ -142,13 +156,13 @@
 .sentimentIndicator div:nth-child(2) {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #10b981;
+  color: #FFD700;
   margin-bottom: 0.25rem;
 }
 
 .sentimentIndicator div:last-child {
   font-size: 0.9rem;
-  color: #6b7280;
+  color: #B8860B;
 }
 
 .trendingList {
@@ -162,7 +176,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #434343;
+  color: #FFD700;
 }
 
 .trendingItem:last-child {
@@ -173,15 +188,12 @@
   .contentGrid {
     grid-template-columns: 1fr;
   }
-  
   .pageContainer {
     padding: 1rem;
   }
-  
   .categoryFilters {
     justify-content: center;
   }
-  
   .newsHeader {
     flex-direction: column;
     gap: 0.5rem;

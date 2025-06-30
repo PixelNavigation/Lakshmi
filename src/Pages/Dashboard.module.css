@@ -1,31 +1,85 @@
-/* Dashboard.module.css */
+/* Dashboard.module.css - Gold & Grey Dark Theme */
 .pageContainer {
   padding: 2rem;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  animation: fadeIn 0.5s ease-out;
+  background: #171717;
+  color: #FFD700;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .searchSection {
   margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.searchSection input[type="text"],
+.searchSection input[type="search"] {
+  background: #232526;
+  color: #FFD700;
+  border: 1px solid #434343;
+  border-radius: 8px;
+  padding: 0.75rem 1.2rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.searchSection input[type="text"]:focus,
+.searchSection input[type="search"]:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.12);
+}
+
+.searchSection button,
+.searchSection select {
+  background: linear-gradient(135deg, #FFD700, #B8860B);
+  color: #232526;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.2rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.searchSection button:hover,
+.searchSection select:hover {
+  background: linear-gradient(135deg, #B8860B, #FFD700);
+  color: #232526;
 }
 
 .pageHeader {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .pageTitle {
   font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .pageSubtitle {
   font-size: 1.1rem;
-  color: #666;
+  color: #B8860B;
   margin: 0;
 }
 
@@ -48,24 +102,32 @@
 }
 
 .card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  background: #232526;
+  border-radius: 16px;
+  padding: 1.8rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  border: 1px solid #434343;
+  transition: all 0.3s ease;
+  color: #FFD700;
+}
+
+.card:hover {
+  border-color: #B8860B;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(218, 165, 32, 0.15);
 }
 
 .card h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.2rem;
+  margin: 0 0 1.2rem 0;
+  font-size: 1.3rem;
   font-weight: 600;
-  color: #374151;
+  color: #FFD700;
 }
 
 .performanceGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: 1.2rem;
 }
 
 .metric {
@@ -73,37 +135,54 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  padding: 1.5rem;
+  background: #232526;
+  border-radius: 12px;
+  border: 1px solid #434343;
+  transition: all 0.3s ease;
+  color: #FFD700;
+}
+
+.metric:hover {
+  border-color: #B8860B;
+  transform: translateY(-2px);
 }
 
 .metricValue {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
 }
 
 .metricLabel {
-  font-size: 0.9rem;
-  color: #6b7280;
+  font-size: 0.95rem;
+  color: #B8860B;
 }
 
 .transactionList {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .transaction {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
-  border-left: 3px solid #3b82f6;
+  padding: 1rem;
+  background: #232526;
+  border-radius: 10px;
+  border: 1px solid #434343;
+  transition: all 0.3s ease;
+  color: #FFD700;
+}
+
+.transaction:hover {
+  border-color: #B8860B;
+  transform: translateX(4px);
 }
 
 .actionButtons {
@@ -114,17 +193,17 @@
 
 .actionBtn {
   padding: 0.75rem 1rem;
-  background: #3b82f6;
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B);
+  color: #232526;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: background 0.2s;
 }
 
 .actionBtn:hover {
-  background: #2563eb;
+  background: linear-gradient(135deg, #B8860B, #FFD700);
 }
 
 .marketData {
@@ -138,7 +217,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #434343;
+  color: #FFD700;
 }
 
 .marketItem:last-child {
@@ -146,12 +226,12 @@
 }
 
 .positive {
-  color: #10b981;
+  color: #FFD700;
   font-weight: 600;
 }
 
 .negative {
-  color: #ef4444;
+  color: #B8860B;
   font-weight: 600;
 }
 
@@ -163,23 +243,24 @@
 }
 
 .balanceItem {
-  background: #f8fafc;
+  background: #232526;
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #434343;
+  color: #FFD700;
 }
 
 .balanceValue {
   font-size: 1.8rem;
   font-weight: bold;
-  color: #1e293b;
+  color: #FFD700;
   margin-bottom: 0.5rem;
 }
 
 .balanceLabel {
   font-size: 0.9rem;
-  color: #64748b;
+  color: #B8860B;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -196,14 +277,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f8fafc;
+  background: #232526;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #434343;
   transition: box-shadow 0.2s;
+  color: #FFD700;
 }
 
 .portfolioItem:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(218, 165, 32, 0.12);
 }
 
 .stockInfo {
@@ -215,12 +297,12 @@
 .stockSymbol {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #1e293b;
+  color: #FFD700;
 }
 
 .stockDetails {
   font-size: 0.9rem;
-  color: #64748b;
+  color: #B8860B;
 }
 
 .stockPerformance {
@@ -233,21 +315,23 @@
 .currentValue {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #1e293b;
+  color: #FFD700;
 }
 
 .pnl {
   font-size: 0.9rem;
   font-weight: 500;
+  color: #B8860B;
 }
 
 .portfolioSummary {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 2px solid #e2e8f0;
+  border-top: 2px solid #434343;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  color: #FFD700;
 }
 
 .summaryItem {
@@ -265,13 +349,13 @@
 
 .totalValue {
   font-weight: 600;
-  color: #1e293b;
+  color: #FFD700;
 }
 
 .emptyPortfolio {
   text-align: center;
   padding: 2rem;
-  color: #64748b;
+  color: #B8860B;
 }
 
 .emptyPortfolio p {
@@ -283,25 +367,26 @@
 .marketIndices {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .marketIndexCard {
-  border: 1px solid #e2e8f0;
+  border: 1px solid #434343;
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.3s ease;
-  background: #ffffff;
+  background: #232526;
+  color: #FFD700;
 }
 
 .marketIndexCard:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #cbd5e0;
+  box-shadow: 0 4px 12px rgba(218, 165, 32, 0.12);
+  border-color: #B8860B;
 }
 
 .marketIndexCard.expanded {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  border-color: #3182ce;
+  box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+  border-color: #FFD700;
 }
 
 .indexHeader {
@@ -310,13 +395,14 @@
   align-items: center;
   padding: 1rem 1.5rem;
   cursor: pointer;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background: #232526;
+  border-bottom: 1px solid #434343;
   transition: background-color 0.2s ease;
+  color: #FFD700;
 }
 
 .indexHeader:hover {
-  background: #f1f5f9;
+  background: #434343;
 }
 
 .indexInfo {
@@ -328,47 +414,49 @@
 .indexName {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #FFD700;
   margin: 0;
 }
 
 .indexValue {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #FFD700;
 }
 
 .indexChange {
   font-size: 0.9rem;
   font-weight: 500;
+  color: #B8860B;
 }
 
 .indexChange.positive {
-  color: #059669;
+  color: #FFD700;
 }
 
 .indexChange.negative {
-  color: #dc2626;
+  color: #B8860B;
 }
 
 .expandIcon {
   font-size: 1.2rem;
-  color: #64748b;
+  color: #FFD700;
   transition: transform 0.3s ease;
 }
 
 .indexDetails {
   padding: 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  background: #ffffff;
+  border-top: 1px solid #434343;
+  background: #232526;
+  color: #FFD700;
 }
 
 .miniChart {
   margin-bottom: 1rem;
   padding: 1rem;
-  background: #f8fafc;
+  background: #232526;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #434343;
 }
 
 .indexActions {
@@ -378,19 +466,19 @@
 }
 
 .viewMembersBtn {
-  background: #3182ce;
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B);
+  color: #232526;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .viewMembersBtn:hover {
-  background: #2c5aa0;
+  background: linear-gradient(135deg, #B8860B, #FFD700);
 }
 
 .membersContainer {
@@ -400,10 +488,10 @@
 .membersContainer h5 {
   font-size: 1rem;
   font-weight: 600;
-  color: #374151;
+  color: #FFD700;
   margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #434343;
 }
 
 .membersList {
@@ -418,21 +506,22 @@
   gap: 1rem;
   align-items: center;
   padding: 0.75rem;
-  background: #f9fafb;
+  background: #232526;
   border-radius: 6px;
-  border: 1px solid #f3f4f6;
+  border: 1px solid #434343;
   transition: all 0.2s ease;
+  color: #FFD700;
 }
 
 .memberItem:hover {
-  background: #f3f4f6;
-  border-color: #e5e7eb;
+  background: #434343;
+  border-color: #FFD700;
 }
 
 .memberRank {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #B8860B;
   text-align: center;
 }
 
@@ -445,26 +534,26 @@
 .memberName {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #111827;
+  color: #FFD700;
   line-height: 1.2;
 }
 
 .memberSymbol {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #B8860B;
 }
 
 .memberWeight {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #374151;
+  color: #FFD700;
   text-align: right;
 }
 
 .memberPrice {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #111827;
+  color: #FFD700;
   text-align: right;
 }
 
@@ -472,41 +561,40 @@
   font-size: 0.9rem;
   font-weight: 500;
   text-align: right;
+  color: #B8860B;
 }
 
 .memberChange.positive {
-  color: #059669;
+  color: #FFD700;
 }
 
 .memberChange.negative {
-  color: #dc2626;
+  color: #B8860B;
 }
 
-/* TradingView Widget Styles */
 .tradingViewWidget {
   width: 100%;
   height: 300px;
-  background: #f8fafc;
+  background: #232526;
   border-radius: 6px;
   margin-bottom: 1rem;
 }
 
 .tradingViewContainer {
   padding: 1rem;
-  background: #f8fafc;
+  background: #232526;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #434343;
   margin-bottom: 1rem;
 }
 
 .loadingMembers {
   padding: 2rem;
   text-align: center;
-  color: #6b7280;
+  color: #B8860B;
   font-style: italic;
 }
 
-/* Updated market indices layout */
 .marketIndices {
   display: flex;
   flex-direction: column;
@@ -517,51 +605,40 @@
   .contentGrid {
     grid-template-columns: 1fr;
   }
-  
   .pageContainer {
     padding: 1rem;
   }
-  
   .performanceGrid {
     grid-template-columns: 1fr;
   }
-  
   .marketIndices {
     gap: 0.75rem;
   }
-  
   .indexHeader {
     padding: 0.75rem 1rem;
   }
-  
   .indexDetails {
     padding: 1rem;
   }
-  
   .memberItem {
     grid-template-columns: 25px 1fr 60px 80px 60px;
     gap: 0.5rem;
     padding: 0.5rem;
   }
-  
   .memberName {
     font-size: 0.8rem;
   }
-  
   .memberSymbol {
     font-size: 0.7rem;
   }
-  
   .memberWeight,
   .memberPrice,
   .memberChange {
     font-size: 0.8rem;
   }
-  
   .tradingViewWidget {
     height: 250px;
   }
-  
   .tradingViewContainer {
     padding: 0.5rem;
   }

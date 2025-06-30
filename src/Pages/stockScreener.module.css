@@ -1,11 +1,11 @@
-/* stockScreener.module.css */
+/* stockScreener.module.css - Gold & Grey Dark Theme */
 .pageContainer {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  background: var(--background);
+  background: #171717;
   min-height: 100vh;
-  color: var(--foreground);
+  color: #FFD700;
 }
 
 .pageHeader {
@@ -17,7 +17,7 @@
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -25,25 +25,25 @@
 
 .pageSubtitle {
   font-size: 1.1rem;
-  color: #64748b;
+  color: #B8860B;
   margin: 0;
 }
 
 @media (prefers-color-scheme: dark) {
   .pageSubtitle {
-    color: #94a3b8;
+    color: #FFD700;
   }
 }
 
 /* Tab Navigation */
 .tabNavigation {
   display: flex;
-  background: var(--background);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #232526;
+  border: 1px solid #434343;
   border-radius: 12px;
   padding: 0.5rem;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   gap: 0.5rem;
 }
 
@@ -61,19 +61,19 @@
   background: transparent;
   border-radius: 8px;
   font-weight: 500;
-  color: #64748b;
+  color: #B8860B;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .tab:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--foreground);
+  background: #434343;
+  color: #FFD700;
 }
 
 @media (prefers-color-scheme: dark) {
   .tab {
-    color: #94a3b8;
+    color: #FFD700;
   }
   
   .tab:hover {
@@ -83,9 +83,9 @@
 }
 
 .activeTab {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%) !important;
+  color: #232526 !important;
+  box-shadow: 0 2px 8px rgba(218, 165, 32, 0.18);
 }
 
 /* Preset Screens Grid */
@@ -97,21 +97,17 @@
 }
 
 .strategyCard {
-  background: var(--background);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 16px;
+  background: #232526;
+  border: 1px solid #434343;
+  border-radius: 12px;
+  color: #FFD700;
   padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
 }
 
 .strategyCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  border-color: #667eea;
+  background: #434343;
+  color: #FFD700;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -381,7 +377,7 @@
 
 @media (prefers-color-scheme: dark) {
   .noResults {
-    color: #94a3b8;
+    color: #FFD700;
   }
 }
 
@@ -437,7 +433,7 @@
 
 @media (prefers-color-scheme: dark) {
   .stockName {
-    color: #94a3b8;
+    color: #FFD700;
   }
 }
 
@@ -472,7 +468,7 @@
 
 @media (prefers-color-scheme: dark) {
   .stockMetric span:first-child {
-    color: #94a3b8;
+    color: #FFD700;
   }
 }
 

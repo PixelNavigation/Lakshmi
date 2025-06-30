@@ -1,11 +1,11 @@
-/* Portfolio.module.css - Modern Design */
+/* Portfolio.module.css - Gold & Grey Dark Theme */
 .container {
   padding: 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 25%, #7c3aed  50%, #ec4899 75%, #f59e0b 100%);
+  background: linear-gradient(135deg, #171717 0%, #232526 40%, #434343 80%, #FFD700 100%);
   min-height: 100vh;
-  color: white;
+  color: var(--text-primary, #E5E5E5);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -15,6 +15,7 @@
   align-items: center;
   margin-bottom: 2.5rem;
   padding: 1.5rem 0;
+  background: transparent;
 }
 
 .headerActions {
@@ -24,8 +25,8 @@
 }
 
 .refreshButton {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B);
+  color: #232526;
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 10px;
@@ -33,17 +34,13 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 4px 6px rgba(139, 92, 246, 0.2),
-    0 10px 20px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 4px 6px rgba(218, 165, 32, 0.15), 0 10px 20px rgba(218, 165, 32, 0.08);
 }
 
 .refreshButton:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 
-    0 6px 8px rgba(139, 92, 246, 0.3),
-    0 12px 24px rgba(139, 92, 246, 0.15);
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 6px 8px rgba(218, 165, 32, 0.22), 0 12px 24px rgba(218, 165, 32, 0.12);
+  background: linear-gradient(135deg, #B8860B, #FFD700);
 }
 
 .refreshButton:disabled {
@@ -56,17 +53,17 @@
   font-size: 3rem;
   font-weight: 800;
   margin: 0;
-  background: linear-gradient(45deg, #ffffff, #e0e7ff, #c7d2fe);
+  background: linear-gradient(45deg, #FFD700, #B8860B, #434343);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 4px 12px rgba(0,0,0,0.3);
   letter-spacing: -0.02em;
 }
 
 .tradeButton {
-  background: linear-gradient(135deg, #10b981, #059669, #047857);
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B, #232526);
+  color: #232526;
   border: none;
   padding: 1rem 2rem;
   border-radius: 12px;
@@ -74,9 +71,7 @@
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 4px 6px rgba(16, 185, 129, 0.2),
-    0 10px 20px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 4px 6px rgba(218, 165, 32, 0.15), 0 10px 20px rgba(218, 165, 32, 0.08);
   position: relative;
   overflow: hidden;
 }
@@ -88,7 +83,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.18), transparent);
   transition: left 0.5s;
 }
 
@@ -98,10 +93,8 @@
 
 .tradeButton:hover {
   transform: translateY(-2px);
-  box-shadow: 
-    0 8px 12px rgba(16, 185, 129, 0.3),
-    0 15px 25px rgba(16, 185, 129, 0.15);
-  background: linear-gradient(135deg, #059669, #047857, #065f46);
+  box-shadow: 0 8px 12px rgba(218, 165, 32, 0.22), 0 15px 25px rgba(218, 165, 32, 0.12);
+  background: linear-gradient(135deg, #B8860B, #FFD700, #434343);
 }
 
 .tradeButton:active {
@@ -115,22 +108,20 @@
   gap: 1.5rem;
   margin-bottom: 3rem;
   width: 100%;
-  max-width: 1200px; /* Ensure optimal width for 3 cards */
+  max-width: 1200px;
 }
 
 .summaryCard {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(34, 34, 34, 0.88);
   border-radius: 20px;
   padding: 2rem;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(218, 165, 32, 0.12);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255, 215, 0, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  min-width: 200px; /* Ensure minimum width for readability */
+  min-width: 200px;
 }
 
 .summaryCard::before {
@@ -140,15 +131,13 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #10b981, #3b82f6, #8b5cf6, #ec4899);
+  background: linear-gradient(90deg, #FFD700, #B8860B, #434343);
 }
 
 .summaryCard:hover {
   transform: translateY(-4px);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255, 215, 0, 0.12);
+  background: rgba(34, 34, 34, 0.96);
 }
 
 .summaryHeader h3 {
@@ -158,6 +147,7 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: #FFD700;
 }
 
 .summaryAmount {
@@ -165,22 +155,24 @@
   font-weight: 700;
   margin-bottom: 0.5rem;
   letter-spacing: -0.02em;
+  color: #FFD700;
 }
 
 .summaryPercent {
   font-size: 1rem;
   font-weight: 600;
   opacity: 0.9;
+  color: #B8860B;
 }
 
 .profit {
-  color: #22c55e;
-  text-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+  color: #FFD700;
+  text-shadow: 0 2px 4px rgba(218, 165, 32, 0.18);
 }
 
 .loss {
-  color: #ef4444;
-  text-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  color: #434343;
+  text-shadow: 0 2px 4px rgba(67, 67, 67, 0.18);
 }
 
 /* Section Styling */
@@ -192,18 +184,18 @@
   font-size: 1.8rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  color: #FFD700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 /* Holdings Table */
 .holdingsTable {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(34, 34, 34, 0.88);
   border-radius: 16px;
   overflow: hidden;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(218, 165, 32, 0.12);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
 }
 
 .tableHeader {
@@ -211,12 +203,13 @@
   grid-template-columns: 1.5fr 100px 120px 120px 140px 140px 150px;
   gap: 1rem;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(218, 165, 32, 0.08);
   font-weight: 600;
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(218, 165, 32, 0.12);
+  color: #FFD700;
 }
 
 .holdingRow {
@@ -224,13 +217,14 @@
   grid-template-columns: 1.5fr 100px 120px 120px 140px 140px 150px;
   gap: 1rem;
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(218, 165, 32, 0.08);
   align-items: center;
   transition: all 0.2s ease;
+  color: #E5E5E5;
 }
 
 .holdingRow:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(218, 165, 32, 0.04);
 }
 
 .holdingRow:last-child {
@@ -243,7 +237,7 @@
 
 .symbol {
   font-size: 1.2rem;
-  color: #fff;
+  color: #FFD700;
   font-weight: 700;
 }
 
@@ -273,8 +267,8 @@
 }
 
 .buyButton {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B);
+  color: #232526;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -282,18 +276,18 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 2px 4px rgba(218, 165, 32, 0.12);
 }
 
 .buyButton:hover {
-  background: linear-gradient(135deg, #16a34a, #15803d);
+  background: linear-gradient(135deg, #B8860B, #FFD700);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 8px rgba(218, 165, 32, 0.18);
 }
 
 .sellButton {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
+  background: linear-gradient(135deg, #434343, #232526);
+  color: #FFD700;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -301,34 +295,35 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 2px 4px rgba(67, 67, 67, 0.12);
 }
 
 .sellButton:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, #232526, #434343);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 8px rgba(67, 67, 67, 0.18);
 }
 
 /* Empty State */
 .emptyState {
   text-align: center;
   padding: 4rem 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(34, 34, 34, 0.88);
   border-radius: 16px;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(218, 165, 32, 0.12);
 }
 
 .emptyIcon {
   font-size: 4rem;
   margin-bottom: 1.5rem;
   opacity: 0.8;
+  color: #FFD700;
 }
 
 .emptyState h3 {
   margin-bottom: 0.75rem;
-  color: white;
+  color: #FFD700;
   font-size: 1.5rem;
   font-weight: 600;
 }
@@ -337,11 +332,12 @@
   opacity: 0.8;
   margin-bottom: 2rem;
   font-size: 1.1rem;
+  color: #E5E5E5;
 }
 
 .startTradingButton {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8, #1e40af);
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B, #434343);
+  color: #232526;
   border: none;
   padding: 1rem 2rem;
   border-radius: 12px;
@@ -349,13 +345,13 @@
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 6px rgba(218, 165, 32, 0.15);
 }
 
 .startTradingButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 12px rgba(59, 130, 246, 0.3);
-  background: linear-gradient(135deg, #1d4ed8, #1e40af, #1e3a8a);
+  box-shadow: 0 8px 12px rgba(218, 165, 32, 0.22);
+  background: linear-gradient(135deg, #B8860B, #FFD700, #434343);
 }
 
 /* Transactions List */
@@ -370,16 +366,17 @@
   grid-template-columns: 60px 1fr 140px 120px;
   gap: 1.5rem;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(34, 34, 34, 0.88);
   border-radius: 12px;
   align-items: center;
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(218, 165, 32, 0.10);
   transition: all 0.2s ease;
+  color: #E5E5E5;
 }
 
 .transactionItem:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(218, 165, 32, 0.04);
   transform: translateX(4px);
 }
 
@@ -388,6 +385,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #FFD700;
 }
 
 .transactionDetails {
@@ -398,18 +396,21 @@
   font-weight: 700;
   margin-bottom: 0.25rem;
   font-size: 1.1rem;
+  color: #FFD700;
 }
 
 .transactionInfo {
   font-size: 0.9rem;
   opacity: 0.8;
   font-weight: 500;
+  color: #E5E5E5;
 }
 
 .transactionAmount {
   text-align: right;
   font-weight: 700;
   font-size: 1.1rem;
+  color: #FFD700;
 }
 
 .transactionDate {
@@ -417,6 +418,7 @@
   font-size: 0.9rem;
   opacity: 0.7;
   font-weight: 500;
+  color: #B8860B;
 }
 
 /* Modal Styles */
@@ -426,7 +428,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -441,16 +443,15 @@
 }
 
 .modalContent {
-  background: white;
+  background: #232526;
   border-radius: 20px;
   width: 90%;
   max-width: 550px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(255, 215, 0, 0.05);
   animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #E5E5E5;
 }
 
 @keyframes slideUp {
@@ -469,22 +470,23 @@
   justify-content: space-between;
   align-items: center;
   padding: 2rem 2rem 1rem 2rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #434343;
+  background: transparent;
 }
 
 .modalHeader h3 {
   margin: 0;
-  color: #1f2937;
+  color: #FFD700;
   font-size: 1.5rem;
   font-weight: 700;
 }
 
 .closeButton {
-  background: #f3f4f6;
+  background: #232526;
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #6b7280;
+  color: #FFD700;
   width: 40px;
   height: 40px;
   display: flex;
@@ -495,13 +497,14 @@
 }
 
 .closeButton:hover {
-  background: #e5e7eb;
-  color: #374151;
+  background: #434343;
+  color: #B8860B;
   transform: scale(1.05);
 }
 
 .modalBody {
   padding: 2rem;
+  color: #E5E5E5;
 }
 
 .inputGroup {
@@ -512,7 +515,7 @@
   display: block;
   margin-bottom: 0.75rem;
   font-weight: 600;
-  color: #374151;
+  color: #FFD700;
   font-size: 0.95rem;
 }
 
@@ -520,28 +523,30 @@
 .currencySelect {
   width: 100%;
   padding: 1rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #434343;
   border-radius: 12px;
   font-size: 1rem;
   font-weight: 500;
   transition: all 0.2s ease;
-  background: #f9fafb;
+  background: #232526;
+  color: #FFD700;
 }
 
 .amountInput:focus,
 .currencySelect:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-  background: white;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.08);
+  background: #232526;
 }
 
 .tradeSummary {
-  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  background: linear-gradient(135deg, #232526, #434343);
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  border: 1px solid #e0f2fe;
+  border: 1px solid #434343;
+  color: #FFD700;
 }
 
 .summaryItem {
@@ -549,13 +554,13 @@
   justify-content: space-between;
   margin-bottom: 0.75rem;
   font-weight: 500;
-  color: #0f172a;
+  color: #FFD700;
 }
 
 .summaryItem:last-child {
   margin-bottom: 0;
   font-weight: 700;
-  border-top: 1px solid #cbd5e1;
+  border-top: 1px solid #B8860B;
   padding-top: 0.75rem;
   font-size: 1.1rem;
 }
@@ -569,9 +574,9 @@
 
 .cancelButton {
   padding: 0.875rem 1.75rem;
-  border: 2px solid #d1d5db;
-  background: white;
-  color: #374151;
+  border: 2px solid #434343;
+  background: #232526;
+  color: #FFD700;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -579,26 +584,26 @@
 }
 
 .cancelButton:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  background: #434343;
+  border-color: #B8860B;
 }
 
 .confirmButton {
   padding: 0.875rem 1.75rem;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: white;
+  background: linear-gradient(135deg, #FFD700, #B8860B);
+  color: #232526;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 600;
-  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 6px rgba(218, 165, 32, 0.15);
 }
 
 .confirmButton:hover {
-  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  background: linear-gradient(135deg, #B8860B, #FFD700);
   transform: translateY(-1px);
-  box-shadow: 0 6px 8px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 6px 8px rgba(218, 165, 32, 0.22);
 }
 
 .loadingMessage,
@@ -610,28 +615,25 @@
 }
 
 .loadingMessage {
-  color: rgba(255, 255, 255, 0.8);
+  color: #FFD700;
 }
 
 .errorMessage {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
+  color: #FFD700;
+  background: rgba(218, 165, 32, 0.08);
   border-radius: 12px;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(218, 165, 32, 0.18);
 }
 
 /* Responsive Design */
 @media (max-width: 1024px) and (min-width: 769px) {
-  /* Tablet: Keep 3-card layout but smaller */
   .summaryGrid {
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
   }
-  
   .summaryCard {
     padding: 1.5rem;
   }
-  
   .summaryAmount {
     font-size: 1.6rem;
   }
@@ -642,22 +644,17 @@
   .holdingRow {
     grid-template-columns: 1fr 80px 100px 100px 120px 120px;
   }
-  
   .actionsColumn {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
-  /* Keep 3-card layout on tablets */
   .summaryGrid {
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
   }
-  
   .summaryCard {
     padding: 1.5rem;
   }
-  
   .summaryAmount {
     font-size: 1.6rem;
   }
@@ -667,72 +664,61 @@
   .container {
     padding: 1rem;
   }
-  
   .header {
     flex-direction: column;
     gap: 1.5rem;
     align-items: stretch;
   }
-  
   .headerActions {
     justify-content: center;
     flex-wrap: wrap;
   }
-  
   .title {
     font-size: 2.5rem;
     text-align: center;
   }
-  
   .summaryGrid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
   .tableHeader {
     display: none;
   }
-  
   .holdingRow {
     grid-template-columns: 1fr;
     gap: 1rem;
     padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(34, 34, 34, 0.88);
     border-radius: 12px;
     margin-bottom: 1rem;
   }
-  
   .holdingRow > div {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(218, 165, 32, 0.08);
   }
-  
   .holdingRow > div:last-child {
     border-bottom: none;
   }
-  
   .holdingRow > div::before {
     content: attr(data-label);
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.8rem;
     opacity: 0.8;
+    color: #FFD700;
   }
-  
   .transactionItem {
     grid-template-columns: 1fr;
     gap: 1rem;
     text-align: left;
   }
-  
   .modalContent {
     margin: 1rem;
     width: calc(100% - 2rem);
   }
-  
   .modalActions {
     flex-direction: column;
   }
@@ -742,16 +728,13 @@
   .title {
     font-size: 2rem;
   }
-  
   .summaryGrid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
   .summaryCard {
     padding: 1.5rem;
   }
-  
   .summaryAmount {
     font-size: 1.8rem;
   }
