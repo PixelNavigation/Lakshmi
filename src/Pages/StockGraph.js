@@ -224,22 +224,24 @@ const StockGraph = () => {
 
   const fetchGrangerCausality = async (prices) => {
     try {
-      console.log('🧠 Sending stock prices to Granger causality backend:', prices)
       const response = await fetch('http://localhost:5001/api/granger-causality', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock_prices: prices })
-      })
-      const data = await response.json()
-      console.log('🔬 Granger causality response:', data)
-      setBackendConnected(true)
-      return data.success ? data.edges : []
+      });
+      const data = await response.json();
+      setBackendConnected(true);
+      // Filter weak edges and ensure single direction
+      const filteredEdges = data.edges
+        .filter(edge => edge.value > 0.2) // Only significant influences
+        .filter(edge => edge.source !== edge.target); // Remove self-loops
+      return filteredEdges;
     } catch (error) {
       console.error('💥 Error fetching Granger causality:', error)
       setBackendConnected(false)
       return []
     }
-  }
+  };
 
   useEffect(() => {
     const generateGraph = async () => {
@@ -422,7 +424,10 @@ const StockGraph = () => {
             linkOpacity={0.8} // Make links semi-transparent
             linkDirectionalArrowLength={3.5}
             linkDirectionalArrowRelPos={1}
-            linkCurvature={0.25}
+            linkCurvature={0} // Straight lines for simplicity
+            linkDirectionalParticles={1}
+            linkDirectionalParticleSpeed={0.01}
+            linkDirectionalParticleWidth={link => link.width / 2}
             nodeCanvasObjectMode={() => 'after'}
             nodeCanvasObject={(node, ctx, globalScale) => {
               const label = node.id

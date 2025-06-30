@@ -55,27 +55,33 @@ def analyze_stock_influence(stock_data):
 
         print(f"Analyzing {len(symbols)} symbols: {symbols}")
 
-        # Granger Causality
+        # Granger Causality - only consider significant influences
         maxlag = 5
         for target in symbols:
             for source in symbols:
                 if source != target:
                     try:
-                        test_result = grangercausalitytests(data[[target, source]].dropna(), maxlag=maxlag, verbose=False)
-                        min_pvalue = min([round(test_result[lag][0]['ssr_ftest'][1], 4) for lag in range(1, maxlag+1)])
-                        influence = max(0, 1 - min_pvalue)
-                        if influence > 0.2:
+                        test_result = grangercausalitytests(
+                            data[[target, source]].dropna(), 
+                            maxlag=maxlag, 
+                            verbose=False
+                        )
+                        min_pvalue = min([test_result[lag][0]['ssr_ftest'][1] for lag in range(1, maxlag+1)])
+                        
+                        # Only add edge if significant (p < 0.05)
+                        if min_pvalue < 0.05:
+                            influence = 1 - min_pvalue
                             influence_edges.append({
                                 "source": source,
                                 "target": target,
                                 "value": influence,
                                 "method": "granger",
-                                "correlation": influence * (1 if np.random.rand() > 0.5 else -1)  # Add correlation for visualization
+                                "correlation": influence
                             })
                     except Exception as e:
                         print(f"Granger error {source}->{target}: {e}")
 
-        # Naive Bayes Influence
+        # Naive Bayes Influence - simplified
         data_pct = data.pct_change().dropna()
         data_labels = (data_pct.shift(-1) > 0).astype(int).dropna()
 
@@ -85,21 +91,26 @@ def analyze_stock_influence(stock_data):
                 y = data_labels[symbol]
                 clf = GaussianNB()
                 clf.fit(X, y)
-                probs = clf.theta_[1] - clf.theta_[0]
-                for i, other_symbol in enumerate(X.columns):
-                    score = abs(probs[i])
-                    if score > 0.01:
-                        influence_edges.append({
-                            "source": other_symbol,
-                            "target": symbol,
-                            "value": score,
-                            "method": "naive_bayes",
-                            "correlation": probs[i]  # Use actual probability difference as correlation
-                        })
+                
+                # Get feature importance
+                feature_importance = np.abs(clf.theta_[1] - clf.theta_[0])
+                
+                # Add top 3 most influential stocks
+                top_indices = np.argsort(feature_importance)[-3:][::-1]
+                for idx in top_indices:
+                    other_symbol = X.columns[idx]
+                    score = feature_importance[idx]
+                    influence_edges.append({
+                        "source": other_symbol,
+                        "target": symbol,
+                        "value": score,
+                        "method": "naive_bayes",
+                        "correlation": clf.theta_[1][idx] - clf.theta_[0][idx]
+                    })
             except Exception as e:
                 print(f"Naive Bayes error for {symbol}: {e}")
 
-        # Build graph JSON
+        # Build simplified graph
         nodes = [{"id": s} for s in symbols]
         links = influence_edges
 
