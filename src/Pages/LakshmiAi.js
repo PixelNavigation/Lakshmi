@@ -6,7 +6,7 @@ import styles from './LakshmiAi.module.css'
 
 // Import TradingView components
 import { StockChart } from '@/Components/TradingView/StockChart'
-import { StockPrice } from '@/Components/TradingView/StockPrice'
+import { PriceWidget } from '@/Components/TradingView/PriceWidget'
 import { StockFinancials } from '@/Components/TradingView/StockFinancials'
 import { StockNews } from '@/Components/TradingView/StockNews'
 import { StockScreener } from '@/Components/TradingView/StockScreener'
@@ -24,69 +24,87 @@ function UserMessage({ children }) {
   )
 }
 
-function FormattedStockAnalysis({ content, symbol }) {
+function FormattedStockAnalysis({ content, symbol, analysisType = 'default' }) {
+  // Determine if this is a company analysis that should show pros and cons
+  const isCompanyAnalysis = analysisType === 'company_analysis' || 
+                           content?.toLowerCase().includes('analyz') || 
+                           content?.toLowerCase().includes('analysis') ||
+                           content?.toLowerCase().includes('assess');
+                           
+  const isFinancialOnly = analysisType === 'financial_only';
+  
   return (
     <div className={styles.stockAnalysis}>
       <div className={styles.analysisHeader}>
-        <h3>📈 Stock Analysis {symbol && `for ${symbol}`}</h3>
+        <h3>
+          📈 Indian Stock {isFinancialOnly ? 'Financials' : 'Analysis'} 
+          {symbol ? ` for ${symbol}` : ''}
+        </h3>
       </div>
       
-      <div className={styles.prosConsContainer}>
-        <div className={styles.prosSection}>
-          <h4>
-            <span className={styles.prosIcon}>✅</span> Potential Pros
-          </h4>
-          <ul className={styles.prosList}>
-            <li>Strong market position and brand recognition</li>
-            <li>Consistent revenue growth potential</li>
-            <li>Diversified business model</li>
-            <li>Innovation and technology leadership</li>
-            <li>Strong financial performance history</li>
-          </ul>
+      {/* Show pros and cons only for company analysis */}
+      {isCompanyAnalysis && (
+        <div className={styles.prosConsContainer}>
+          <div className={styles.prosSection}>
+            <h4>
+              <span className={styles.prosIcon}>✅</span> Potential Pros
+            </h4>
+            <ul className={styles.prosList}>
+              <li>Position in Indian market and brand recognition</li>
+              <li>Growth potential in emerging Indian economy</li>
+              <li>Diversified business model suited for Indian markets</li>
+              <li>Technology adaptation for Indian consumers</li>
+              <li>Performance history in context of Indian economy</li>
+            </ul>
+          </div>
+          
+          <div className={styles.consSection}>
+            <h4>
+              <span className={styles.consIcon}>⚠</span> Potential Risks
+            </h4>
+            <ul className={styles.consList}>
+              <li>Indian market volatility and regulatory changes</li>
+              <li>Competitive pressure in the Indian industry</li>
+              <li>Sectoral challenges specific to Indian economy</li>
+              <li>Valuation concerns in current Indian market</li>
+              <li>Economic and policy risks in Indian context</li>
+            </ul>
+          </div>
         </div>
-        
-        <div className={styles.consSection}>
-          <h4>
-            <span className={styles.consIcon}>⚠️</span> Potential Risks
-          </h4>
-          <ul className={styles.consList}>
-            <li>Market volatility and economic uncertainty</li>
-            <li>Competitive pressure in the industry</li>
-            <li>Regulatory and compliance challenges</li>
-            <li>Valuation concerns in current market</li>
-            <li>Economic and geopolitical risks</li>
-          </ul>
-        </div>
-      </div>
+      )}
       
-      <div className={styles.keyMetrics}>
-        <h4>📊 Key Investment Considerations</h4>
-        <div className={styles.metricsGrid}>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Risk Level:</span>
-            <span className={styles.metricValue}>Moderate to High</span>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Time Horizon:</span>
-            <span className={styles.metricValue}>Long-term recommended</span>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.metricLabel}>Diversification:</span>
-            <span className={styles.metricValue}>Important for risk management</span>
+      {!isFinancialOnly && (
+        <div className={styles.keyMetrics}>
+          <h4>📊 Key Investment Considerations</h4>
+          <div className={styles.metricsGrid}>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>Risk Level:</span>
+              <span className={styles.metricValue}>Moderate to High (Indian markets)</span>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>Time Horizon:</span>
+              <span className={styles.metricValue}>Long-term investment in Indian equities</span>
+            </div>
+            <div className={styles.metric}>
+              <span className={styles.metricLabel}>Market Segment:</span>
+              <span className={styles.metricValue}>Indian Stock Market (NSE/BSE)</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
-      <div className={styles.disclaimer}>
-        <p>
-          <strong>💡 Investment Recommendation:</strong> Consider your risk tolerance and investment timeline. 
-          Always conduct thorough research and consider consulting with a financial advisor.
-        </p>
-        <p>
-          <strong>📈 Analysis Based On:</strong> Current market conditions, company fundamentals, 
-          and industry trends as of the latest available data.
-        </p>
-      </div>
+      {!isFinancialOnly && (
+        <div className={styles.disclaimer}>
+          <p>
+            <strong>💡 Investment Recommendation:</strong> Consider your risk tolerance and investment timeline in the Indian market. 
+            Always conduct thorough research and consider consulting with a SEBI registered financial advisor.
+          </p>
+          <p>
+            <strong>📈 Analysis Based On:</strong> Current Indian market conditions, company fundamentals, 
+            and industry trends in the Indian economy as of the latest available data.
+          </p>
+        </div>
+      )}
       
       {content && (
         <div className={styles.originalResponse}>
@@ -102,7 +120,7 @@ function FormattedStockAnalysis({ content, symbol }) {
   );
 }
 
-function BotMessage({ content, children, isStreaming = false }) {
+function BotMessage({ content, children, isStreaming = false, analysisType }) {
   // Check if this is a stock-related response that should show enhanced formatting
   const isStockAnalysis = content && (
     content.toLowerCase().includes('stock') ||
@@ -111,11 +129,15 @@ function BotMessage({ content, children, isStreaming = false }) {
     content.toLowerCase().includes('price') ||
     content.toLowerCase().includes('company') ||
     content.toLowerCase().includes('financial') ||
-    /\b[A-Z]{2,5}\b/.test(content) // Contains potential stock symbols
+    content.toLowerCase().includes('nse') ||
+    content.toLowerCase().includes('bse') ||
+    content.toLowerCase().includes('sensex') ||
+    content.toLowerCase().includes('nifty') ||
+    /\b[A-Z][A-Z0-9]{2,}\b/.test(content) // Contains potential Indian stock symbols
   )
   
-  // Extract potential stock symbol from content
-  const stockSymbolMatch = content?.match(/\b[A-Z]{2,5}\b/g)
+  // Extract potential Indian stock symbol from content
+  const stockSymbolMatch = content?.match(/\b[A-Z][A-Z0-9]{2,}\b/g)
   const symbol = stockSymbolMatch?.[0]
 
   return (
@@ -127,7 +149,20 @@ function BotMessage({ content, children, isStreaming = false }) {
         {content && (
           <>
             {isStockAnalysis ? (
-              <FormattedStockAnalysis content={content} symbol={symbol} />
+              <FormattedStockAnalysis 
+                content={content} 
+                symbol={symbol}
+                analysisType={
+                  // Use passed analysis type if available, otherwise determine based on content
+                  analysisType || (
+                    content.toLowerCase().includes('analyz') || content.toLowerCase().includes('analysis') 
+                      ? 'company_analysis'
+                      : content.toLowerCase().includes('financial') 
+                        ? 'financial_only'
+                        : 'default'
+                  )
+                }
+              />
             ) : (
               <div className={styles.enhancedTextResponse}>
                 <div className={styles.responseHeader}>
@@ -180,59 +215,47 @@ function parseAIResponse(message, content) {
     // Parse the first TradingView URL found
     const urlMatch = tvUrlMatches[0].match(/\/symbols\/([^\/\?]+)/)
     if (urlMatch) {
-      // Convert TradingView format to standard format
-      // NSE-SBIN -> SBIN.NS, NASDAQ-AAPL -> AAPL
       let symbol = urlMatch[1]
       if (symbol.includes('-')) {
         const [exchange, ticker] = symbol.split('-')
-        if (exchange === 'NSE') {
-          tvSymbol = `${ticker}.NS`
-        } else if (exchange === 'BSE') {
-          tvSymbol = `${ticker}.BO`
-        } else if (exchange === 'NASDAQ' || exchange === 'NYSE') {
-          tvSymbol = ticker
-        } else {
-          tvSymbol = ticker // Default fallback
-        }
+        // For all exchanges including NSE and BSE, just use the ticker without suffix
+        tvSymbol = ticker
       } else {
-        tvSymbol = symbol
+        // Remove any .NS or .BO suffixes if present
+        tvSymbol = symbol.replace('.NS', '').replace('.BO', '')
       }
     }
   }
   
-  // Extract stock symbols - improved pattern to handle various formats
-  // Matches: AAPL, NCC.NS, RELIANCE.BSE, etc.
-  const stockSymbolMatch = (message + ' ' + content).match(/\b[A-Z][A-Z0-9]*(?:\.[A-Z]{2,4})?\b/g)
+  // Extract stock symbols - focusing on Indian stock symbols
+  // Matches: RELIANCE, SBIN, INFY, etc.
+  const stockSymbolMatch = (message + ' ' + content).match(/\b[A-Z][A-Z0-9]{2,}\b/g)
   
-  // Common stocks list - expanded to include Indian exchanges
+  // Common stocks list - Indian stocks without exchange suffixes
   const commonStocks = [
-    'AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'JPM', 'V', 'JNJ',
-    'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'HDFC.NS', 'ICICIBANK.NS',
-    'KOTAKBANK.NS', 'BHARTIARTL.NS', 'ITC.NS', 'SBIN.NS', 'LT.NS', 'ASIANPAINT.NS',
-    'MARUTI.NS', 'BAJFINANCE.NS', 'HCLTECH.NS', 'WIPRO.NS', 'ULTRACEMCO.NS',
-    'TITAN.NS', 'SUNPHARMA.NS', 'POWERGRID.NS', 'NTPC.NS', 'ONGC.NS', 'TATASTEEL.NS',
-    'TECHM.NS', 'NESTLEIND.NS', 'COALINDIA.NS', 'HINDALCO.NS', 'GRASIM.NS',
-    'BPCL.NS', 'DRREDDY.NS', 'EICHERMOT.NS', 'CIPLA.NS', 'HEROMOTOCO.NS',
-    'BAJAJFINSV.NS', 'BRITANNIA.NS', 'SHREECEM.NS', 'DIVISLAB.NS', 'TATACONSUM.NS',
-    'JSWSTEEL.NS', 'APOLLOHOSP.NS', 'INDUSINDBK.NS', 'ADANIENT.NS', 'TATAMOTORS.NS',
-    'NCC.NS'
+    'KOTAKBANK', 'BHARTIARTL', 'ITC', 'SBIN', 'LT', 'ASIANPAINT',
+    'MARUTI', 'BAJFINANCE', 'HCLTECH', 'WIPRO', 'ULTRACEMCO',
+    'TITAN', 'SUNPHARMA', 'POWERGRID', 'NTPC', 'ONGC', 'TATASTEEL',
+    'TECHM', 'NESTLEIND', 'COALINDIA', 'HINDALCO', 'GRASIM',
+    'BPCL', 'DRREDDY', 'EICHERMOT', 'CIPLA', 'HEROMOTOCO',
+    'BAJAJFINSV', 'BRITANNIA', 'SHREECEM', 'DIVISLAB', 'TATACONSUM',
+    'JSWSTEEL', 'APOLLOHOSP', 'INDUSINDBK', 'ADANIENT', 'TATAMOTORS',
+    'NCC', 'RELIANCE', 'INFY', 'TCS', 'HDFCBANK', 'HDFC', 'ICICIBANK',
+    'AXISBANK', 'ZOMATO', 'NYKAA', 'PAYTM', 'POLICYBZR', 'DMART'
   ]
 
   let mentionedStock = tvSymbol
   
   if (!mentionedStock && stockSymbolMatch) {
-    mentionedStock = stockSymbolMatch.find(symbol => {
-      // Check if it's in common stocks or looks like a valid symbol
-      return commonStocks.includes(symbol) || 
-             /^[A-Z]{2,5}(\.[A-Z]{2,4})?$/.test(symbol)
-    })
-  }
-  
-  // If no symbol found in common list, take the first plausible one
-  if (!mentionedStock && stockSymbolMatch) {
-    mentionedStock = stockSymbolMatch.find(symbol => 
-      /^[A-Z]{2,10}(\.[A-Z]{2,4})?$/.test(symbol)
-    )
+    // First try to find a match in our known Indian stocks list
+    mentionedStock = stockSymbolMatch.find(symbol => commonStocks.includes(symbol));
+    
+    // If not found in common list, try any symbol matching the pattern for Indian stocks
+    if (!mentionedStock) {
+      mentionedStock = stockSymbolMatch.find(symbol => 
+        /^[A-Z]{2,10}$/.test(symbol) && !symbol.includes('.NS') && !symbol.includes('.BO')
+      );
+    }
   }
 
   // Special handling for TradingView URLs - automatically show chart
@@ -241,19 +264,21 @@ function parseAIResponse(message, content) {
       type: 'chart',
       symbol: mentionedStock,
       content: content,
-      hideText: false,
+      hideText: true,  // Hide text when showing chart
       source: 'tradingview'
     }
   }
 
   // Priority check: Look for specific widget requests in user message first
   // CHART - highest priority when explicitly requested
-  if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show chart')) && mentionedStock) {
+  if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show chart') || 
+       lowercaseMessage.includes('display chart') || lowercaseMessage.includes('view chart')) && mentionedStock) {
+    console.log('Chart requested for stock:', mentionedStock);
     return {
       type: 'chart',
       symbol: mentionedStock,
-      content: content,  // Show the full AI response
-      hideText: false
+      content: content,
+      hideText: true  // Hide text when showing chart as requested
     }
   }
   
@@ -274,20 +299,22 @@ function parseAIResponse(message, content) {
       type: 'financials',
       symbol: mentionedStock,
       content: content,  // Show the full AI response
-      hideText: false
+      hideText: true,    // Hide text response, show only financial data
+      mode: 'financial_only'
     }
   }
   
   // PRICE - but not if chart or financials are also mentioned
+  // When price is requested, use the TradingView StockPrice component
   if (lowercaseMessage.includes('price') && 
       !lowercaseMessage.includes('chart') && 
       !lowercaseMessage.includes('financial') && 
       mentionedStock) {
     return {
-      type: 'price',
+      type: 'price', // Use the standard TradingView price widget
       symbol: mentionedStock,
-      content: content,  // Show the full AI response
-      hideText: false
+      content: content,
+      hideText: true // Hide text to show only price
     }
   }
   
@@ -487,7 +514,9 @@ export default function LakshmiAi() {
           content: parsedResponse.content,
           widget: parsedResponse.type !== 'text' ? {
             type: parsedResponse.type,
-            symbol: parsedResponse.symbol
+            symbol: parsedResponse.symbol,
+            hideText: parsedResponse.hideText,
+            mode: parsedResponse.mode
           } : null
         }
         
@@ -523,42 +552,50 @@ export default function LakshmiAi() {
   const exampleQuestions = [
     {
       title: "Stock Analysis",
-      message: "What is the price of AAPL?",
+      message: "What is the price of RELIANCE?",
       icon: "📊"
     },
     {
       title: "Chart View", 
-      message: "Show me a chart for SBIN.NS",
+      message: "Show me a chart for SBIN",
       icon: "📈"
     },
     {
       title: "Company Financials",
-      message: "MSFT financials",
+      message: "HDFCBANK financials",
       icon: "📋"
     },
     {
       title: "Market Overview",
-      message: "Show market overview",
+      message: "Show Indian market overview",
       icon: "🌐"
     },
     {
-      title: "Stock Screener",
-      message: "Stock screener",
+      title: "Company Analysis",
+      message: "Analyze TATAMOTORS company",
       icon: "🔍"
     },
     {
       title: "Market Heatmap",
-      message: "Market heatmap",
-      icon: "🗺️"
+      message: "NSE market heatmap",
+      icon: "🗺"
     }
   ]
 
   const renderWidget = (widget) => {
+    // Add console logging to debug widget rendering
+    console.log('Rendering widget:', widget);
+    
+    // Use stock symbols as-is without appending exchange suffixes
+    // TradingView components will handle the symbol formatting internally
+    
     switch (widget.type) {
       case 'chart':
-        return <StockChart symbol={widget.symbol} />
+        console.log('Rendering chart with symbol:', widget.symbol);
+        return <StockChart symbol={widget.symbol} />;
       case 'price':
-        return <StockPrice symbol={widget.symbol} />
+        // Use TradingView's PriceWidget component for all price requests
+        return <PriceWidget symbol={widget.symbol} width={200} height={80} />
       case 'financials':
         return <StockFinancials symbol={widget.symbol} />
       case 'news':
@@ -592,10 +629,13 @@ export default function LakshmiAi() {
               <div className={styles.welcomeHeader}>
                 <h1 className={styles.welcomeTitle}>
                   <span className={styles.robotIcon}>🤖</span>
-                  Lakshmi AI StockBot
+                  Lakshmi AI 
                 </h1>
                 <p className={styles.welcomeSubtitle}>
-                  Your intelligent investment assistant powered by Groq AI
+                  Your intelligent Indian stock market assistant powered by Groq AI
+                </p>
+                <p className={styles.welcomeNote}>
+                  Simply use stock symbols without any suffix (like RELIANCE, SBIN, not RELIANCE.NS)
                 </p>
               </div>
 
@@ -626,7 +666,7 @@ export default function LakshmiAi() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask me about stocks, show charts, or get market data..."
+                  placeholder="Ask about Indian stocks like RELIANCE, SBIN, or TATAMOTORS (no .NS/.BO suffix needed)..."
                   className={styles.chatInput}
                   disabled={isLoading}
                 />
@@ -656,7 +696,7 @@ export default function LakshmiAi() {
             {/* Chat Header with Clear Button */}
             <div className={styles.chatHeader}>
               <div className={styles.chatHeaderContent}>
-                <h2 className={styles.chatTitle}>🤖 Lakshmi AI Chat</h2>
+                <h2 className={styles.chatTitle}>🤖 Lakshmi AI Indian Stock Chat</h2>
                 <div className={styles.chatHeaderButtons}>
                   {messages.length > 0 && showScrollToTop && (
                     <button 
@@ -719,8 +759,19 @@ export default function LakshmiAi() {
                       <UserMessage>{message.content}</UserMessage>
                     ) : (
                       <>
-                        {/* Always show the AI text response */}
-                        <BotMessage content={message.content} />
+                        {/* Show AI text response if not a chart, price, or financial-only request */}
+                        {(!message.widget || 
+                          (message.widget && 
+                           !(message.widget.type === 'chart' && message.widget.hideText === true) &&
+                           !(message.widget.type === 'financials' && message.widget.hideText === true) &&
+                           !(message.widget.type === 'price' && message.widget.hideText === true)
+                          )
+                         ) && (
+                          <BotMessage 
+                            content={message.content} 
+                            analysisType={message.widget?.mode}
+                          />
+                        )}
                         
                         {/* Show widget if available */}
                         {message.widget && (
@@ -755,7 +806,7 @@ export default function LakshmiAi() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask me about stocks, show charts, or get market data..."
+                  placeholder="Ask about Indian stocks like RELIANCE, SBIN, or TATAMOTORS (no .NS/.BO suffix needed)..."
                   className={styles.chatInput}
                   disabled={isLoading}
                 />
