@@ -113,7 +113,6 @@ const OmniDimensionWidget = () => {
   // Fetch user balance example
   useEffect(() => {
     const fetchUserBalance = async () => {
-      const { token } = useAuth();
       try {
         const response = await fetch('/api/user-balance', {
           headers: {

@@ -652,14 +652,14 @@ export default function Home() {
             </div>
                 <div className={styles.animatedCard}>
                   <Image src="/window.svg" alt="window" width={48} height={48} className={styles.featureIcon} />
-                  <h3 className={styles.featureTitle}>Animated Trading Tools</h3>
-                  <p className={styles.featureDescription}>Use wild, animated charts and tools to analyze and trade like a pro. Fun meets finance!</p>
+                  <h3 className={styles.featureTitle}>Unified Portfolio Management</h3>
+                  <p className={styles.featureDescription}>Track all your stocks, crypto, and assets in one place. Effortlessly monitor performance, set alerts, and manage your investments with ease.</p>
               </div>
                 <div className={styles.animatedCard}>
                   <Image src="/vercel.svg" alt="vercel" width={48} height={48} className={styles.featureIcon} />
-                  <h3 className={styles.featureTitle}>Parallax & Crazy Effects</h3>
-                  <p className={styles.featureDescription}>Experience a homepage that moves, glows, and bounces with your every scroll and click.</p>
-            </div>
+                  <h3 className={styles.featureTitle}>Secure & Seamless Trading Experience</h3>
+                  <p className={styles.featureDescription}>Enjoy fast, secure, and user-friendly trading tools designed for both beginners and pros. Your data and transactions are always protected.</p>
+            </div>
           </div>
         </div>
       </section>
