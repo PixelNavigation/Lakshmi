@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { StockChart } from '../Components/TradingView/StockChart'
+import CandlestickChart from '../Components/CandlestickChart'
 import styles from './stockScreener.module.css'
 
 export default function StockScreener() {
@@ -21,9 +21,15 @@ export default function StockScreener() {
   const [activeTab, setActiveTab] = useState('preset')
   // Add state for chart modal with exchange info
   const [chartModal, setChartModal] = useState({ isOpen: false, symbol: '', displaySymbol: '', name: '', exchange: '' })
+  const [chartData, setChartData] = useState([])
+  const [chartLoading, setChartLoading] = useState(false)
+  const [chartError, setChartError] = useState(null)
+  const [chartTimeframe, setChartTimeframe] = useState('1m')
   const [addingToWatchlist, setAddingToWatchlist] = useState({})
   const [lastUpdated, setLastUpdated] = useState(null)
   const [realTimeEnabled, setRealTimeEnabled] = useState(false)
+  const [userWatchlist, setUserWatchlist] = useState([])
+  const [watchlistLoading, setWatchlistLoading] = useState(false)
   const userId = user?.id || 'user123' // Fallback for demo purposes
   const [savedScreens, setSavedScreens] = useState([
     'Tech Giants India',
@@ -34,7 +40,7 @@ export default function StockScreener() {
     'FMCG Champions'
   ])
 
-  // Enhanced Indian stocks and crypto data with real-time integration
+  // Technology Sector - Expanded (NSE)
   const [stockData, setStockData] = useState([
     // Technology Sector - Expanded (NSE)
     { symbol: 'TCS.NS', displaySymbol: 'TCS', name: 'Tata Consultancy Services Ltd', price: 3420.30, change: 2.3, marketCap: 12500000000000, sector: 'Technology', pe: 28.2, dividend: 1.2, type: 'stock', currency: 'INR', exchange: 'NSE' },
@@ -108,118 +114,251 @@ export default function StockScreener() {
     { symbol: 'SOLINR', displaySymbol: 'SOL', name: 'Solana', price: 12650.80, change: 6.5, marketCap: 5640000000000, sector: 'Cryptocurrency', pe: 0, dividend: 0, type: 'crypto', currency: 'INR', exchange: 'CRYPTO' }
   ])
 
-  // Fetch real-time data from Yahoo Finance API
-  const fetchRealTimeData = useCallback(async () => {
+  // Open chart modal with symbol info
+  const openChart = async (stock) => {
+    setChartModal({
+      isOpen: true,
+      symbol: stock.symbol,
+      displaySymbol: stock.displaySymbol,
+      name: stock.name,
+      exchange: stock.exchange
+    })
+    
+    // Fetch chart data when opening the modal
+    setChartLoading(true)
+    setChartError(null)
+    
     try {
-      setLoading(true)
-      const symbols = stockData.map(stock => stock.symbol).join(',')
+      console.log(`Opening chart for ${stock.symbol} with timeframe ${chartTimeframe}`)
       
-      // Using Yahoo Finance API alternative or proxy
-      const response = await fetch(`/api/stock-prices?symbols=${symbols}`)
-      const result = await response.json()
+      // Use the Yahoo Finance API endpoint to fetch data
+      const response = await fetch(`/api/yahoo-finance?symbol=${encodeURIComponent(stock.symbol)}&timeframe=${chartTimeframe}&interval=1d`)
       
-      if (result.success && result.data) {
-        setStockData(prevData => 
-          prevData.map(stock => {
-            const liveData = result.data.find(item => item.symbol === stock.symbol)
-            if (liveData) {
-              return {
-                ...stock,
-                price: liveData.price || stock.price,
-                change: liveData.change || stock.change,
-                marketCap: liveData.marketCap || stock.marketCap
-              }
-            }
-            return stock
-          })
-        )
-        setLastUpdated(new Date())
+      console.log(`Response status: ${response.status}`)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`API Error Response: ${errorText}`)
+        throw new Error(`API error: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log(`API Response:`, data)
+      
+      if (data.success && data.data && data.data.length > 0) {
+        console.log(`Successfully loaded ${data.data.length} data points`)
+        setChartData(data.data)
+      } else {
+        throw new Error(data.error || data.errorDetails || `No data available for ${stock.symbol}`)
       }
     } catch (error) {
+      console.error(`Error fetching chart data for ${stock.symbol}:`, error)
+      setChartError(`Failed to load chart data for ${stock.symbol}`)
+      setChartData([])
+    } finally {
+      setChartLoading(false)
+    }
+  }
+
+  // Close chart modal
+  const closeChart = () => {
+    setChartModal({ isOpen: false, symbol: '', displaySymbol: '', name: '', exchange: '' })
+    setChartData([])
+  }
+  
+  // Change chart timeframe
+  const changeChartTimeframe = async (timeframe) => {
+    setChartTimeframe(timeframe)
+    
+    if (chartModal.isOpen && chartModal.symbol) {
+      setChartLoading(true)
+      setChartError(null)
+      
+      try {
+        // Determine the appropriate interval based on timeframe
+        let interval = '1d'
+        if (timeframe === '1d') interval = '15m'
+        if (timeframe === '5d') interval = '1h'
+        if (timeframe === '1m') interval = '1d'
+        
+        console.log(`Fetching data for ${chartModal.symbol} with timeframe ${timeframe} and interval ${interval}`)
+        
+        // Fetch data with new timeframe
+        const response = await fetch(`/api/yahoo-finance?symbol=${encodeURIComponent(chartModal.symbol)}&timeframe=${timeframe}&interval=${interval}`)
+        
+        console.log(`Response status: ${response.status}`)
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error(`API Error Response: ${errorText}`)
+          throw new Error(`API error: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log(`API Response:`, data)
+        
+        if (data.success && data.data && data.data.length > 0) {
+          console.log(`Successfully loaded ${data.data.length} data points`)
+          setChartData(data.data)
+        } else {
+          throw new Error(data.error || data.errorDetails || `No data available for ${chartModal.symbol}`)
+        }
+      } catch (error) {
+        console.error(`Error fetching chart data for ${chartModal.symbol}:`, error)
+        setChartError(`Failed to fetch data for ${chartModal.symbol}`)
+        setChartData([])
+      } finally {
+        setChartLoading(false)
+      }
+    }
+  }
+
+  // Fetch real-time data for the displayed stocks
+  const fetchRealTimeData = useCallback(async () => {
+    setLoading(true)
+    try {
+      // In a real app, we'd fetch data from an API
+      // For this demo, we'll simulate updates
+      const updatedData = stockData.map(stock => {
+        // Simulate price changes
+        const priceChange = (Math.random() - 0.5) * 0.02 // ±1% random change
+        const newPrice = stock.price * (1 + priceChange)
+        const newChange = stock.change + priceChange * 100
+        
+        return {
+          ...stock,
+          price: newPrice,
+          change: newChange
+        }
+      })
+      
+      setStockData(updatedData)
+      setLastUpdated(new Date().toLocaleTimeString())
+    } catch (error) {
       console.error('Error fetching real-time data:', error)
-      // Fallback to mock data updates
-      setStockData(prevData => 
-        prevData.map(stock => {
-          const priceChange = (Math.random() - 0.5) * 0.02 // ±1% random change
-          const newPrice = stock.price * (1 + priceChange)
-          const newChange = ((newPrice - stock.price) / stock.price) * 100
-          
-          return {
-            ...stock,
-            price: Math.max(0.01, newPrice),
-            change: newChange
-          }
-        })
-      )
-      setLastUpdated(new Date())
     } finally {
       setLoading(false)
     }
   }, [stockData])
 
-  // Filter stocks based on criteria
+  // Filter stocks based on user criteria
   const filterStocks = useCallback(() => {
-    return stockData.filter(stock => {
-      // Type filter (stock or crypto)
-      if (filters.type !== 'all' && stock.type !== filters.type) return false
-      
-      // Market cap filter
-      if (filters.marketCap !== 'all') {
-        if (filters.marketCap === 'large' && stock.marketCap < 1000000000000) return false // 1T INR
-        if (filters.marketCap === 'mid' && (stock.marketCap < 200000000000 || stock.marketCap > 1000000000000)) return false // 200B-1T INR
-        if (filters.marketCap === 'small' && stock.marketCap > 200000000000) return false // <200B INR
+    let results = [...stockData]
+    
+    // Apply filters
+    if (filters.marketCap !== 'all') {
+      const ranges = {
+        'large': [5000000000000, Infinity],
+        'mid': [500000000000, 5000000000000],
+        'small': [0, 500000000000]
       }
       
-      // Sector filter
-      if (filters.sector !== 'all' && stock.sector.toLowerCase() !== filters.sector.toLowerCase()) return false
-      
-      // P/E Ratio filter (skip for crypto)
-      if (stock.type !== 'crypto' && (stock.pe < filters.peRatio[0] || stock.pe > filters.peRatio[1])) return false
-      
-      // Dividend yield filter (skip for crypto)
-      if (stock.type !== 'crypto' && (stock.dividend < filters.dividendYield[0] || stock.dividend > filters.dividendYield[1])) return false
-      
-      // Price range filter
-      if (stock.price < filters.priceRange[0] || stock.price > filters.priceRange[1]) return false
-      
-      return true
-    })
+      const [min, max] = ranges[filters.marketCap] || [0, Infinity]
+      results = results.filter(stock => stock.marketCap >= min && stock.marketCap <= max)
+    }
+    
+    if (filters.sector !== 'all') {
+      results = results.filter(stock => stock.sector === filters.sector)
+    }
+    
+    if (filters.type !== 'all') {
+      results = results.filter(stock => stock.type === filters.type)
+    }
+    
+    // Filter by PE ratio
+    results = results.filter(stock => 
+      stock.pe >= filters.peRatio[0] && 
+      stock.pe <= filters.peRatio[1]
+    )
+    
+    // Filter by dividend yield
+    results = results.filter(stock => 
+      stock.dividend >= filters.dividendYield[0] && 
+      stock.dividend <= filters.dividendYield[1]
+    )
+    
+    // Filter by price range
+    results = results.filter(stock => 
+      stock.price >= filters.priceRange[0] && 
+      stock.price <= filters.priceRange[1]
+    )
+    
+    setScreenResults(results)
   }, [filters, stockData])
 
-  // Run screening
-  const runScreen = async () => {
-    setLoading(true)
-    // Simulate API call delay
-    setTimeout(() => {
-      const results = filterStocks()
-      setScreenResults(results)
-      setLoading(false)
-    }, 500)
+  // Run preset screens
+  const runPresetScreen = (presetName) => {
+    let newFilters = { ...filters }
+    
+    switch(presetName) {
+      case 'Tech Giants India':
+        newFilters = {
+          marketCap: 'large',
+          sector: 'Technology',
+          type: 'stock',
+          peRatio: [0, 50],
+          dividendYield: [0, 10],
+          priceRange: [0, 15000]
+        }
+        break
+      case 'High Dividend Indian Stocks':
+        newFilters = {
+          marketCap: 'all',
+          sector: 'all',
+          type: 'stock',
+          peRatio: [0, 30],
+          dividendYield: [2, 10],
+          priceRange: [0, 15000]
+        }
+        break
+      case 'Banking Sector':
+        newFilters = {
+          marketCap: 'all',
+          sector: 'Banking',
+          type: 'stock',
+          peRatio: [0, 50],
+          dividendYield: [0, 10],
+          priceRange: [0, 15000]
+        }
+        break
+      // Additional presets as needed
+      default:
+        break
+    }
+    
+    setFilters(newFilters)
   }
 
-  // Add stock to watchlist
+  // Add to watchlist function
   const addToWatchlist = async (stock) => {
+    if (addingToWatchlist[stock.symbol]) return
+    
+    setAddingToWatchlist(prev => ({ ...prev, [stock.symbol]: true }))
+    
     try {
-      setAddingToWatchlist(prev => ({ ...prev, [stock.symbol]: true }))
-      
-      const response = await fetch('/api/user-watchlist', {
+      // Call the API to add the stock to user's watchlist
+      const response = await fetch('/api/watchlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           userId: userId,
           symbol: stock.symbol,
+          displaySymbol: stock.displaySymbol,
           name: stock.name,
-          action: 'add'
+          exchange: stock.exchange || 'NSE'
         })
       })
       
-      const result = await response.json()
+      const data = await response.json()
       
-      if (result.success) {
-        // Show success message or update UI
-        alert(`${stock.name} added to watchlist successfully!`)
+      if (data.success) {
+        // Refresh the watchlist to include the new stock
+        await fetchUserWatchlist()
+        alert(`${stock.name} (${stock.displaySymbol}) added to your watchlist`)
       } else {
-        alert(result.error || 'Failed to add to watchlist')
+        throw new Error(data.error || 'Failed to add to watchlist')
       }
     } catch (error) {
       console.error('Error adding to watchlist:', error)
@@ -229,153 +368,63 @@ export default function StockScreener() {
     }
   }
 
-  // Open chart modal
-  const openChart = (stock) => {
-    setChartModal({
-      isOpen: true,
-      symbol: stock.symbol,
-      displaySymbol: stock.displaySymbol,
-      name: stock.name,
-      exchange: stock.exchange
-    })
-  }
-
-  // Close chart modal
-  const closeChart = () => {
-    setChartModal({ isOpen: false, symbol: '', displaySymbol: '', name: '', exchange: '' })
-  }
-
-  // Handle filter changes
-  const handleFilterChange = (filterName, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterName]: value
-    }))
-  }
-
-  // Load a saved screen
-  const loadSavedScreen = (screenName) => {
-    let newFilters = { ...filters }
-    
-    switch(screenName) {
-      case 'Tech Giants India':
-        newFilters = {
-          ...filters,
-          sector: 'Technology',
-          marketCap: 'large',
-          type: 'stock',
-          peRatio: [15, 50]
-        }
-        break
-      case 'High Dividend Indian Stocks':
-        newFilters = {
-          ...filters,
-          dividendYield: [3, 10],
-          type: 'stock',
-          peRatio: [0, 25],
-          sector: 'all'
-        }
-        break
-      case 'Banking Sector':
-        newFilters = {
-          ...filters,
-          sector: 'Banking',
-          type: 'stock',
-          marketCap: 'large',
-          peRatio: [10, 25]
-        }
-        break
-      case 'Crypto Leaders':
-        newFilters = {
-          ...filters,
-          type: 'crypto',
-          marketCap: 'large',
-          sector: 'Cryptocurrency'
-        }
-        break
-      case 'Green Energy India':
-        newFilters = {
-          ...filters,
-          sector: 'Renewable Energy',
-          type: 'stock',
-          marketCap: 'all',
-          peRatio: [20, 50]
-        }
-        break
-      case 'FMCG Champions':
-        newFilters = {
-          ...filters,
-          sector: 'FMCG',
-          type: 'stock',
-          dividendYield: [3, 10],
-          peRatio: [15, 30]
-        }
-        break
+  // Fetch user's watchlist
+  const fetchUserWatchlist = async () => {
+    setWatchlistLoading(true)
+    try {
+      const response = await fetch(`/api/user-watchlist?userId=${userId}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setUserWatchlist(data.watchlist || [])
+      } else {
+        console.error('Error fetching watchlist:', data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching watchlist:', error)
+    } finally {
+      setWatchlistLoading(false)
     }
-    
-    setFilters(newFilters)
-    setActiveTab('results')
   }
 
-  // Auto-run screen when filters change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      runScreen()
-    }, 300)
-    
-    return () => clearTimeout(timeoutId)
-  }, [filters])
+  // Check if a stock is in the watchlist
+  const isStockInWatchlist = (symbol) => {
+    return userWatchlist.some(item => item.symbol === symbol)
+  }
 
-  // Real-time data polling effect
+  // Run screen when filters change
   useEffect(() => {
-    let interval
+    filterStocks()
+  }, [filters, filterStocks])
+
+  // Fetch user's watchlist on component mount
+  useEffect(() => {
+    if (userId) {
+      fetchUserWatchlist()
+    }
+  }, [userId])
+
+  // Real-time updates
+  useEffect(() => {
+    let intervalId
+    
     if (realTimeEnabled) {
       // Initial fetch
       fetchRealTimeData()
-      // Set up interval for every 10 seconds
-      interval = setInterval(fetchRealTimeData, 10000)
+      
+      // Set up interval
+      intervalId = setInterval(fetchRealTimeData, 10000) // Every 10 seconds
     }
+    
     return () => {
-      if (interval) clearInterval(interval)
+      if (intervalId) clearInterval(intervalId)
     }
   }, [realTimeEnabled, fetchRealTimeData])
-
-  // Format market cap for INR
-  const formatMarketCap = (value) => {
-    if (value >= 100000000000000) return `₹${(value / 100000000000000).toFixed(1)} Lakh Cr` // 1 Lakh Crore
-    if (value >= 1000000000000) return `₹${(value / 1000000000000).toFixed(1)} T` // Trillion
-    if (value >= 100000000000) return `₹${(value / 100000000000).toFixed(1)} Thousand Cr` // Thousand Crore
-    if (value >= 10000000000) return `₹${(value / 10000000000).toFixed(1)} Hundred Cr` // Hundred Crore
-    if (value >= 1000000000) return `₹${(value / 1000000000).toFixed(1)} B` // Billion
-    if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)} Cr` // Crore
-    return `₹${value}`
-  }
-
-  // Format price in normal format (not abbreviated)
-  const formatPrice = (price, currency = 'INR') => {
-    if (currency === 'INR') {
-      return `₹${price.toLocaleString('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })}`
-    }
-    return `$${price.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
-  }
-
-  // Format percentage
-  const formatPercentage = (value) => {
-    const sign = value >= 0 ? '+' : ''
-    return `${sign}${value.toFixed(1)}%`
-  }
 
   return (
     <div className={styles.pageContainer}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>🔍 Stock Screener</h1>
-        <p className={styles.pageSubtitle}>Choose from preset screens or create your own</p>
+        <h1>🔍 <span className={styles.pageTitle}>Stock Screener</span></h1>
         <div className={styles.realTimeControls}>
           <button 
             className={`${styles.realTimeBtn} ${realTimeEnabled ? styles.active : ''}`}
@@ -391,324 +440,152 @@ export default function StockScreener() {
             {loading ? '⏳ Updating...' : '🔄 Refresh Now'}
           </button>
           {lastUpdated && (
-            <span className={styles.lastUpdated}>
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </span>
+            <div className={styles.lastUpdated}>
+              Last updated: {lastUpdated}
+            </div>
           )}
         </div>
       </div>
-
-      {/* Tab Navigation */}
-      <div className={styles.tabNavigation}>
-        <button 
-          className={`${styles.tab} ${activeTab === 'preset' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('preset')}
-        >
-          Preset Screens
-        </button>
-        <button 
-          className={`${styles.tab} ${activeTab === 'custom' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('custom')}
-        >
-          Custom Screen
-        </button>
-        <button 
-          className={`${styles.tab} ${activeTab === 'results' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('results')}
-        >
-          Results ({screenResults.length})
-        </button>
-      </div>
-
-      {/* Preset Screens Tab */}
-      {activeTab === 'preset' && (
-        <div className={styles.presetScreensGrid}>
-          <div className={styles.strategyCard} onClick={() => loadSavedScreen('Tech Giants India')}>
-            <div className={styles.strategyIcon}>💻</div>
-            <h3 className={styles.strategyTitle}>Tech Giants India</h3>
-            <p className={styles.strategyDescription}>
-              Leading Indian technology companies like TCS, Infosys, and Wipro
-            </p>
-            <div className={styles.strategyActions}>
-              <button className={styles.moreInfoBtn}>More Info</button>
-              <button className={styles.loadBtn}>Load</button>
-            </div>
-          </div>
-
-          <div className={styles.strategyCard} onClick={() => loadSavedScreen('High Dividend Indian Stocks')}>
-            <div className={styles.strategyIcon}>�</div>
-            <h3 className={styles.strategyTitle}>High Dividend Indian Stocks</h3>
-            <p className={styles.strategyDescription}>
-              Indian companies with consistent dividend payments and high yield
-            </p>
-            <div className={styles.strategyActions}>
-              <button className={styles.moreInfoBtn}>More Info</button>
-              <button className={styles.loadBtn}>Load</button>
-            </div>
-          </div>
-
-          <div className={styles.strategyCard} onClick={() => loadSavedScreen('Banking Sector')}>
-            <div className={styles.strategyIcon}>🏦</div>
-            <h3 className={styles.strategyTitle}>Banking Sector</h3>
-            <p className={styles.strategyDescription}>
-              Top Indian banks including HDFC Bank, ICICI Bank, and others
-            </p>
-            <div className={styles.strategyActions}>
-              <button className={styles.moreInfoBtn}>More Info</button>
-              <button className={styles.loadBtn}>Load</button>
-            </div>
-          </div>
-
-          <div className={styles.strategyCard} onClick={() => loadSavedScreen('Crypto Leaders')}>
-            <div className={styles.strategyIcon}>₿</div>
-            <h3 className={styles.strategyTitle}>Crypto Leaders</h3>
-            <p className={styles.strategyDescription}>
-              Top cryptocurrencies including Bitcoin, Ethereum, and other major coins
-            </p>
-            <div className={styles.strategyActions}>
-              <button className={styles.moreInfoBtn}>More Info</button>
-              <button className={styles.loadBtn}>Load</button>
-            </div>
-          </div>
-
-          <div className={styles.strategyCard} onClick={() => loadSavedScreen('Green Energy India')}>
-            <div className={styles.strategyIcon}>🌱</div>
-            <h3 className={styles.strategyTitle}>Green Energy India</h3>
-            <p className={styles.strategyDescription}>
-              Indian renewable energy companies leading the green transition
-            </p>
-            <div className={styles.strategyActions}>
-              <button className={styles.moreInfoBtn}>More Info</button>
-              <button className={styles.loadBtn}>Load</button>
-            </div>
-          </div>
-
-          <div className={styles.strategyCard} onClick={() => loadSavedScreen('FMCG Champions')}>
-            <div className={styles.strategyIcon}>🛒</div>
-            <h3 className={styles.strategyTitle}>FMCG Champions</h3>
-            <p className={styles.strategyDescription}>
-              Fast-moving consumer goods companies with strong market presence
-            </p>
-            <div className={styles.strategyActions}>
-              <button className={styles.moreInfoBtn}>More Info</button>
-              <button className={styles.loadBtn}>Load</button>
-            </div>
-          </div>
+      
+      <div className={styles.tabContainer}>
+        <div className={styles.tabs}>
+          <button 
+            className={`${styles.tab} ${activeTab === 'preset' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('preset')}
+          >
+            Preset Screens
+          </button>
+          <button 
+            className={`${styles.tab} ${activeTab === 'custom' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('custom')}
+          >
+            Custom Screen
+          </button>
         </div>
-      )}
-
-      {/* Custom Screen Tab */}
-      {activeTab === 'custom' && (
-        <div className={styles.customScreenContainer}>
-          <div className={styles.filterCard}>
-            <h3 className={styles.filterTitle}>Build Your Custom Screen</h3>
-            
-            <div className={styles.filterGrid}>
-              <div className={styles.filterGroup}>
-                <label>Asset Type</label>
-                <select 
-                  className={styles.selectInput}
-                  value={filters.type}
-                  onChange={(e) => handleFilterChange('type', e.target.value)}
-                >
-                  <option value="all">All Assets</option>
-                  <option value="stock">Indian Stocks</option>
-                  <option value="crypto">Cryptocurrencies</option>
-                </select>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label>Market Cap</label>
-                <select 
-                  className={styles.selectInput}
-                  value={filters.marketCap}
-                  onChange={(e) => handleFilterChange('marketCap', e.target.value)}
-                >
-                  <option value="all">All</option>
-                  <option value="large">Large Cap (&gt; ₹1T)</option>
-                  <option value="mid">Mid Cap (₹200B - ₹1T)</option>
-                  <option value="small">Small Cap (&lt; ₹200B)</option>
-                </select>
-              </div>
-              
-              <div className={styles.filterGroup}>
-                <label>Sector</label>
-                <select 
-                  className={styles.selectInput}
-                  value={filters.sector}
-                  onChange={(e) => handleFilterChange('sector', e.target.value)}
-                >
-                  <option value="all">All Sectors</option>
-                  <option value="Technology">Technology</option>
-                  <option value="Banking">Banking</option>
-                  <option value="Energy">Energy</option>
-                  <option value="Renewable Energy">Renewable Energy</option>
-                  <option value="FMCG">FMCG</option>
-                  <option value="Telecom">Telecom</option>
-                  <option value="Automotive">Automotive</option>
-                  <option value="Cryptocurrency">Cryptocurrency</option>
-                </select>
-              </div>
-              
-              {filters.type !== 'crypto' && (
-                <>
-                  <div className={styles.filterGroup}>
-                    <label>P/E Ratio: {filters.peRatio[0]} - {filters.peRatio[1]}</label>
-                    <div className={styles.rangeContainer}>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="50" 
-                        value={filters.peRatio[1]}
-                        onChange={(e) => handleFilterChange('peRatio', [filters.peRatio[0], parseInt(e.target.value)])}
-                        className={styles.rangeInput} 
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className={styles.filterGroup}>
-                    <label>Dividend Yield: {filters.dividendYield[0]}% - {filters.dividendYield[1]}%</label>
-                    <div className={styles.rangeContainer}>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="10" 
-                        value={filters.dividendYield[1]}
-                        onChange={(e) => handleFilterChange('dividendYield', [filters.dividendYield[0], parseInt(e.target.value)])}
-                        className={styles.rangeInput} 
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className={styles.filterGroup}>
-                <label>Price Range: ₹{filters.priceRange[0]} - ₹{filters.priceRange[1]}</label>
-                <div className={styles.rangeContainer}>
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="15000" 
-                    value={filters.priceRange[1]}
-                    onChange={(e) => handleFilterChange('priceRange', [filters.priceRange[0], parseInt(e.target.value)])}
-                    className={styles.rangeInput} 
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.quickActions}>
-              <button className={styles.runScreenBtn} onClick={runScreen}>
-                🔍 Run Screen
-              </button>
-              <button className={styles.saveScreenBtn}>
-                💾 Save Screen
-              </button>
-              <button className={styles.resetBtn} onClick={() => setFilters({
-                marketCap: 'all',
-                sector: 'all',
-                type: 'all',
-                peRatio: [0, 50],
-                dividendYield: [0, 10],
-                priceRange: [0, 15000]
-              })}>
-                🔄 Reset
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Results Tab */}
-      {activeTab === 'results' && (
-        <div className={styles.resultsContainer}>
-          <div className={styles.resultsHeader}>
-            <h3>Screening Results</h3>
-            <div className={styles.resultsStats}>
-              <div className={styles.resultsCount}>
-                {screenResults.length} {screenResults.length === 1 ? 'asset' : 'assets'} found
-              </div>
-              {realTimeEnabled && (
-                <div className={styles.liveIndicator}>
-                  🔴 LIVE
-                </div>
-              )}
-            </div>
-            {loading && <div className={styles.loadingIndicator}>🔄 Screening...</div>}
-          </div>
-          
-          <div className={styles.resultsList}>
-            {screenResults.length === 0 && !loading ? (
-              <div className={styles.noResults}>
-                <div className={styles.noResultsIcon}>📊</div>
-                <h3>No Results Found</h3>
-                <p>Try adjusting your criteria or selecting a preset screen</p>
-              </div>
-            ) : (
-              <div className={styles.stockGrid}>
-                {screenResults.map((stock, index) => (
-                  <div key={index} className={`${styles.stockCard} ${realTimeEnabled ? styles.liveUpdate : ''}`}>
-                    <div className={styles.stockHeader}>
-                      <div className={styles.stockSymbol}>
-                        {stock.type === 'crypto' ? '₿' : '📈'} {stock.displaySymbol}
-                      </div>
-                      <div className={stock.change >= 0 ? styles.positive : styles.negative}>
-                        {formatPercentage(stock.change)}
-                      </div>
-                    </div>
-                    <div className={styles.stockName}>{stock.name}</div>
-                    <div className={styles.stockPrice}>
-                      {formatPrice(stock.price, stock.currency)}
-                    </div>
-                    <div className={styles.sectorInfo}>
-                      {stock.sector}
-                    </div>
-                    <div className={styles.stockDetails}>
-                      <div className={styles.stockMetric}>
-                        <span>Market Cap</span>
-                        <span>{formatMarketCap(stock.marketCap)}</span>
-                      </div>
-                      {stock.type !== 'crypto' && (
-                        <>
-                          <div className={styles.stockMetric}>
-                            <span>P/E Ratio</span>
-                            <span>{stock.pe.toFixed(1)}</span>
-                          </div>
-                          <div className={styles.stockMetric}>
-                            <span>Dividend</span>
-                            <span>{stock.dividend.toFixed(1)}%</span>
-                          </div>
-                        </>
-                      )}
-                      <div className={styles.stockMetric}>
-                        <span>Type</span>
-                        <span className={styles.stockType}>
-                          {stock.type === 'crypto' ? 'Crypto' : 'Stock'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={styles.stockActions}>
-                      <button 
-                        className={styles.chartBtn}
-                        onClick={() => openChart(stock)}
-                      >
-                        📊 Chart
-                      </button>
-                      <button 
-                        className={styles.addToWatchlistBtn}
-                        onClick={() => addToWatchlist(stock)}
-                        disabled={addingToWatchlist[stock.symbol]}
-                      >
-                        {addingToWatchlist[stock.symbol] ? '⏳ Adding...' : '+ Add to Watchlist'}
-                      </button>
-                    </div>
-                  </div>
+        
+        <div className={styles.tabContent}>
+          {activeTab === 'preset' ? (
+            <div className={styles.presetScreens}>
+              <h3>Select a Preset Screen</h3>
+              <div className={styles.presetGrid}>
+                {savedScreens.map((screen, index) => (
+                  <button 
+                    key={index}
+                    className={styles.presetBtn}
+                    onClick={() => runPresetScreen(screen)}
+                  >
+                    {screen}
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className={styles.customScreen}>
+              <h3>Create Custom Screen</h3>
+              <div className={styles.filterGroup}>
+                <div className={styles.filterRow}>
+                  <div className={styles.filterItem}>
+                    <label>Market Cap</label>
+                    <select 
+                      value={filters.marketCap}
+                      onChange={(e) => setFilters({...filters, marketCap: e.target.value})}
+                    >
+                      <option value="all">All</option>
+                      <option value="large">Large Cap ({'>'}₹5T)</option>
+                      <option value="mid">Mid Cap (₹500B-₹5T)</option>
+                      <option value="small">Small Cap ({'<'}₹500B)</option>
+                    </select>
+                  </div>
+                  
+                  <div className={styles.filterItem}>
+                    <label>Sector</label>
+                    <select 
+                      value={filters.sector}
+                      onChange={(e) => setFilters({...filters, sector: e.target.value})}
+                    >
+                      <option value="all">All Sectors</option>
+                      <option value="Technology">Technology</option>
+                      <option value="Banking">Banking</option>
+                      <option value="FMCG">FMCG</option>
+                      <option value="Renewable Energy">Renewable Energy</option>
+                      <option value="Energy">Energy</option>
+                      <option value="Telecom">Telecom</option>
+                      <option value="Automotive">Automotive</option>
+                      <option value="Infrastructure">Infrastructure</option>
+                      <option value="Paints">Paints</option>
+                      <option value="Steel">Steel</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Add more filter options as needed */}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+      
+      <div className={styles.resultsContainer}>
+        <h3>Results ({screenResults.length} stocks)</h3>
+        <div className={styles.resultsHeader}>
+          <div className={styles.symbol}>Symbol</div>
+          <div className={styles.name}>Name</div>
+          <div className={styles.price}>Price</div>
+          <div className={styles.change}>Change</div>
+          <div className={styles.marketCap}>Market Cap</div>
+          <div className={styles.pe}>P/E</div>
+          <div className={styles.dividend}>Div %</div>
+          <div className={styles.actions}>Actions</div>
+        </div>
+        
+        {loading ? (
+          <div className={styles.loading}>Loading results...</div>
+        ) : screenResults.length === 0 ? (
+          <div className={styles.noResults}>No stocks match your criteria</div>
+        ) : (
+          <div className={styles.resultsList}>
+            {screenResults.map(stock => (
+              <div key={stock.symbol} className={styles.resultRow}>
+                <div className={styles.symbol}>{stock.displaySymbol}</div>
+                <div className={styles.name}>{stock.name}</div>
+                <div className={styles.price}>₹{stock.price.toFixed(2)}</div>
+                <div className={`${styles.change} ${stock.change >= 0 ? styles.positive : styles.negative}`}>
+                  {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}%
+                </div>
+                <div className={styles.marketCap}>
+                  ₹{(stock.marketCap / 1000000000000).toFixed(2)}T
+                </div>
+                <div className={styles.pe}>{stock.pe.toFixed(1)}</div>
+                <div className={styles.dividend}>{stock.dividend.toFixed(1)}%</div>
+                <div className={styles.actions}>
+                  <button 
+                    className={styles.viewChartBtn}
+                    onClick={() => openChart(stock)}
+                  >
+                    📈 Chart
+                  </button>
+                  {isStockInWatchlist(stock.symbol) ? (
+                    <button 
+                      className={`${styles.addToWatchlistBtn} ${styles.alreadyAdded}`}
+                      disabled={true}
+                    >
+                      ✓ Already Added
+                    </button>
+                  ) : (
+                    <button 
+                      className={styles.addToWatchlistBtn}
+                      onClick={() => addToWatchlist(stock)}
+                      disabled={addingToWatchlist[stock.symbol]}
+                    >
+                      {addingToWatchlist[stock.symbol] ? '⏳ Adding...' : '+ Add to Watchlist'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Chart Modal */}
       {chartModal.isOpen && (
@@ -720,19 +597,46 @@ export default function StockScreener() {
               <button className={styles.closeBtn} onClick={closeChart}>×</button>
             </div>
             <div className={styles.chartContainer}>
-              <StockChart 
-                symbol={
-                  chartModal.exchange === 'NSE' ? `NSE:${chartModal.displaySymbol}` :
-                  chartModal.exchange === 'BSE' ? `BSE:${chartModal.displaySymbol}` :
-                  chartModal.exchange === 'CRYPTO' ? `BINANCE:${chartModal.displaySymbol}INR` :
-                  chartModal.displaySymbol
-                }
-              />
+              {chartLoading ? (
+                <div className={styles.chartLoading}>Loading chart data...</div>
+              ) : chartError ? (
+                <div className={styles.chartError}>{chartError}</div>
+              ) : chartData && chartData.length > 0 ? (
+                <CandlestickChart 
+                  symbol={chartModal.displaySymbol}
+                  data={chartData}
+                  timeframe={chartTimeframe}
+                />
+              ) : (
+                <div className={styles.chartError}>No chart data available</div>
+              )}
+              
+              <div className={styles.timeframeSelector}>
+                <button 
+                  className={chartTimeframe === '1d' ? styles.activeTimeframe : ''}
+                  onClick={() => changeChartTimeframe('1d')}
+                >
+                  1D
+                </button>
+                <button 
+                  className={chartTimeframe === '5d' ? styles.activeTimeframe : ''}
+                  onClick={() => changeChartTimeframe('5d')}
+                >
+                  1W
+                </button>
+                <button 
+                  className={chartTimeframe === '1m' ? styles.activeTimeframe : ''}
+                  onClick={() => changeChartTimeframe('1m')}
+                >
+                  1M
+                </button>
+              </div>
+              
               <div className={styles.chartInfo}>
                 <p><strong>Symbol:</strong> {chartModal.displaySymbol}</p>
                 <p><strong>Company:</strong> {chartModal.name}</p>
                 <p><strong>Exchange:</strong> {chartModal.exchange}</p>
-                <p><strong>Data Source:</strong> TradingView Real-time</p>
+                <p><strong>Data Source:</strong> Yahoo Finance</p>
                 {realTimeEnabled && (
                   <p className={styles.liveLabel}>🔴 LIVE DATA</p>
                 )}

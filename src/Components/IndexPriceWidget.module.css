@@ -1,0 +1,130 @@
+/* IndexPriceWidget.module.css */
+
+.indexPriceWidgetContainer {
+  background: linear-gradient(135deg, #121212 0%, #1a1a1a 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
+  border: 1px solid #2a2a2a;
+}
+
+.indexPriceWidgetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  padding-bottom: 0.75rem;
+}
+
+.indexPriceWidgetHeader h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+  color: #FFD700;
+  background: linear-gradient(90deg, #FFD700, #DAA520);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.liveIndicator {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #aaa;
+  letter-spacing: 0.5px;
+}
+
+.liveDot {
+  color: #ff4a4a;
+  margin-right: 4px;
+  font-size: 0.8rem;
+  animation: pulse 2s infinite;
+}
+
+.indicesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.indexCard {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.indexCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.indexName {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #aaa;
+  margin-bottom: 0.75rem;
+}
+
+.indexValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.indexChange {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.positive {
+  color: #00c853;
+}
+
+.negative {
+  color: #ff5252;
+}
+
+.indexTime {
+  font-size: 0.85rem;
+  color: #aaa;
+  position: absolute;
+  bottom: 1rem;
+  right: 1.25rem;
+}
+
+.indexLoading {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-style: italic;
+}
+
+.lastUpdated {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #777;
+  margin-top: 1rem;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}

@@ -5,51 +5,98 @@ import { useAuth } from '../contexts/AuthContext'
 import styles from './Dashboard.module.css'
 import DirectSearch from '../Components/DirectSearch'
 import { convertToTradingViewSymbol } from '../Components/TradingView/TradingViewHelper'
+import RealTimeStockPrice from '../Components/RealTimeStockPrice'
+import IndexPriceWidget from '../Components/IndexPriceWidget'
+import CandlestickChart from '../Components/CandlestickChart'
 
-// TradingView Mini Chart Component
-function TradingViewMiniChart({ symbol }) {
-  const [containerId] = useState(() => `tradingview_${Math.random().toString(36).substring(7)}`)
-
+// Yahoo Finance Chart Component (replaces TradingView component)
+function YahooFinanceChart({ symbol }) {
+  const [chartData, setChartData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [timeframe, setTimeframe] = useState('1m')
+  const [interval, setInterval] = useState('1d')
+  
   useEffect(() => {
-    const script = document.createElement('script')
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js'
-    script.type = 'text/javascript'
-    script.async = true
-    
-    // Ensure the symbol is properly formatted for TradingView
-    const tradingViewSymbol = symbol || 'NSE:NIFTY'
-    console.log(`Loading TradingView chart for: ${tradingViewSymbol}`)
-    
-    script.innerHTML = JSON.stringify({
-      symbol: tradingViewSymbol,
-      width: "100%",
-      height: "300",
-      locale: "en",
-      dateRange: "12M",
-      colorTheme: "light",
-      autosize: true,
-      largeChartUrl: "",
-      isTransparent: false,
-      noTimeScale: false,
-      chartOnly: false,
-      valuesTracking: "1",
-      changeMode: "price-and-percent"
-    })
-
-    const container = document.getElementById(containerId)
-    if (container) {
-      container.innerHTML = ''
-      container.appendChild(script)
-    }
-
-    return () => {
-      if (container) {
-        container.innerHTML = ''
+    async function fetchChartData() {
+      if (!symbol) return
+      
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/yahoo-finance?symbol=${symbol}&timeframe=${timeframe}&interval=${interval}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setChartData(data.data)
+          setError(null)
+        } else {
+          throw new Error(data.error || 'Failed to fetch chart data')
+        }
+      } catch (err) {
+        console.error(`Error fetching chart for ${symbol}:`, err)
+        setError('Unable to load chart data')
+      } finally {
+        setLoading(false)
       }
     }
-  }, [symbol, containerId])
-
-  return <div id={containerId} className={styles.tradingViewWidget}></div>
+    
+    fetchChartData()
+  }, [symbol, timeframe, interval])
+  
+  if (loading) {
+    return <div className={styles.chartLoading}>Loading chart data...</div>
+  }
+  
+  if (error) {
+    return <div className={styles.chartError}>{error}</div>
+  }
+  
+  if (!chartData || chartData.length === 0) {
+    return <div className={styles.chartError}>No data available</div>
+  }
+  
+  // Use the CandlestickChart component instead of the simple chart
+  return (
+    <div className={styles.yahooChartContainer}>
+      <CandlestickChart 
+        symbol={symbol} 
+        data={chartData} 
+        timeframe={timeframe} 
+      />
+      <div className={styles.timeframeSelector}>
+        <button 
+          className={timeframe === '1d' ? styles.activeTimeframe : ''}
+          onClick={() => { setTimeframe('1d'); setInterval('15m'); }}
+        >
+          1D
+        </button>
+        <button 
+          className={timeframe === '5d' ? styles.activeTimeframe : ''}
+          onClick={() => { setTimeframe('5d'); setInterval('1h'); }}
+        >
+          1W
+        </button>
+        <button 
+          className={timeframe === '1m' ? styles.activeTimeframe : ''}
+          onClick={() => { setTimeframe('1m'); setInterval('1d'); }}
+        >
+          1M
+        </button>
+        <button 
+          className={timeframe === '6m' ? styles.activeTimeframe : ''}
+          onClick={() => { setTimeframe('6m'); setInterval('1d'); }}
+        >
+          6M
+        </button>
+        <button 
+          className={timeframe === '1y' ? styles.activeTimeframe : ''}
+          onClick={() => { setTimeframe('1y'); setInterval('1d'); }}
+        >
+          1Y
+        </button>
+      </div>
+    </div>
+  )
 }
 
 // Market Index Card with Dynamic Data
@@ -188,8 +235,9 @@ function MarketIndexCard({ name, symbol, indexKey }) {
       
       {isExpanded && (
         <div className={styles.indexDetails}>
-          <div className={styles.tradingViewContainer}>
-            <TradingViewMiniChart symbol={symbol} />
+          <div className={styles.realTimeContainer}>
+            <RealTimeStockPrice symbol={indexKey} displayName={name} />
+            <YahooFinanceChart symbol={indexKey} />
           </div>
           
           <div className={styles.indexActions}>
@@ -285,10 +333,10 @@ export default function Dashboard() {
   }
 
   const addToWatchlist = async (symbol) => {
-    // Convert to TradingView-compatible symbol before storing
-    const tradingViewSymbol = convertToTradingViewSymbol(symbol)
+    // Use symbol as-is since we're not using TradingView anymore
+    const yahooCompatibleSymbol = symbol
     
-    if (isAddingToWatchlist || watchlist.includes(tradingViewSymbol)) return
+    if (isAddingToWatchlist || watchlist.includes(yahooCompatibleSymbol)) return
     
     setIsAddingToWatchlist(true)
     try {
@@ -297,7 +345,7 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           userId: userId,
-          symbol: tradingViewSymbol, // Store TradingView-compatible symbol
+          symbol: yahooCompatibleSymbol, // Store Yahoo-compatible symbol
           name: symbol, // Keep original symbol for display name if needed
           action: 'add'
         })
@@ -334,26 +382,29 @@ export default function Dashboard() {
           onTradeComplete={refreshData} // Pass refresh function
         />
       </div>
+      
+      {/* Real-time index price widget */}
+      <IndexPriceWidget />
 
       <div className={styles.contentGrid}>
         <div className={styles.mainContent}>
-          {/* Market Overview with Dynamic TradingView Charts */}
+          {/* Market Overview with Yahoo Finance Charts */}
           <div className={styles.card}>
             <h3>Market Overview</h3>
             <div className={styles.marketIndices}>
               <MarketIndexCard 
                 name="NIFTY 50"
-                symbol="NSE:NIFTY"
+                symbol="NIFTY50"
                 indexKey="NIFTY50"
               />
               <MarketIndexCard 
                 name="SENSEX"
-                symbol="BSE:SENSEX"
+                symbol="SENSEX"
                 indexKey="SENSEX"
               />
               <MarketIndexCard 
                 name="NIFTY BANK"
-                symbol="NSE:BANKNIFTY"
+                symbol="BANKNIFTY"
                 indexKey="BANKNIFTY"
               />
             </div>
