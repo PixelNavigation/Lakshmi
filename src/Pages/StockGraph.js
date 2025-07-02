@@ -1,52 +1,32 @@
-// Updated StockGraph using react-force-graph with backend Granger causality integration
+// Updated StockGraph using Cytoscape.js with backend Granger causality integration
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import styles from './StockGraph.module.css'
 
-// Suppress Three.js warnings globally for this component
-if (typeof window !== 'undefined') {
-  const originalWarn = console.warn
-  const originalError = console.error
-  
-  console.warn = (...args) => {
-    const message = args.join(' ')
-    if (
-      message.includes('Multiple instances of Three.js') ||
-      message.includes('WARNING: Multiple instances') ||
-      message.includes('three.js') ||
-      message.includes('Three.js')
-    ) {
-      return
-    }
-    originalWarn.apply(console, args)
-  }
+// Cytoscape imports
+let cytoscape = null
 
-  console.error = (...args) => {
-    const message = args.join(' ')
-    if (
-      message.includes('Multiple instances of Three.js') ||
-      message.includes('WARNING: Multiple instances') ||
-      message.includes('three.js') ||
-      message.includes('Three.js')
-    ) {
-      return
+// Cytoscape initialization with async imports
+const initCytoscape = async () => {
+  if (typeof window !== 'undefined') {
+    try {
+      // Import cytoscape only (circle and grid are built-in layouts)
+      cytoscape = (await import('cytoscape')).default
+      return true
+    } catch (error) {
+      console.error('Error initializing Cytoscape:', error)
+      return false
     }
-    originalError.apply(console, args)
   }
+  return false
 }
 
-const ForceGraph2D = dynamic(() => 
-  import('react-force-graph').then(mod => ({
-    default: mod.ForceGraph2D
-  })), 
-  { 
-    ssr: false,
-    loading: () => <div style={{padding: '20px', textAlign: 'center', color: 'white'}}>Loading graph...</div>
-  }
-)
+// Initialize Cytoscape on the client-side
+if (typeof window !== 'undefined') {
+  initCytoscape()
+}
 
 const StockGraph = () => {
   const { user } = useAuth()
@@ -58,96 +38,256 @@ const StockGraph = () => {
   const [error, setError] = useState(null)
   const [backendConnected, setBackendConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [currentZoom, setCurrentZoom] = useState(1)
+  const [selectedLayout, setSelectedLayout] = useState('grid')
+  
+  // Add refs to track if we should regenerate the graph
+  const graphGeneratedRef = useRef(false)
+  const watchlistLengthRef = useRef(0)
+  const cytoscapeRef = useRef(null) // Ref for the Cytoscape container
+  const cyRef = useRef(null) // Ref for the Cytoscape instance
 
   const userId = user?.id || 'user123' // Fallback for demo purposes
 
-  // Suppress Three.js and A-Frame related console warnings
+  // Initialize Cytoscape and register layouts
   useEffect(() => {
-    const originalConsoleWarn = console.warn
-    const originalConsoleError = console.error
+    const ensureCytoscapeReady = async () => {
+      // Wait for Cytoscape to be fully initialized
+      if (!cytoscape) {
+        const success = await initCytoscape()
+        if (!success) {
+          setError('Failed to initialize Cytoscape visualization library')
+          return false
+        }
+      }
+      return true
+    }
     
-    console.warn = (...args) => {
-      const message = args.join(' ')
-      if (
-        message.includes('Multiple instances of Three.js') ||
-        message.includes('WARNING: Multiple instances') ||
-        message.includes('three.js') ||
-        message.includes('Three.js') ||
-        message.includes('AFRAME') ||
-        message.includes('aframe')
-      ) {
-        return // Suppress these warnings
-      }
-      originalConsoleWarn.apply(console, args)
-    }
-
-    console.error = (...args) => {
-      const message = args.join(' ')
-      if (
-        message.includes('Multiple instances of Three.js') ||
-        message.includes('WARNING: Multiple instances') ||
-        message.includes('three.js') ||
-        message.includes('Three.js') ||
-        message.includes('AFRAME') ||
-        message.includes('aframe')
-      ) {
-        return // Suppress these errors
-      }
-      originalConsoleError.apply(console, args)
-    }
-
-    return () => {
-      console.warn = originalConsoleWarn
-      console.error = originalConsoleError
-    }
+    ensureCytoscapeReady()
   }, [])
 
-  useEffect(() => {
-    const fetchWatchlist = async () => {
-      try {
-        const response = await fetch(`/api/user-watchlist?userId=${userId}`)
-        const data = await response.json()
-
-        if (data.success && data.watchlist && data.watchlist.length > 0) {
-          setWatchlistData(data.watchlist)
-          await fetchStockPrices(data.watchlist)
-        } else {
-          console.log('⚠️ User watchlist empty or failed, using sample watchlist')
-          // Use a sample watchlist for demonstration
-          const sampleWatchlist = [
-            { symbol: 'AAPL', name: 'Apple Inc.' },
-            { symbol: 'MSFT', name: 'Microsoft Corporation' },
-            { symbol: 'GOOGL', name: 'Alphabet Inc.' },
-            { symbol: 'TSLA', name: 'Tesla, Inc.' },
-            { symbol: 'NVDA', name: 'NVIDIA Corporation' }
-          ]
-          setWatchlistData(sampleWatchlist)
-          await fetchStockPrices(sampleWatchlist)
-        }
-      } catch (err) {
-        console.error('❌ Error fetching watchlist:', err)
-        setError('Error fetching watchlist: ' + err.message)
-        setLoading(false)
+  // Initialize and update Cytoscape graph
+  const initializeCytoscapeGraph = useCallback(async () => {
+    if (!cytoscapeRef.current || nodes.length === 0) return
+    
+    // Ensure Cytoscape is loaded
+    if (!cytoscape) {
+      await initCytoscape()
+      if (!cytoscape) {
+        console.error('Failed to initialize Cytoscape')
+        return
       }
     }
 
-    fetchWatchlist()
-  }, [userId])
+    try {
+      // Destroy existing instance
+      if (cyRef.current) {
+        cyRef.current.destroy()
+      }
 
-  // Auto-refresh prices every 30 seconds
-  useEffect(() => {
-    if (!autoRefresh || watchlistData.length === 0) return
+      console.log('🎯 Initializing Cytoscape graph with', nodes.length, 'nodes and', edges.length, 'edges')
 
-    const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing stock prices...')
-      fetchStockPrices(watchlistData)
-    }, 30000) // 30 seconds
+      // Convert data to Cytoscape format
+      const cytoscapeNodes = nodes.map(node => ({
+        data: {
+          id: node.id,
+          label: node.id,
+          name: node.name,
+          price: node.price,
+          change: node.change,
+          changePercent: node.changePercent,
+          isRealData: node.isRealData,
+          isHistoricalData: node.isHistoricalData,
+          isStaticData: node.isStaticData,
+          hasIncompleteData: node.hasIncompleteData,
+          source: node.source,
+          lastUpdated: node.lastUpdated,
+          // Store color and other visual properties in data to be referenced by style
+          nodeColor: node.color,
+          nodeSize: Math.max(30, Math.min(80, 30 + (node.val * 10))),
+          borderColor: node.change >= 0 ? '#16a34a' : '#dc2626'
+        }
+      }))
 
-    return () => clearInterval(interval)
-  }, [watchlistData, autoRefresh])
+      const cytoscapeEdges = edges.map((edge, index) => ({
+        data: {
+          id: `edge-${index}`,
+          source: edge.source,
+          target: edge.target,
+          weight: edge.value,
+          correlation: edge.correlation,
+          // Move style properties to data for stylesheet reference
+          edgeColor: edge.color,
+          edgeWidth: Math.max(1, edge.width || 2)
+        }
+      }))
 
-  const fetchStockPrices = async (watchlist) => {
+      // Initialize Cytoscape
+      cyRef.current = cytoscape({
+        container: cytoscapeRef.current,
+        elements: [...cytoscapeNodes, ...cytoscapeEdges],
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'background-color': 'data(nodeColor)',
+              'border-width': 2,
+              'border-color': 'data(borderColor)',
+              'width': 'data(nodeSize)',
+              'height': 'data(nodeSize)',
+              'label': 'data(label)',
+              'color': '#1f2937',
+              'text-valign': 'center',
+              'text-halign': 'center',
+              'font-size': '10px',
+              'font-weight': 'bold',
+              'text-outline-width': 1,
+              'text-outline-color': '#fff'
+            }
+          },
+          {
+            selector: 'edge',
+            style: {
+              'width': 'data(edgeWidth)',
+              'line-color': 'data(edgeColor)',
+              'target-arrow-color': 'data(edgeColor)',
+              'target-arrow-shape': 'triangle',
+              'curve-style': 'bezier',
+              'opacity': 0.8
+            }
+          },
+          {
+            selector: 'node:selected',
+            style: {
+              'border-width': 4,
+              'border-color': '#3b82f6'
+            }
+          }
+        ],
+        layout: getLayoutConfig(selectedLayout),
+        zoomingEnabled: true,
+        userZoomingEnabled: true,
+        panningEnabled: true,
+        userPanningEnabled: true,
+        boxSelectionEnabled: false,
+        selectionType: 'single',
+        touchTapThreshold: 8,
+        desktopTapThreshold: 4,
+        autolock: false,
+        autoungrabify: false,
+        autounselectify: false
+      })
+
+      // Add event listeners
+      cyRef.current.on('zoom', () => {
+        const zoom = cyRef.current.zoom()
+        setCurrentZoom(zoom)
+      })
+
+      cyRef.current.on('tap', 'node', (evt) => {
+        const node = evt.target
+        const data = node.data()
+        console.log('Node clicked:', data)
+        
+        // Show node info in tooltip or sidebar
+        // You can expand this to show detailed stock information
+      })
+
+      // Fit to view initially
+      setTimeout(() => {
+        if (cyRef.current) {
+          cyRef.current.fit(null, 50)
+        }
+      }, 100)
+
+      console.log('✅ Cytoscape graph initialized successfully')
+    } catch (error) {
+      console.error('❌ Error initializing Cytoscape graph:', error)
+    }
+  }, [nodes, edges, selectedLayout])
+
+  // Get layout configuration
+  const getLayoutConfig = (layoutName) => {
+    const configs = {
+      'circle': {
+        name: 'circle',
+        fit: true,
+        padding: 30,
+        boundingBox: undefined,
+        avoidOverlap: true,
+        nodeDimensionsIncludeLabels: false,
+        spacingFactor: undefined,
+        radius: undefined,
+        startAngle: 3 / 2 * Math.PI,
+        sweep: undefined,
+        clockwise: true,
+        sort: undefined,
+        animate: false,
+        animationDuration: 500,
+        animationEasing: undefined,
+        transform: function(node, position) { return position; }
+      },
+      'grid': {
+        name: 'grid',
+        fit: true,
+        padding: 30,
+        boundingBox: undefined,
+        avoidOverlap: true,
+        avoidOverlapPadding: 10,
+        nodeDimensionsIncludeLabels: false,
+        spacingFactor: undefined,
+        condense: false,
+        rows: undefined,
+        cols: undefined,
+        position: function(node) {},
+        sort: undefined,
+        animate: false,
+        animationDuration: 500,
+        animationEasing: undefined,
+        transform: function(node, position) { return position; }
+      }
+    }
+    return configs[layoutName] || configs['grid']
+  }
+
+  // Cytoscape control functions
+  const handleZoomIn = () => {
+    if (cyRef.current) {
+      cyRef.current.zoom(cyRef.current.zoom() * 1.5)
+      cyRef.current.center()
+    }
+  }
+
+  const handleZoomOut = () => {
+    if (cyRef.current) {
+      cyRef.current.zoom(cyRef.current.zoom() * 0.75)
+      cyRef.current.center()
+    }
+  }
+
+  const handleResetZoom = () => {
+    if (cyRef.current) {
+      cyRef.current.fit(null, 50)
+    }
+  }
+
+  const handleLayoutChange = (newLayout) => {
+    setSelectedLayout(newLayout)
+    if (cyRef.current) {
+      const layout = cyRef.current.layout(getLayoutConfig(newLayout))
+      layout.run()
+    }
+  }
+
+  const fetchStockPrices = useCallback(async (watchlist, isManualRefresh = false) => {
+    if (!watchlist || watchlist.length === 0) return
+    
+    // Only show loading for manual refresh or initial load
+    if (isManualRefresh || !graphGeneratedRef.current) {
+      setLoading(true)
+    }
+    
     const prices = {}
     let realDataCount = 0
     let historicalDataCount = 0
@@ -182,7 +322,7 @@ const StockGraph = () => {
             // Count data types
             if (stockData.isRealData) {
               realDataCount++
-              console.log(`✅ Real-time data for ${stock.symbol}: $${stockData.price} (${stockData.source || 'Unknown source'})`)
+              console.log(`✅ Real-time data for ${stock.symbol}: ₹${stockData.price} (${stockData.source || 'Unknown source'})`)
             } else if (stockData.isHistoricalData) {
               historicalDataCount++
               console.log(`📅 Historical data for ${stock.symbol}: $${stockData.price} (${stockData.source || 'Historical'})`)
@@ -220,7 +360,169 @@ const StockGraph = () => {
     setStockPrices(prices)
     setLastUpdated(new Date())
     setLoading(false)
-  }
+    
+    // Only regenerate graph if watchlist changed or this is manual refresh
+    if (isManualRefresh || watchlist.length !== watchlistLengthRef.current) {
+      watchlistLengthRef.current = watchlist.length
+      graphGeneratedRef.current = false // Force regeneration
+    }
+  }, [])
+
+  // Initial watchlist fetch - only once
+  useEffect(() => {
+    const fetchWatchlist = async () => {
+      try {
+        const response = await fetch(`/api/user-watchlist?userId=${userId}`)
+        const data = await response.json()
+
+        if (data.success && data.watchlist && data.watchlist.length > 0) {
+          setWatchlistData(data.watchlist)
+          await fetchStockPrices(data.watchlist, false)
+        } else {
+          console.log('⚠️ User watchlist empty or failed, using sample watchlist')
+          // Use a sample watchlist for demonstration
+          const sampleWatchlist = [
+            { symbol: 'AAPL', name: 'Apple Inc.' },
+            { symbol: 'MSFT', name: 'Microsoft Corporation' },
+            { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+            { symbol: 'TSLA', name: 'Tesla, Inc.' },
+            { symbol: 'NVDA', name: 'NVIDIA Corporation' }
+          ]
+          setWatchlistData(sampleWatchlist)
+          await fetchStockPrices(sampleWatchlist, false)
+        }
+      } catch (err) {
+        console.error('❌ Error fetching watchlist:', err)
+        setError('Error fetching watchlist: ' + err.message)
+        setLoading(false)
+      }
+    }
+
+    fetchWatchlist()
+  }, [userId]) // Removed fetchStockPrices from dependencies
+
+  // Auto-refresh prices only (NOT the graph) - only when enabled
+  useEffect(() => {
+    if (!autoRefresh || watchlistData.length === 0) return
+
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing stock prices only...')
+      fetchStockPrices(watchlistData, false) // false = not manual, don't regenerate graph
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [watchlistData, autoRefresh]) // Removed fetchStockPrices from dependencies
+
+  // Generate graph data only when needed
+  const generateGraph = useCallback(async () => {
+    if (graphGeneratedRef.current || watchlistData.length === 0 || Object.keys(stockPrices).length === 0) {
+      return
+    }
+
+    console.log('🎯 Starting graph data generation...')
+    
+    const newNodes = watchlistData
+      .filter(stock => stockPrices[stock.symbol])
+      .map(stock => {
+        const stockData = stockPrices[stock.symbol]
+        
+        if (!stockData) {
+          console.warn(`⚠️ No stock data found for ${stock.symbol}`)
+          return null
+        }
+        
+        return {
+          id: stock.symbol,
+          name: stock.name || stock.symbol,
+          val: 1 + (stockData.marketCap ? Math.log(stockData.marketCap) / 200 : 1),
+          color: (stockData.change !== undefined && stockData.change >= 0) ? '#22c55e' : '#ef4444',
+          price: stockData.price || 0,
+          change: stockData.change || 0,
+          changePercent: stockData.changePercent || 0,
+          isRealData: stockData.isRealData || false,
+          isHistoricalData: stockData.isHistoricalData || false,
+          isStaticData: stockData.isStaticData || false,
+          hasIncompleteData: stockData.hasIncompleteData || false,
+          source: stockData.source || 'Unknown',
+          lastUpdated: stockData.timestamp ? new Date(stockData.timestamp).toLocaleTimeString() : 'Unknown'
+        }
+      })
+      .filter(node => node !== null) // Remove null nodes
+
+    console.log('🎯 Created nodes:', newNodes)
+
+    const grangerEdges = await fetchGrangerCausality(stockPrices)
+    console.log('🔗 Granger edges received:', grangerEdges)
+    
+    let newEdges = grangerEdges.map(edge => {
+      console.log('🔗 Processing edge:', edge)
+      return {
+        source: edge.source,
+        target: edge.target,
+        value: Math.abs(edge.correlation || 0.5),
+        width: Math.max(2, Math.abs(edge.correlation || 0.5) * 5),
+        color: (edge.correlation || 0) > 0 ? '#2563eb' : '#dc2626',
+        correlation: edge.correlation || 0
+      }
+    })
+
+    // Fallback: Create some sample edges if no Granger edges are found
+    if (newEdges.length === 0 && newNodes.length > 1) {
+      console.log('🔧 No Granger edges found, creating sample edges for visualization')
+      // Create a more interesting pattern of connections
+      for (let i = 0; i < newNodes.length; i++) {
+        for (let j = i + 1; j < newNodes.length; j++) {
+          // Only create edges for some pairs to avoid clutter
+          if (Math.random() > 0.7) { // 30% chance of connection
+            const correlation = (Math.random() * 2 - 1) * 0.8; // Random correlation between -0.8 and 0.8
+            newEdges.push({
+              source: newNodes[i].id,
+              target: newNodes[j].id,
+              value: Math.abs(correlation),
+              width: Math.random() * 4 + 2, // Random width 2-6
+              color: correlation > 0 ? '#3b82f6' : '#f97316', // Blue for positive, orange for negative
+              correlation: correlation
+            })
+          }
+        }
+      }
+      console.log('🔧 Created fallback edges:', newEdges)
+    }
+
+    console.log('✅ Final result - Nodes:', newNodes.length, 'Edges:', newEdges.length)
+    console.log('📊 Sample node:', newNodes[0])
+    console.log('🔗 Sample edge:', newEdges[0])
+
+    setNodes(newNodes)
+    setEdges(newEdges)
+    graphGeneratedRef.current = true
+    
+    // The graph will be initialized in the useEffect that watches nodes and edges
+  }, [watchlistData, stockPrices])
+
+  // Only generate graph when watchlist or prices change significantly
+  useEffect(() => {
+    generateGraph()
+  }, [watchlistData, stockPrices, generateGraph])
+
+  // Initialize the Cytoscape graph when nodes and edges change
+  useEffect(() => {
+    const initGraph = async () => {
+      if (nodes.length > 0 && edges.length > 0) {
+        // Make sure Cytoscape is ready first
+        if (!cytoscape) {
+          await initCytoscape()
+        }
+        
+        // Small timeout to ensure the DOM is ready
+        setTimeout(() => {
+          initializeCytoscapeGraph()
+        }, 200)
+      }
+    }
+    
+    initGraph()
+  }, [nodes, edges, initializeCytoscapeGraph])
 
   const fetchGrangerCausality = async (prices) => {
     try {
@@ -243,94 +545,68 @@ const StockGraph = () => {
     }
   };
 
-  useEffect(() => {
-    const generateGraph = async () => {
-      console.log('🎯 Starting graph generation...')
-      console.log('📋 Watchlist data:', watchlistData)
-      console.log('💰 Stock prices:', stockPrices)
-      
-      if (watchlistData.length === 0 || Object.keys(stockPrices).length === 0) {
-        console.log('⚠️ Not enough data to generate graph')
-        return
-      }
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    console.log('🔄 Manual refresh triggered - will regenerate graph')
+    graphGeneratedRef.current = false // Force graph regeneration
+    fetchStockPrices(watchlistData, true) // true = manual refresh
+  }
 
-      const newNodes = watchlistData
-        .filter(stock => stockPrices[stock.symbol])
-        .map(stock => {
-          const stockData = stockPrices[stock.symbol]
-          console.log(`🏗️ Creating node for ${stock.symbol}:`, stockData)
-          
-          // Check for undefined values
-          if (!stockData) {
-            console.warn(`⚠️ No stock data found for ${stock.symbol}`)
-            return null
-          }
-          
-          return {
-            id: stock.symbol,
-            name: stock.name || stock.symbol,
-            val: 1 + (stockData.marketCap ? Math.log(stockData.marketCap) / 200 : 1),
-            color: (stockData.change !== undefined && stockData.change >= 0) ? '#22c55e' : '#ef4444',
+  // Update node data when prices change (but don't regenerate entire graph)
+  useEffect(() => {
+    if (graphGeneratedRef.current && nodes.length > 0 && Object.keys(stockPrices).length > 0) {
+      const updatedNodes = nodes.map(node => {
+        const stockData = stockPrices[node.id]
+        if (stockData) {
+          const updatedNode = {
+            ...node,
             price: stockData.price || 0,
             change: stockData.change || 0,
             changePercent: stockData.changePercent || 0,
-            isRealData: stockData.isRealData || false,
-            isHistoricalData: stockData.isHistoricalData || false,
-            isStaticData: stockData.isStaticData || false,
-            hasIncompleteData: stockData.hasIncompleteData || false,
-            source: stockData.source || 'Unknown',
+            color: (stockData.change !== undefined && stockData.change >= 0) ? '#22c55e' : '#ef4444',
             lastUpdated: stockData.timestamp ? new Date(stockData.timestamp).toLocaleTimeString() : 'Unknown'
           }
-        })
-        .filter(node => node !== null) // Remove null nodes
-
-      console.log('🎯 Created nodes:', newNodes)
-
-      const grangerEdges = await fetchGrangerCausality(stockPrices)
-      console.log('🔗 Granger edges received:', grangerEdges)
-      
-      let newEdges = grangerEdges.map(edge => {
-        console.log('🔗 Processing edge:', edge)
-        return {
-          source: edge.source,
-          target: edge.target,
-          value: Math.abs(edge.correlation || 0.5),
-          width: Math.max(2, Math.abs(edge.correlation || 0.5) * 5),
-          color: (edge.correlation || 0) > 0 ? '#2563eb' : '#dc2626'
-        }
-      })
-
-      // Fallback: Create some sample edges if no Granger edges are found
-      if (newEdges.length === 0 && newNodes.length > 1) {
-        console.log('🔧 No Granger edges found, creating sample edges for visualization')
-        // Create a more interesting pattern of connections
-        for (let i = 0; i < newNodes.length; i++) {
-          for (let j = i + 1; j < newNodes.length; j++) {
-            // Only create edges for some pairs to avoid clutter
-            if (Math.random() > 0.7) { // 30% chance of connection
-              newEdges.push({
-                source: newNodes[i].id,
-                target: newNodes[j].id,
-                value: Math.random() * 0.8 + 0.2, // Random strength 0.2-1.0
-                width: Math.random() * 4 + 2, // Random width 2-6
-                color: Math.random() > 0.5 ? '#3b82f6' : '#f97316' // Random blue or orange
-              })
+          
+          // Also update the node in Cytoscape if it exists
+          if (cyRef.current) {
+            const cyNode = cyRef.current.getElementById(node.id)
+            if (cyNode && cyNode.length > 0) {
+              // Update data properties
+              cyNode.data('price', updatedNode.price)
+              cyNode.data('change', updatedNode.change)
+              cyNode.data('changePercent', updatedNode.changePercent)
+              cyNode.data('lastUpdated', updatedNode.lastUpdated)
+              
+              // Update the properties used by style mappings
+              cyNode.data('nodeColor', updatedNode.color)
+              cyNode.data('borderColor', updatedNode.change >= 0 ? '#16a34a' : '#dc2626')
             }
           }
+          
+          return updatedNode
         }
-        console.log('🔧 Created fallback edges:', newEdges)
-      }
+        return node
+      })
 
-      console.log('✅ Final result - Nodes:', newNodes.length, 'Edges:', newEdges.length)
-      console.log('📊 Sample node:', newNodes[0])
-      console.log('🔗 Sample edge:', newEdges[0])
-
-      setNodes(newNodes)
-      setEdges(newEdges)
+      setNodes(updatedNodes)
     }
+  }, [stockPrices]) // Only depend on stockPrices, not nodes
 
-    generateGraph()
-  }, [watchlistData, stockPrices])
+  // Additional styles for the Cytoscape container
+  const cytoscapeStyles = {
+    width: '100%',
+    height: '600px',
+    backgroundColor: '#f8fafc',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+  };
+  
+  // Layout options for the dropdown
+  const layoutOptions = [
+    { value: 'grid', label: 'Grid Layout' },
+    { value: 'circle', label: 'Circle Layout' }
+  ];
 
   if (loading) return (
     <div className={styles.loadingContainer}>
@@ -359,10 +635,7 @@ const StockGraph = () => {
         {/* Refresh Controls */}
         <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button 
-            onClick={() => {
-              console.log('🔄 Manually refreshing stock prices...')
-              fetchStockPrices(watchlistData)
-            }}
+            onClick={handleManualRefresh}
             disabled={loading}
             style={{
               padding: '0.5rem 1rem',
@@ -374,7 +647,49 @@ const StockGraph = () => {
               opacity: loading ? 0.6 : 1
             }}
           >
-            🔄 Refresh Prices
+            🔄 Refresh Graph & Prices
+          </button>
+          
+          <button 
+            onClick={handleResetZoom}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🎯 Reset Zoom
+          </button>
+          
+          <button 
+            onClick={handleZoomIn}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🔍 Zoom In
+          </button>
+          
+          <button 
+            onClick={handleZoomOut}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🔍 Zoom Out
           </button>
           
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white' }}>
@@ -383,7 +698,7 @@ const StockGraph = () => {
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
             />
-            Auto-refresh (30s)
+            Auto-refresh prices only (30s)
           </label>
           
           {lastUpdated && (
@@ -391,6 +706,10 @@ const StockGraph = () => {
               Last updated: {lastUpdated.toLocaleTimeString()}
             </span>
           )}
+          
+          <span style={{ fontSize: '12px', opacity: 0.7, color: 'white' }}>
+            Zoom: {(currentZoom * 100).toFixed(0)}%
+          </span>
         </div>
         
         {/* Debug info */}
@@ -407,47 +726,46 @@ const StockGraph = () => {
       
       <div className={styles.contentGrid}>
         <div className={styles.graphContainer}>
-          <ForceGraph2D
-            graphData={{ nodes, links: edges }}
-            nodeLabel={node => {
-              let dataType = '🔴 Unknown'
-              if (node.isRealData) dataType = '🟢 Real-time'
-              else if (node.isHistoricalData) dataType = '🟡 Historical'
-              else if (node.isStaticData) dataType = '🟠 Static'
-              else if (node.hasIncompleteData) dataType = '🔴 Incomplete'
-              
-              return `${node.id}: $${node.price?.toFixed(2)} (${node.changePercent?.toFixed(2)}%) | ${dataType} | Source: ${node.source} | Updated: ${node.lastUpdated}`
-            }}
-            nodeAutoColorBy="color"
-            linkColor={link => link.color || '#666666'} // Fallback color
-            linkWidth={link => link.width || 2} // Fallback width
-            linkOpacity={0.8} // Make links semi-transparent
-            linkDirectionalArrowLength={3.5}
-            linkDirectionalArrowRelPos={1}
-            linkCurvature={0} // Straight lines for simplicity
-            linkDirectionalParticles={1}
-            linkDirectionalParticleSpeed={0.01}
-            linkDirectionalParticleWidth={link => link.width / 2}
-            nodeCanvasObjectMode={() => 'after'}
-            nodeCanvasObject={(node, ctx, globalScale) => {
-              const label = node.id
-              const fontSize = 12 / globalScale
-              ctx.font = `${fontSize}px Sans-Serif`
-              ctx.fillStyle = 'black'
-              ctx.textAlign = 'center'
-              ctx.textBaseline = 'middle'
-              ctx.fillText(label, node.x, node.y - 10)
-
-              const pct = `${node.changePercent?.toFixed(2)}%`
-              ctx.fillStyle = node.change >= 0 ? '#22c55e' : '#ef4444'
-              ctx.fillText(pct, node.x, node.y + 10)
-            }}
-            backgroundColor="#f8fafc" // Light gray background instead of white
-            width={800}
-            height={600}
-            cooldownTicks={100}
-            onEngineStop={() => console.log('Force simulation stopped')}
+          {/* Layout controls */}
+          <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <label htmlFor="layout-select" style={{ color: 'white' }}>Graph Layout:</label>
+            <select
+              id="layout-select"
+              value={selectedLayout}
+              onChange={(e) => handleLayoutChange(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                backgroundColor: '#f8fafc',
+                color: '#1f2937'
+              }}
+            >
+              {layoutOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Cytoscape container */}
+          <div 
+            ref={cytoscapeRef} 
+            style={cytoscapeStyles}
+            data-testid="cytoscape-container"
           />
+          
+          {/* Tooltip for node details (future enhancement) */}
+          <div id="node-tooltip" style={{ 
+            position: 'absolute', 
+            display: 'none', 
+            backgroundColor: 'white', 
+            padding: '10px', 
+            borderRadius: '4px', 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            zIndex: 10
+          }}></div>
         </div>
         
         <div className={styles.sidebar}>
@@ -479,24 +797,6 @@ const StockGraph = () => {
           </div>
           
           <div className={styles.guideSection}>
-            <h3>Data Quality Guide</h3>
-            <div className={styles.guideItem}>
-              <span style={{ color: '#22c55e' }}>🟢</span>
-              <span>Real-time data</span>
-            </div>
-            <div className={styles.guideItem}>
-              <span style={{ color: '#f59e0b' }}>🟡</span>
-              <span>Historical data (recent)</span>
-            </div>
-            <div className={styles.guideItem}>
-              <span style={{ color: '#f97316' }}>🟠</span>
-              <span>Static/fallback data</span>
-            </div>
-            <div className={styles.guideItem}>
-              <span style={{ color: '#ef4444' }}>🔴</span>
-              <span>Incomplete/failed</span>
-            </div>
-            
             <h3 style={{ marginTop: '1rem' }}>Network Guide</h3>
             <div className={styles.guideItem}>
               <div className={styles.greenCircle}></div>

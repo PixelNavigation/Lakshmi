@@ -18,37 +18,20 @@ import StockGraph from '../Pages/StockGraph'
 import News from '../Pages/News'
 import LakshmiAi from '../Pages/LakshmiAi'
 
-// SVGs
-import GlobeSVG from '../../public/globe.svg';
-import FileSVG from '../../public/file.svg';
-import WindowSVG from '../../public/window.svg';
-import NextSVG from '../../public/next.svg';
-import VercelSVG from '../../public/vercel.svg';
-import BitcoinSVG from '../../public/bitcoin-svgrepo-com.svg';
-import MoneyBagSVG from '../../public/money-bag-svgrepo-com.svg';
-import DollarCoinSVG from '../../public/dollar-coin-svgrepo-com.svg';
-import TrendUpSVG from '../../public/trend-upward-svgrepo-com.svg';
-import TrendDownSVG from '../../public/trend-down-thin-svgrepo-com.svg';
 
 export default function Home() {
   const { user, loading } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [isInitialized, setIsInitialized] = useState(false)
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [scrollY, setScrollY] = useState(0)
-  const [isMouseMoving, setIsMouseMoving] = useState(false)
-  const bannerRef = useRef(null)
-  const featuresRef = useRef(null)
-  const ctaRef = useRef(null)
   const mouseTimeoutRef = useRef(null)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [isMouseMoving, setIsMouseMoving] = useState(false)
   const [tickerData, setTickerData] = useState([]);
   const [tickerLoading, setTickerLoading] = useState(true);
+  const [scrollY, setScrollY] = useState(0);
   const [confetti, setConfetti] = useState([]);
   const confettiRef = useRef(null);
   const threeCanvasRef = useRef(null);
-  const threeContainerRef = useRef(null);
-  const [coinPos, setCoinPos] = useState({ top: 120, left: 0 });
-  const [coinTransform, setCoinTransform] = useState({ scale: 1, rotation: 0 });
   const coinAnimRef = useRef({ top: 120, left: 0, scale: 1, rotation: 0 });
   const coinTargetRef = useRef({ top: 120, left: 0, scale: 1, rotation: 0 });
   const [coinAnimState, setCoinAnimState] = useState({ top: 120, left: 0, scale: 1, rotation: 0 });
