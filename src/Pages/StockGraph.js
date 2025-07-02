@@ -176,7 +176,9 @@ const StockGraph = () => {
         desktopTapThreshold: 4,
         autolock: false,
         autoungrabify: false,
-        autounselectify: false
+        autounselectify: false,
+        minZoom: 0.5,
+        maxZoom: 3
       })
 
       // Add event listeners
@@ -261,8 +263,10 @@ const StockGraph = () => {
 
   const handleZoomOut = () => {
     if (cyRef.current) {
-      cyRef.current.zoom(cyRef.current.zoom() * 0.75)
-      cyRef.current.center()
+      const minZoom = 0.5;
+      const newZoom = Math.max(cyRef.current.zoom() * 0.9, minZoom);
+      cyRef.current.zoom(newZoom);
+      cyRef.current.center();
     }
   }
 

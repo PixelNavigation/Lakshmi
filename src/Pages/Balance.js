@@ -17,6 +17,11 @@ export default function Balance() {
   const [showAddFunds, setShowAddFunds] = useState(false)
   const [addAmount, setAddAmount] = useState('')
   const [addCurrency, setAddCurrency] = useState('inr')
+  const [addTab, setAddTab] = useState('inr')
+  const [paymentMethod, setPaymentMethod] = useState('upi')
+  const [upiId, setUpiId] = useState('')
+  const [bankAccount, setBankAccount] = useState('')
+  const [ethWallet, setEthWallet] = useState('')
 
   // Get the actual authenticated user ID
   const userId = user?.id || 'user123' // Fallback for demo purposes
@@ -229,28 +234,113 @@ export default function Balance() {
                 ×
               </button>
             </div>
+            {/* Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #ccc', marginBottom: '1rem' }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  background: addTab === 'inr' ? '#FFD700' : 'transparent',
+                  color: addTab === 'inr' ? '#232526' : '#FFD700',
+                  border: 'none',
+                  borderBottom: addTab === 'inr' ? '2px solid #FFD700' : 'none',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setAddTab('inr')}
+              >
+                Add INR
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  background: addTab === 'eth' ? '#FFD700' : 'transparent',
+                  color: addTab === 'eth' ? '#232526' : '#FFD700',
+                  border: 'none',
+                  borderBottom: addTab === 'eth' ? '2px solid #FFD700' : 'none',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setAddTab('eth')}
+              >
+                Add ETH
+              </button>
+            </div>
             <div className={styles.modalBody}>
-              <div className={styles.inputGroup}>
-                <label>Amount</label>
-                <input
-                  type="number"
-                  value={addAmount}
-                  onChange={(e) => setAddAmount(e.target.value)}
-                  placeholder="Enter amount"
-                  className={styles.amountInput}
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label>Currency</label>
-                <select
-                  value={addCurrency}
-                  onChange={(e) => setAddCurrency(e.target.value)}
-                  className={styles.currencySelect}
-                >
-                  <option value="inr">INR (₹)</option>
-                  <option value="eth">ETH (Ξ)</option>
-                </select>
-              </div>
+              {addTab === 'inr' && (
+                <>
+                  <div className={styles.inputGroup}>
+                    <label>Amount</label>
+                    <input
+                      type="number"
+                      value={addAmount}
+                      onChange={(e) => setAddAmount(e.target.value)}
+                      placeholder="Enter amount"
+                      className={styles.amountInput}
+                    />
+                  </div>
+                  <div className={styles.inputGroup}>
+                    <label>Method of Payment</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={e => setPaymentMethod(e.target.value)}
+                      className={styles.currencySelect}
+                    >
+                      <option value="upi">UPI ID</option>
+                      <option value="bank">Bank Account Number</option>
+                    </select>
+                  </div>
+                  {paymentMethod === 'upi' && (
+                    <div className={styles.inputGroup}>
+                      <label>UPI ID</label>
+                      <input
+                        type="text"
+                        value={upiId}
+                        onChange={e => setUpiId(e.target.value)}
+                        placeholder="Enter UPI ID"
+                        className={styles.amountInput}
+                      />
+                    </div>
+                  )}
+                  {paymentMethod === 'bank' && (
+                    <div className={styles.inputGroup}>
+                      <label>Bank Account Number</label>
+                      <input
+                        type="text"
+                        value={bankAccount}
+                        onChange={e => setBankAccount(e.target.value)}
+                        placeholder="Enter Bank Account Number"
+                        className={styles.amountInput}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              {addTab === 'eth' && (
+                <>
+                  <div className={styles.inputGroup}>
+                    <label>Amount</label>
+                    <input
+                      type="number"
+                      value={addAmount}
+                      onChange={(e) => setAddAmount(e.target.value)}
+                      placeholder="Enter amount"
+                      className={styles.amountInput}
+                    />
+                  </div>
+                  <div className={styles.inputGroup}>
+                    <label>ETH Wallet Address</label>
+                    <input
+                      type="text"
+                      value={ethWallet}
+                      onChange={e => setEthWallet(e.target.value)}
+                      placeholder="Enter ETH Wallet Address"
+                      className={styles.amountInput}
+                    />
+                  </div>
+                </>
+              )}
               <div className={styles.modalActions}>
                 <button 
                   className={styles.cancelButton}
