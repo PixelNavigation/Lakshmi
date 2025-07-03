@@ -31,17 +31,24 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
       setLoading(false)
       return
     }
+    
+    // Validate phone number format (basic validation, you may want to use a more sophisticated check)
+    if (!phone || phone.trim() === '') {
+      setError('Phone number is required')
+      setLoading(false)
+      return
+    }
 
     try {
       // Create the sign up payload
+      // Supabase free tier doesn't allow custom user metadata, so we'll
+      // only include the full name here and handle phone separately
       const signUpPayload = {
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
-            // Store phone as user metadata if provided
-            ...(phone && { phone: phone })
+            full_name: fullName
           }
         }
       }
@@ -54,6 +61,25 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
       if (error) {
         setError(error.message)
       } else {
+        // After successful signup, store the phone number and email in a separate profiles table
+        // This works around the Supabase Pro plan requirement for custom user metadata
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('user_profiles')  // You need to create this table in your Supabase dashboard
+            .insert([
+              { 
+                user_id: data.user.id, 
+                phone: phone,
+                email: email  // Store email in profiles table for easier lookup
+              }
+            ]);
+            
+          if (profileError) {
+            console.error('Error storing phone number:', profileError);
+            // We'll still consider the signup successful, but log the error
+          }
+        }
+        
         setMessage('Check your email for the confirmation link!')
         // Clear form
         setEmail('')
@@ -103,16 +129,16 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Phone (optional)</label>
+            <label className={styles.inputLabel}>Phone</label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className={styles.authInput}
-              placeholder="Enter your phone number (optional)"
-              required={false}
+              placeholder="Enter your phone number"
+              required={true}
             />
-            <small className={styles.inputHelp}>Phone number will be stored in your profile but not used for login</small>
+            <small className={styles.inputHelp}>Phone number will be stored in your profile</small>
           </div>
 
           <div className={styles.inputGroup}>
