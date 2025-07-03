@@ -247,7 +247,7 @@ export default function Balance() {
                   fontWeight: 'bold',
                   cursor: 'pointer'
                 }}
-                onClick={() => setAddTab('inr')}
+                onClick={() => { setAddTab('inr'); setAddCurrency('inr'); }}
               >
                 Add INR
               </button>
@@ -262,7 +262,7 @@ export default function Balance() {
                   fontWeight: 'bold',
                   cursor: 'pointer'
                 }}
-                onClick={() => setAddTab('eth')}
+                onClick={() => { setAddTab('eth'); setAddCurrency('eth'); }}
               >
                 Add ETH
               </button>
