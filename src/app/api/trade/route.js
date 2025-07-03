@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -54,11 +55,50 @@ export async function GET(request) {
         // Parse the JSON from keyName parameter
         const tradeData = JSON.parse(keyName)
         
+        // Check for call_sid for OmniDimension voice commands
+        const callSid = searchParams.get('call_sid') || searchParams.get('callSid') || searchParams.get('session_id')
+        let accessToken = null
+        
+        // If call_sid is provided, first try to use it directly as a token
+        // This handles the case where OmniDimension sends the token directly
+        if (callSid) {
+          console.log('🔑 Authenticating trade with call_sid:', callSid.substring(0, 20) + '...')
+          
+          // First try using it as a direct token
+          try {
+            const { data, error } = await supabase.auth.getUser(callSid)
+            if (!error && data && data.user) {
+              console.log('✅ Using call_sid directly as access token')
+              accessToken = callSid
+              userId = data.user.id
+            } else {
+              // If not a valid token, try to get it from session store
+              const session = await getSession(callSid)
+              if (session && session.accessToken) {
+                accessToken = session.accessToken
+                userId = session.userId
+                console.log('✅ Retrieved token from session store for call_sid')
+              }
+            }
+          } catch (error) {
+            console.log('❌ Error validating call_sid as token:', error.message)
+          }
+        }
+        
         // First, try to get authenticated user
         const authUser = await getAuthenticatedUser(request)
         
         // Support both original and OmniDimension parameter names
         let userId = tradeData.userId
+        
+        // If we have accessToken from call_sid, validate it and get the user
+        if (!authUser && accessToken) {
+          const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+          if (!error && user) {
+            userId = user.id
+            console.log('✅ Using user from call_sid session for trade:', userId)
+          }
+        }
         
         // Use authenticated user ID if available, otherwise fall back to parameter
         if (authUser) {
@@ -405,11 +445,50 @@ export async function POST(request) {
   try {
     const body = await request.json()
     
-    // First, try to get authenticated user
+    // Check for call_sid for OmniDimension voice commands
+    const callSid = body.call_sid || body.callSid || body.session_id
+    let accessToken = null
+    
+    // If call_sid is provided, first try to use it directly as a token
+    // This handles the case where OmniDimension sends the token directly
+    if (callSid) {
+      console.log('🔑 Authenticating POST trade with call_sid:', callSid.substring(0, 20) + '...')
+      
+      // First try using it as a direct token
+      try {
+        const { data, error } = await supabase.auth.getUser(callSid)
+        if (!error && data && data.user) {
+          console.log('✅ Using call_sid directly as access token')
+          accessToken = callSid
+          userId = data.user.id
+        } else {
+          // If not a valid token, try to get it from session store
+          const session = await getSession(callSid)
+          if (session && session.accessToken) {
+            accessToken = session.accessToken
+            userId = session.userId
+            console.log('✅ Retrieved token from session store for call_sid')
+          }
+        }
+      } catch (error) {
+        console.log('❌ Error validating call_sid as token:', error.message)
+      }
+    }
+    
+    // First, try to get authenticated user from header
     const authUser = await getAuthenticatedUser(request)
     
     // Support both original and OmniDimension parameter names
     let userId = body.userId || body.keyName
+    
+    // If we have accessToken from call_sid, validate it and get the user
+    if (!authUser && accessToken) {
+      const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+      if (!error && user) {
+        userId = user.id
+        console.log('✅ Using user from call_sid session for POST trade:', userId)
+      }
+    }
     
     // Use authenticated user ID if available, otherwise fall back to parameter
     if (authUser) {
