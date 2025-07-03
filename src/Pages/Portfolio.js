@@ -533,7 +533,7 @@ export default function Portfolio() {
                   type="text"
                   value={tradeData.symbol}
                   onChange={(e) => setTradeData({...tradeData, symbol: e.target.value})}
-                  placeholder="Enter symbol (e.g., AAPL, RELIANCE.NS)"
+                  placeholder="Enter symbol (e.g., TCS, RELIANCE)"
                   className={styles.amountInput}
                 />
               </div>

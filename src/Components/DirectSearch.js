@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import styles from './DirectSearch.module.css'
 import StockDetail from './StockDetail'
-import { convertToTradingViewSymbol } from './TradingView/TradingViewHelper'
 
 export default function DirectSearch({ 
   selectedMarket, 
@@ -745,14 +744,31 @@ export default function DirectSearch({
                   </div>
                   <div className={styles.resultActions}>
                     <button 
-                      className={styles.addToWatchlistBtn}
+                      className={`${styles.addToWatchlistBtn} ${
+                        watchlist.includes(result.symbol) ? styles.alreadyAdded : ''
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation()
-                        addToWatchlist(result.symbol)
+                        if (!watchlist.includes(result.symbol)) {
+                          console.log(`📥 DirectSearch: Adding "${result.symbol}" to watchlist`)
+                          addToWatchlist(result.symbol)
+                        } else {
+                          console.log(`⚠️ DirectSearch: "${result.symbol}" is already in watchlist, button should be disabled`)
+                        }
                       }}
-                      disabled={watchlist.includes(convertToTradingViewSymbol(result.symbol))}
+                      disabled={watchlist.includes(result.symbol)}
                     >
-                      {watchlist.includes(convertToTradingViewSymbol(result.symbol)) ? '✓ Added' : '+ Add to Watchlist'}
+                      {watchlist.includes(result.symbol) ? (
+                        <>
+                          <span className={styles.checkIcon}>✓</span>
+                          Already Added
+                        </>
+                      ) : (
+                        <>
+                          <span className={styles.plusIcon}>+</span>
+                          Add to Watchlist
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

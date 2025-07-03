@@ -630,6 +630,10 @@
   transition: all 0.3s ease;
   white-space: nowrap;
   min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
 }
 
 .addToWatchlistBtn:hover {
@@ -644,13 +648,31 @@
 }
 
 .addToWatchlistBtn.alreadyAdded {
-  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #9ca3af;
   cursor: default;
 }
 
 .addToWatchlistBtn.alreadyAdded:hover {
   transform: none;
   box-shadow: none;
+  background: #2d3748;
+}
+
+.checkIcon {
+  font-size: 1rem;
+  color: #48bb78;
+  font-weight: bold;
+}
+
+.plusIcon {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.loadingIcon {
+  font-size: 1rem;
 }
 
 .resultsCount {

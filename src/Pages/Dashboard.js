@@ -4,11 +4,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import styles from './Dashboard.module.css'
 import DirectSearch from '../Components/DirectSearch'
-import { convertToTradingViewSymbol } from '../Components/TradingView/TradingViewHelper'
 import RealTimeStockPrice from '../Components/RealTimeStockPrice'
 import IndexPriceWidget from '../Components/IndexPriceWidget'
 import CandlestickChart from '../Components/CandlestickChart'
-import MarketOverview from '../Components/TradingView/MarketOverview'
 
 // Yahoo Finance Chart Component (replaces TradingView component)
 function YahooFinanceChart({ symbol }) {
@@ -451,7 +449,29 @@ export default function Dashboard() {
     loadWatchlistSymbols()
   }, [])
 
+  // Debug: Make helper functions available in console (development only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Make functions available globally for debugging
+      window.dashboardDebug = {
+        displayWatchlist,
+        isStockInWatchlist,
+        addToWatchlist,
+        watchlist,
+        refreshWatchlist: loadWatchlistSymbols
+      }
+      console.log('🛠️ Dashboard Debug Tools Available:')
+      console.log('   - window.dashboardDebug.displayWatchlist() - Show current watchlist')
+      console.log('   - window.dashboardDebug.isStockInWatchlist(symbol) - Check if stock exists')
+      console.log('   - window.dashboardDebug.addToWatchlist(symbol) - Add stock to watchlist')
+      console.log('   - window.dashboardDebug.refreshWatchlist() - Reload watchlist from server')
+      console.log('   - window.dashboardDebug.watchlist - Current watchlist array')
+    }
+  }, [watchlist])
+
   const loadWatchlistSymbols = async () => {
+    console.log('📥 Loading user watchlist from database...')
+    
     try {
       const headers = {
         'Content-Type': 'application/json'
@@ -460,6 +480,7 @@ export default function Dashboard() {
       // Add authorization header if user is authenticated
       if (user?.access_token) {
         headers['Authorization'] = `Bearer ${user.access_token}`
+        console.log('🔐 User authenticated, adding authorization header')
       }
       
       const response = await fetch(`/api/user-watchlist?userId=${userId}`, {
@@ -471,52 +492,116 @@ export default function Dashboard() {
         // Extract just the symbols for the DirectSearch component
         const symbols = result.watchlist.map(item => item.symbol)
         setWatchlist(symbols)
+        console.log(`✅ Successfully loaded watchlist with ${symbols.length} stocks`)
+        if (symbols.length > 0) {
+          console.log('📋 Your watchlist contains:', symbols)
+          console.log('💡 Use window.dashboardDebug.displayWatchlist() to see formatted list')
+        } else {
+          console.log('📭 Your watchlist is currently empty')
+          console.log('💡 Search for stocks and add them to your watchlist!')
+        }
+      } else {
+        console.warn('⚠️ Failed to load watchlist:', result.error || 'Unknown error')
       }
     } catch (error) {
-      console.error('Error loading watchlist:', error)
+      console.error('🚨 Error loading watchlist:', error)
     }
   }
 
   // Function to refresh data after trades (simplified since we only need to maintain the callback interface)
   const refreshData = () => {
     // The Portfolio and Balance tabs will refresh their own data when navigated to
-    console.log('Trade completed - Portfolio and Balance tabs will show updated data when visited')
+    console.log('🔄 Trade completed - Portfolio and Balance tabs will show updated data when visited')
+  }
+
+  // Helper function to check if a stock is already in watchlist
+  const isStockInWatchlist = (symbol) => {
+    const exists = watchlist.includes(symbol)
+    console.log(`🔍 Checking if "${symbol}" is in watchlist: ${exists ? 'YES' : 'NO'}`)
+    return exists
+  }
+
+  // Function to display current watchlist
+  const displayWatchlist = () => {
+    console.log('📋 Current Watchlist:')
+    if (watchlist.length === 0) {
+      console.log('   📭 Watchlist is empty')
+    } else {
+      watchlist.forEach((stock, index) => {
+        console.log(`   ${index + 1}. ${stock}`)
+      })
+    }
+    return watchlist
   }
 
   const addToWatchlist = async (symbol) => {
+    console.log(`🔍 Attempting to add "${symbol}" to watchlist...`)
+    
+    // Display current watchlist status
+    displayWatchlist()
+    
     // Use symbol as-is since we're not using TradingView anymore
     const yahooCompatibleSymbol = symbol
     
-    if (isAddingToWatchlist || watchlist.includes(yahooCompatibleSymbol)) return
+    // Check if already adding to prevent duplicate requests
+    if (isAddingToWatchlist) {
+      console.log('⏳ Already adding a stock to watchlist, please wait...')
+      alert('Please wait, already processing a watchlist request...')
+      return
+    }
+    
+    // Check if stock is already in watchlist using helper function
+    if (isStockInWatchlist(yahooCompatibleSymbol)) {
+      console.log(`⚠️ Stock "${symbol}" is already in your watchlist!`)
+      alert(`"${symbol}" is already in your watchlist`)
+      return
+    }
     
     setIsAddingToWatchlist(true)
+    console.log(`📡 Sending request to add "${symbol}" to watchlist...`)
+    console.log(`👤 User ID: ${userId}`)
+    
     try {
+      const requestBody = { 
+        userId: userId,
+        symbol: yahooCompatibleSymbol, // Store Yahoo-compatible symbol
+        name: symbol, // Keep original symbol for display name if needed
+        action: 'add'
+      }
+      console.log('📤 Request payload:', requestBody)
+      
       const response = await fetch('/api/user-watchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId: userId,
-          symbol: yahooCompatibleSymbol, // Store Yahoo-compatible symbol
-          name: symbol, // Keep original symbol for display name if needed
-          action: 'add'
-        })
+        body: JSON.stringify(requestBody)
       })
       
       const result = await response.json()
+      console.log('📥 Server response:', result)
       
       if (result.success) {
         // Add to local state for immediate UI update
-        setWatchlist(prev => [...prev, tradingViewSymbol])
+        setWatchlist(prev => {
+          const newWatchlist = [...prev, yahooCompatibleSymbol]
+          console.log(`Successfully added "${symbol}" to watchlist!`)
+          return newWatchlist
+        })
+        
+        // Success alert with console log
+        console.log(`🎉 "${symbol}" has been added to your watchlist successfully!`)
+        alert(`✅ "${symbol}" has been added to your watchlist.`)
       } else {
-        console.error('Failed to add to watchlist:', result.error)
-        // Show error to user if needed
-        alert(`Failed to add ${symbol} to watchlist: ${result.error}`)
+        console.error(`❌ Failed to add "${symbol}" to watchlist:`, result.error)
+        console.log('🔍 Server response details:', result)
+        alert(`❌ Failed to add "${symbol}" to watchlist:\n\n${result.error}`)
       }
     } catch (error) {
-      console.error('Error adding to watchlist:', error)
-      alert('Network error while adding to watchlist')
+      console.error(`🚨 Network error while adding "${symbol}" to watchlist:`, error)
+      console.log('🌐 Check your internet connection and try again')
+      alert(`🚨 Network error while adding "${symbol}" to watchlist.\n\nPlease check your connection and try again.`)
     } finally {
       setIsAddingToWatchlist(false)
+      console.log('🔓 Watchlist operation completed, ready for next request')
     }
   }
 

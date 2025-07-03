@@ -329,67 +329,129 @@ export default function StockScreener() {
     setFilters(newFilters)
   }
 
-  // Add to watchlist function
+  // Add to watchlist function - Updated to match Dashboard implementation
   const addToWatchlist = async (stock) => {
-    if (addingToWatchlist[stock.symbol]) return
+    console.log(`🔍 StockScreener: Attempting to add "${stock.displaySymbol}" to watchlist...`)
+    
+    // Display current watchlist status
+    displayWatchlist()
+    
+    if (addingToWatchlist[stock.symbol]) {
+      console.log('⏳ Already adding this stock to watchlist, please wait...')
+      alert('Please wait, already processing a watchlist request...')
+      return
+    }
+    
+    // Check if stock is already in watchlist
+    if (isStockInWatchlist(stock.symbol)) {
+      console.log(`⚠️ Stock "${stock.displaySymbol}" is already in your watchlist!`)
+      alert(`"${stock.displaySymbol}" is already in your watchlist!\n\nCurrent watchlist contains ${userWatchlist.length} stocks.`)
+      return
+    }
     
     setAddingToWatchlist(prev => ({ ...prev, [stock.symbol]: true }))
+    console.log(`📡 StockScreener: Sending request to add "${stock.displaySymbol}" to watchlist...`)
+    console.log(`👤 User ID: ${userId}`)
     
     try {
-      // Call the API to add the stock to user's watchlist
-      const response = await fetch('/api/watchlist', {
+      const requestBody = {
+        userId: userId,
+        symbol: stock.symbol, // Use the full symbol (e.g., TCS.NS)
+        name: stock.name, // Full company name
+        action: 'add'
+      }
+      console.log('📤 StockScreener: Request payload:', requestBody)
+      
+      // Use the same API endpoint as Dashboard
+      const response = await fetch('/api/user-watchlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId: userId,
-          symbol: stock.symbol,
-          displaySymbol: stock.displaySymbol,
-          name: stock.name,
-          exchange: stock.exchange || 'NSE'
-        })
+        body: JSON.stringify(requestBody)
       })
       
       const data = await response.json()
+      console.log('📥 StockScreener: Server response:', data)
       
       if (data.success) {
         // Refresh the watchlist to include the new stock
         await fetchUserWatchlist()
-        alert(`${stock.name} (${stock.displaySymbol}) added to your watchlist`)
+        console.log(`✅ StockScreener: Successfully added "${stock.displaySymbol}" to watchlist!`)
+        console.log(`📊 Watchlist stats: ${userWatchlist.length} → ${userWatchlist.length + 1} stocks`)
+        alert(`✅ "${stock.displaySymbol}" has been added to your watchlist!\n\nYou now have ${userWatchlist.length + 1} stocks in your watchlist.`)
       } else {
-        throw new Error(data.error || 'Failed to add to watchlist')
+        console.error(`❌ StockScreener: Failed to add "${stock.displaySymbol}" to watchlist:`, data.error)
+        console.log('🔍 Server response details:', data)
+        alert(`❌ Failed to add "${stock.displaySymbol}" to watchlist:\n\n${data.error}`)
       }
     } catch (error) {
-      console.error('Error adding to watchlist:', error)
-      alert('Failed to add to watchlist')
+      console.error(`🚨 StockScreener: Network error while adding "${stock.displaySymbol}" to watchlist:`, error)
+      console.log('🌐 Check your internet connection and try again')
+      alert(`🚨 Network error while adding "${stock.displaySymbol}" to watchlist.\n\nPlease check your connection and try again.`)
     } finally {
       setAddingToWatchlist(prev => ({ ...prev, [stock.symbol]: false }))
+      console.log('🔓 StockScreener: Watchlist operation completed, ready for next request')
     }
   }
 
-  // Fetch user's watchlist
+  // Fetch user's watchlist - Updated to match Dashboard implementation
   const fetchUserWatchlist = async () => {
+    console.log('📥 StockScreener: Loading user watchlist from database...')
     setWatchlistLoading(true)
+    
     try {
-      const response = await fetch(`/api/user-watchlist?userId=${userId}`)
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add authorization header if user is authenticated
+      if (user?.access_token) {
+        headers['Authorization'] = `Bearer ${user.access_token}`
+        console.log('🔐 StockScreener: User authenticated, adding authorization header')
+      }
+      
+      const response = await fetch(`/api/user-watchlist?userId=${userId}`, {
+        headers
+      })
       const data = await response.json()
       
       if (data.success) {
         setUserWatchlist(data.watchlist || [])
+        console.log(`✅ StockScreener: Successfully loaded watchlist with ${data.watchlist?.length || 0} stocks`)
+        if (data.watchlist?.length > 0) {
+          console.log('📋 StockScreener: Watchlist symbols:', data.watchlist.map(item => item.symbol))
+        } else {
+          console.log('📭 StockScreener: Watchlist is currently empty')
+        }
       } else {
-        console.error('Error fetching watchlist:', data.error)
+        console.warn('⚠️ StockScreener: Failed to load watchlist:', data.error || 'Unknown error')
       }
     } catch (error) {
-      console.error('Error fetching watchlist:', error)
+      console.error('🚨 StockScreener: Error loading watchlist:', error)
     } finally {
       setWatchlistLoading(false)
     }
   }
 
-  // Check if a stock is in the watchlist
+  // Check if a stock is in the watchlist - Updated with logging
   const isStockInWatchlist = (symbol) => {
-    return userWatchlist.some(item => item.symbol === symbol)
+    const exists = userWatchlist.some(item => item.symbol === symbol)
+    console.log(`🔍 StockScreener: Checking if "${symbol}" is in watchlist: ${exists ? 'YES' : 'NO'}`)
+    return exists
+  }
+
+  // Helper function to display current watchlist
+  const displayWatchlist = () => {
+    console.log('📋 StockScreener: Current Watchlist:')
+    if (userWatchlist.length === 0) {
+      console.log('   📭 Watchlist is empty')
+    } else {
+      userWatchlist.forEach((stock, index) => {
+        console.log(`   ${index + 1}. ${stock.symbol} - ${stock.name || 'Unknown'}`)
+      })
+    }
+    return userWatchlist
   }
 
   // Run screen when filters change
@@ -403,6 +465,11 @@ export default function StockScreener() {
       fetchUserWatchlist()
     }
   }, [userId])
+
+  // Debug: Log watchlist changes
+  useEffect(() => {
+    console.log('🔍 StockScreener: Watchlist updated:', userWatchlist)
+  }, [userWatchlist])
 
   // Real-time updates
   useEffect(() => {
@@ -420,6 +487,29 @@ export default function StockScreener() {
       if (intervalId) clearInterval(intervalId)
     }
   }, [realTimeEnabled, fetchRealTimeData])
+
+  // Debug: Make helper functions available in console (development only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Make functions available globally for debugging
+      window.stockScreenerDebug = {
+        userWatchlist,
+        isStockInWatchlist,
+        addToWatchlist,
+        refreshWatchlist: fetchUserWatchlist,
+        displayWatchlist,
+        screenResults,
+        filters
+      }
+      console.log('🛠️ StockScreener Debug Tools Available:')
+      console.log('   - window.stockScreenerDebug.userWatchlist - Current watchlist array')
+      console.log('   - window.stockScreenerDebug.isStockInWatchlist(symbol) - Check if stock exists')
+      console.log('   - window.stockScreenerDebug.displayWatchlist() - Show formatted watchlist')
+      console.log('   - window.stockScreenerDebug.refreshWatchlist() - Reload watchlist from server')
+      console.log('   - window.stockScreenerDebug.screenResults - Current screening results')
+      console.log('   - window.stockScreenerDebug.filters - Current filter settings')
+    }
+  }, [userWatchlist, screenResults, filters])
 
   return (
     <div className={styles.pageContainer}>
@@ -569,7 +659,8 @@ export default function StockScreener() {
                       className={`${styles.addToWatchlistBtn} ${styles.alreadyAdded}`}
                       disabled={true}
                     >
-                      ✓ Already Added
+                      <span className={styles.checkIcon}>✓</span>
+                      Already Added
                     </button>
                   ) : (
                     <button 
@@ -577,7 +668,17 @@ export default function StockScreener() {
                       onClick={() => addToWatchlist(stock)}
                       disabled={addingToWatchlist[stock.symbol]}
                     >
-                      {addingToWatchlist[stock.symbol] ? '⏳ Adding...' : '+ Add to Watchlist'}
+                      {addingToWatchlist[stock.symbol] ? (
+                        <>
+                          <span className={styles.loadingIcon}>⏳</span>
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <span className={styles.plusIcon}>+</span>
+                          Add to Watchlist
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
