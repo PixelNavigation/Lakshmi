@@ -280,55 +280,136 @@ function MarketIndexCard({ name, symbol, indexKey }) {
   )
 }
 
-// New: Crypto Indices Widget
-function CryptoIndicesWidget() {
-  // Example crypto data; in real use, fetch from API
-  const cryptos = [
-    { name: 'Bitcoin', symbol: 'BTCINR', value: 5125000, change: 42000, changePercent: 0.82, time: '8:17 PM' },
-    { name: 'Ethereum', symbol: 'ETHINR', value: 310000, change: 2800, changePercent: 0.91, time: '8:17 PM' },
-    { name: 'Cardano', symbol: 'ADAINR', value: 45.5, change: -1.5, changePercent: -3.19, time: '8:17 PM' },
-    { name: 'Dogecoin', symbol: 'DOGEINR', value: 28.75, change: 1.58, changePercent: 5.82, time: '8:17 PM' },
-    { name: 'Polygon', symbol: 'MATICINR', value: 72.3, change: 3.2, changePercent: 4.63, time: '8:17 PM' },
-    { name: 'Solana', symbol: 'SOLINR', value: 12650.8, change: 650.8, changePercent: 5.43, time: '8:17 PM' },
-  ]
-  return (
-    <div className={styles.indexPriceWidgetContainer}>
-      <div className={styles.indexPriceWidgetHeader}>
-        <h3>Crypto Indices</h3>
-        <div className={styles.liveIndicator}><span className={styles.liveDot}>●</span> LIVE</div>
+// Helper function to format market cap values
+function formatMarketCap(marketCap) {
+  if (marketCap >= 1e15) {
+    return `${(marketCap / 1e15).toFixed(2)}Q` // Quadrillion
+  } else if (marketCap >= 1e12) {
+    return `${(marketCap / 1e12).toFixed(2)}T` // Trillion
+  } else if (marketCap >= 1e9) {
+    return `${(marketCap / 1e9).toFixed(2)}B` // Billion
+  } else if (marketCap >= 1e6) {
+    return `${(marketCap / 1e6).toFixed(2)}M` // Million
+  } else if (marketCap >= 1e3) {
+    return `${(marketCap / 1e3).toFixed(2)}K` // Thousand
+  } else {
+    return marketCap.toFixed(2)
+  }
+}
+
+// Real-time Crypto Trending Widget
+function CryptoTrendingWidget() {
+  const [trendingCoins, setTrendingCoins] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [usdToInr, setUsdToInr] = useState(83.45)
+
+  const fetchTrendingCrypto = async () => {
+    try {
+      setLoading(true)
+      // Fetch trending cryptocurrencies with real INR prices
+      const response = await fetch('/api/crypto-trending')
+      const data = await response.json()
+      
+      if (data.success) {
+        setTrendingCoins(data.coins)
+        setUsdToInr(data.usdToInr || 83.45)
+        setError(null)
+      } else {
+        throw new Error(data.error || 'Failed to fetch trending crypto')
+      }
+    } catch (err) {
+      console.error('Error fetching trending crypto:', err)
+      setError(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTrendingCrypto()
+    // Update every 30 seconds
+    const interval = setInterval(fetchTrendingCrypto, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading && trendingCoins.length === 0) {
+    return (
+      <div className={styles.cryptoTrendingContainer}>
+        <div className={styles.cryptoHeader}>
+          <h3>🚀 Trending Coins</h3>
+          <div className={styles.liveIndicator}>
+            <span className={styles.liveDot}>●</span> Loading...
+          </div>
+        </div>
+        <div className={styles.cryptoLoadingGrid}>
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className={styles.cryptoLoadingCard}>
+              <div className={styles.loadingShimmer}></div>
+            </div>
+          ))}
+        </div>
       </div>
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '1.5rem',
-        marginTop: '1rem',
-        justifyContent: 'flex-start',
-      }}>
-        {cryptos.map((crypto, i) => (
-          <div key={i} className={styles.indexCard} style={{
-            background:'#181c20',
-            borderRadius:'12px',
-            boxShadow:'0 2px 8px rgba(0,0,0,0.12)',
-            padding:'1.2rem 1.5rem',
-            minWidth:'180px',
-            maxWidth:'220px',
-            color:'#fff',
-            display:'flex',
-            flexDirection:'column',
-            alignItems:'flex-start',
-            flex: '1 1 220px',
-          }}>
-            <div style={{fontWeight:'bold', fontSize:'1.1rem', marginBottom:'0.2rem'}}>{crypto.name}</div>
-            <div style={{fontSize:'1.5rem', fontWeight:'bold', marginBottom:'0.2rem'}}>
-              ₹{crypto.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+    )
+  }
+
+  return (
+    <div className={styles.cryptoTrendingContainer}>
+      <div className={styles.cryptoHeader}>
+        <h3>🚀 Trending Coins</h3>
+        <div className={styles.liveIndicator}>
+          <span className={styles.liveDot}>●</span> LIVE • USD/INR: ₹{usdToInr.toFixed(2)}
+        </div>
+      </div>
+      
+      <div className={styles.cryptoTrendingGrid}>
+        {trendingCoins.slice(0, 6).map((coin) => (
+          <div key={coin.id} className={styles.cryptoTrendingCard}>
+            <div className={styles.cryptoInfo}>
+              <div className={styles.cryptoIcon}>
+                {coin.symbol.charAt(0)}
+              </div>
+              <div className={styles.cryptoDetails}>
+                <div className={styles.cryptoSymbol}>{coin.symbol}</div>
+                <div className={styles.cryptoName}>{coin.name}</div>
+              </div>
             </div>
-            <div style={{fontSize:'1rem', marginBottom:'0.2rem', color: crypto.change >= 0 ? '#4caf50' : '#ff5252'}}>
-              {(crypto.change >= 0 ? '+' : '') + crypto.change} ({(crypto.changePercent >= 0 ? '+' : '') + crypto.changePercent}%)
+            
+            <div className={styles.cryptoPriceSection}>
+              <div className={styles.cryptoPrice}>
+                ₹{coin.price_inr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              </div>
             </div>
-            <div style={{fontSize:'0.9rem', color:'#aaa', marginTop:'0.2rem'}}>{crypto.time}</div>
+            
+            <div className={styles.cryptoMetrics}>
+              <div className={styles.cryptoHighLow}>
+                <div className={styles.highLowItem}>
+                  <span className={styles.highLowLabel}>24h High:</span>
+                  <span className={styles.highValue}>₹{(coin.day_high_inr || coin.high_24h)?.toLocaleString('en-IN', { maximumFractionDigits: 2 }) || 'N/A'}</span>
+                </div>
+                <div className={styles.highLowItem}>
+                  <span className={styles.highLowLabel}>24h Low:</span>
+                  <span className={styles.lowValue}>₹{(coin.day_low_inr || coin.low_24h)?.toLocaleString('en-IN', { maximumFractionDigits: 2 }) || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
+      
+      {error && (
+        <div className={styles.cryptoError}>
+          Failed to load live data. Showing cached prices.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CryptoIndicesWidget() {
+  return (
+    <div className={styles.cryptoIndicesContainer}>
+      <CryptoTrendingWidget />
     </div>
   )
 }
@@ -621,7 +702,11 @@ export default function Dashboard() {
 
       {/* Show Indian or Crypto Indices based on selection */}
       {selectedMarket === 'INDIAN' && <IndexPriceWidget />}
-      {selectedMarket === 'CRYPTO' && <CryptoIndicesWidget />}
+      {selectedMarket === 'CRYPTO' && (
+        <div className={styles.fullWidthCryptoSection}>
+          <CryptoIndicesWidget />
+        </div>
+      )}
 
       <div className={styles.contentGrid}>
         <div className={styles.mainContent}>
