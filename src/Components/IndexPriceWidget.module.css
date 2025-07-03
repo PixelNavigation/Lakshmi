@@ -18,6 +18,30 @@
   padding-bottom: 0.75rem;
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.clickHint {
+  display: flex;
+  align-items: center;
+  font-size: 0.7rem;
+  color: #888;
+  gap: 0.3rem;
+  animation: fadeInOut 3s ease-in-out infinite;
+}
+
+.clickIcon {
+  font-size: 0.8rem;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 .indexPriceWidgetHeader h3 {
   font-size: 1.4rem;
   font-weight: 600;
@@ -127,4 +151,39 @@
   100% {
     opacity: 0.3;
   }
+}
+
+/* Clickable Index Card Styles */
+.indexCard.clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.indexCard.clickable::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.indexCard.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.indexCard.clickable:hover::before {
+  opacity: 1;
+}
+
+.indexCard.clickable:active {
+  transform: translateY(0);
+  transition: transform 0.1s ease;
 }

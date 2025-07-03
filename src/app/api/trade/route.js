@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import { getSession } from '@/lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -55,53 +54,11 @@ export async function GET(request) {
         // Parse the JSON from keyName parameter
         const tradeData = JSON.parse(keyName)
         
-        // Check for call_sid for OmniDimension voice commands
-        const callSid = searchParams.get('call_sid') || searchParams.get('callSid') || searchParams.get('session_id')
-        let accessToken = searchParams.get('access_token') || searchParams.get('accessToken') || null
-        let userId = tradeData.userId
-        
-        // If we have a direct access_token parameter, use it
-        if (accessToken) {
-          try {
-            const { data, error } = await supabase.auth.getUser(accessToken)
-            if (!error && data && data.user) {
-              userId = data.user.id
-            }
-          } catch (err) {
-            accessToken = null // Reset if error
-          }
-        }
-        
-        // If access_token not provided directly or invalid, try call_sid
-        if (!accessToken && callSid) {
-          // First check if call_sid is a user ID (OmniDimension sends user ID as call_sid)
-          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(callSid)) {
-            // Use call_sid as userId directly
-            userId = callSid
-          } else {
-            // Try other methods
-            // Get the session from the session store
-            const session = await getSession(callSid)
-            if (session && session.accessToken) {
-              accessToken = session.accessToken
-              userId = session.userId
-            } else {
-              // Check if call_sid is actually a JWT token
-              try {
-                const { data, error } = await supabase.auth.getUser(callSid)
-                if (!error && data && data.user) {
-                  accessToken = callSid // The call_sid is the access token
-                  userId = data.user.id
-                }
-              } catch (err) {
-                // Not a valid token, ignore
-              }
-            }
-          }
-        }
-        
-        // First, try to get authenticated user from header
+        // First, try to get authenticated user
         const authUser = await getAuthenticatedUser(request)
+        
+        // Support both original and OmniDimension parameter names
+        let userId = tradeData.userId
         
         // Use authenticated user ID if available, otherwise fall back to parameter
         if (authUser) {
@@ -117,17 +74,6 @@ export async function GET(request) {
             headers: corsHeaders 
           })
         }
-        // Configure Supabase with the access token if provided
-        let client = supabase
-        if (accessToken) {
-          try {
-            await supabase.auth.setSession({ access_token: accessToken, refresh_token: '' })
-            client = supabase
-          } catch (err) {
-            // Fallback to default client
-          }
-        }
-
         const symbol = tradeData.symbol
         const quantity = tradeData.quantity 
         // Remove price requirement - we'll fetch current price
@@ -214,7 +160,7 @@ export async function GET(request) {
         const totalAmount = quantity * currentPrice
 
         // Execute the trade logic (same as POST method)
-        const { data: currentBalance, error: balanceError } = await client
+        const { data: currentBalance, error: balanceError } = await supabase
           .from('user_balances')
           .select('*')
           .eq('user_id', userId)
@@ -237,7 +183,7 @@ export async function GET(request) {
           }
 
           // Deduct INR balance
-          const { error: balanceUpdateError } = await client
+          const { error: balanceUpdateError } = await supabase
             .from('user_balances')
             .update({
               inr_balance: (parseFloat(currentBalance.inr_balance) - totalAmount).toFixed(2),
@@ -253,7 +199,7 @@ export async function GET(request) {
           }
 
           // Update or insert portfolio
-          const { data: existingHolding, error: portfolioFetchError } = await client
+          const { data: existingHolding, error: portfolioFetchError } = await supabase
             .from('user_portfolio')
             .select('*')
             .eq('user_id', userId)
@@ -273,7 +219,7 @@ export async function GET(request) {
             const newTotalInvested = parseFloat(existingHolding.total_invested) + totalAmount
             const newAvgPrice = newTotalInvested / newQuantity
 
-            const { error: portfolioUpdateError } = await client
+            const { error: portfolioUpdateError } = await supabase
               .from('user_portfolio')
               .update({
                 quantity: newQuantity.toFixed(8),
@@ -292,7 +238,7 @@ export async function GET(request) {
             }
           } else {
             // Create new holding
-            const { error: portfolioInsertError } = await client
+            const { error: portfolioInsertError } = await supabase
               .from('user_portfolio')
               .insert({
                 user_id: userId,
@@ -311,7 +257,7 @@ export async function GET(request) {
           }
         } else if (transactionType === 'SELL') {
           // Check if user has sufficient holdings
-          const { data: existingHolding, error: portfolioFetchError } = await client
+          const { data: existingHolding, error: portfolioFetchError } = await supabase
             .from('user_portfolio')
             .select('*')
             .eq('user_id', userId)
@@ -459,50 +405,11 @@ export async function POST(request) {
   try {
     const body = await request.json()
     
-    // Check for call_sid for OmniDimension voice commands
-    const callSid = body.call_sid || body.callSid || body.session_id
-    let accessToken = null
-    
-    // If call_sid is provided, first try to use it directly as a token
-    // This handles the case where OmniDimension sends the token directly
-    if (callSid) {
-      console.log('🔑 Authenticating POST trade with call_sid:', callSid.substring(0, 20) + '...')
-      
-      // First try using it as a direct token
-      try {
-        const { data, error } = await supabase.auth.getUser(callSid)
-        if (!error && data && data.user) {
-          console.log('✅ Using call_sid directly as access token')
-          accessToken = callSid
-          userId = data.user.id
-        } else {
-          // If not a valid token, try to get it from session store
-          const session = await getSession(callSid)
-          if (session && session.accessToken) {
-            accessToken = session.accessToken
-            userId = session.userId
-            console.log('✅ Retrieved token from session store for call_sid')
-          }
-        }
-      } catch (error) {
-        console.log('❌ Error validating call_sid as token:', error.message)
-      }
-    }
-    
-    // First, try to get authenticated user from header
+    // First, try to get authenticated user
     const authUser = await getAuthenticatedUser(request)
     
     // Support both original and OmniDimension parameter names
     let userId = body.userId || body.keyName
-    
-    // If we have accessToken from call_sid, validate it and get the user
-    if (!authUser && accessToken) {
-      const { data: { user }, error } = await supabase.auth.getUser(accessToken)
-      if (!error && user) {
-        userId = user.id
-        console.log('✅ Using user from call_sid session for POST trade:', userId)
-      }
-    }
     
     // Use authenticated user ID if available, otherwise fall back to parameter
     if (authUser) {

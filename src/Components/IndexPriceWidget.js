@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import styles from './IndexPriceWidget.module.css'
 
-export default function IndexPriceWidget() {
+export default function IndexPriceWidget({ onIndexClick }) {
   const [indices, setIndices] = useState([
     { 
       name: 'NIFTY 50', 
@@ -100,14 +100,21 @@ export default function IndexPriceWidget() {
     <div className={styles.indexPriceWidgetContainer}>
       <div className={styles.indexPriceWidgetHeader}>
         <h3>Market Indices</h3>
-        <div className={styles.liveIndicator}>
-          <span className={styles.liveDot}>●</span> LIVE
+        <div className={styles.headerRight}>
+  
+          <div className={styles.liveIndicator}>
+            <span className={styles.liveDot}>●</span> LIVE
+          </div>
         </div>
       </div>
       
       <div className={styles.indicesGrid}>
         {indices.map((index, i) => (
-          <div key={i} className={styles.indexCard}>
+          <div 
+            key={i} 
+            className={`${styles.indexCard} ${onIndexClick ? styles.clickable : ''}`}
+            onClick={() => onIndexClick && onIndexClick(index)}
+          >
             <div className={styles.indexName}>{index.name}</div>
             
             {index.isLoading ? (

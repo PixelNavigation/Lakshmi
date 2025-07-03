@@ -1258,3 +1258,229 @@
     padding: 1rem;
   }
 }
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modalContent {
+  background: #232526;
+  border: 1px solid #434343;
+  border-radius: 16px;
+  max-width: 95vw;
+  max-height: 95vh;
+  width: 1000px;
+  overflow: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modalHeader {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #434343;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  background: linear-gradient(135deg, #2a2a2a, #232526);
+  position: relative;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  color: #FFD700;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-left: 4rem;
+  flex: 1;
+  text-align: center;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.closeButton:hover {
+  background: #434343;
+  color: #FFD700;
+}
+
+.modalBody {
+  padding: 2rem;
+}
+
+/* Special styling for modal MarketIndexCard */
+.modalBody .marketIndexCard {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.modalBody .indexDetails {
+  padding: 0;
+  border-top: none;
+  background: transparent;
+}
+
+.modalBody .realTimeContainer {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.modalBody .yahooChartContainer {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+  .modalContent {
+    width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .modalHeader {
+    padding: 1rem 1.5rem;
+  }
+  
+  .modalHeader h2 {
+    font-size: 1.3rem;
+    margin-left: 3rem;
+  }
+  
+  .closeButton {
+    left: 0.5rem;
+    width: 35px;
+    height: 35px;
+    font-size: 1.8rem;
+  }
+  
+  .modalBody {
+    padding: 1.5rem;
+  }
+  
+  .modalBody .realTimeContainer {
+    padding: 1rem;
+  }
+}
+
+/* Crypto Market Overview Styles */
+.cryptoMarketOverviewContainer {
+  background: #181c20;
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.cryptoMarketOverviewTitle {
+  color: #FFD700;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 2rem 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.cryptoMarketOverviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.lastUpdateTime {
+  font-size: 0.7rem;
+  color: #888;
+  margin-left: 0.5rem;
+}
+
+.cryptoMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.cryptoMetricCard {
+  background: #23272f;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  padding: 1.2rem 1.5rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 120px;
+  transition: all 0.3s ease;
+}
+
+.cryptoMetricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.1);
+}
+
+/* Responsive Crypto Market Overview */
+@media (max-width: 1200px) {
+  .cryptoMetricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .cryptoMetricsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .cryptoMarketOverviewContainer {
+    padding: 1.5rem 1rem;
+  }
+  
+  .cryptoMetricCard {
+    padding: 1rem;
+    min-height: 100px;
+  }
+}

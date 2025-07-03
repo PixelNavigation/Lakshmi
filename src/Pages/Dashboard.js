@@ -99,8 +99,8 @@ function YahooFinanceChart({ symbol }) {
 }
 
 // Market Index Card with Dynamic Data
-function MarketIndexCard({ name, symbol, indexKey }) {
-  const [isExpanded, setIsExpanded] = useState(false)
+function MarketIndexCard({ name, symbol, indexKey, forceExpanded = false }) {
+  const [isExpanded, setIsExpanded] = useState(forceExpanded)
   const [showMembers, setShowMembers] = useState(false)
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -111,12 +111,12 @@ function MarketIndexCard({ name, symbol, indexKey }) {
     fetchIndexData()
   }, [indexKey])
 
-  // Fetch members when expanding for the first time
+  // Fetch members when expanding for the first time OR when forceExpanded is true
   useEffect(() => {
-    if (isExpanded && members.length === 0 && !loading) {
+    if ((isExpanded || forceExpanded) && members.length === 0 && !loading) {
       fetchIndexMembers()
     }
-  }, [isExpanded])
+  }, [isExpanded, forceExpanded])
 
   const fetchIndexData = async () => {
     try {
@@ -218,21 +218,23 @@ function MarketIndexCard({ name, symbol, indexKey }) {
   }
 
   return (
-    <div className={`${styles.marketIndexCard} ${isExpanded ? styles.expanded : ''}`}>
-      <div className={styles.indexHeader} onClick={() => setIsExpanded(!isExpanded)}>
-        <div className={styles.indexInfo}>
-          <h4 className={styles.indexName}>{indexData.name}</h4>
-          <div className={styles.indexValue}>{indexData.value}</div>
-          <div className={`${styles.indexChange} ${indexData.isPositive ? styles.positive : styles.negative}`}>
-            {indexData.change} ({indexData.changePercent})
+    <div className={`${styles.marketIndexCard} ${(isExpanded || forceExpanded) ? styles.expanded : ''}`}>
+      {!forceExpanded && (
+        <div className={styles.indexHeader} onClick={() => setIsExpanded(!isExpanded)}>
+          <div className={styles.indexInfo}>
+            <h4 className={styles.indexName}>{indexData.name}</h4>
+            <div className={styles.indexValue}>{indexData.value}</div>
+            <div className={`${styles.indexChange} ${indexData.isPositive ? styles.positive : styles.negative}`}>
+              {indexData.change} ({indexData.changePercent})
+            </div>
+          </div>
+          <div className={styles.expandIcon}>
+            {isExpanded ? '▼' : '▶'}
           </div>
         </div>
-        <div className={styles.expandIcon}>
-          {isExpanded ? '▼' : '▶'}
-        </div>
-      </div>
+      )}
       
-      {isExpanded && (
+      {(isExpanded || forceExpanded) && (
         <div className={styles.indexDetails}>
           <div className={styles.realTimeContainer}>
             <RealTimeStockPrice symbol={indexKey} displayName={name} />
@@ -409,6 +411,7 @@ function CryptoTrendingWidget() {
 function CryptoIndicesWidget() {
   return (
     <div className={styles.cryptoIndicesContainer}>
+      <CryptoMarketOverview />
       <CryptoTrendingWidget />
     </div>
   )
@@ -416,97 +419,205 @@ function CryptoIndicesWidget() {
 
 // New: Crypto Market Overview (TradingView widget for crypto)
 function CryptoMarketOverview() {
-  // Example static data for the metrics
+  const [marketData, setMarketData] = useState({
+    marketCap: { value: '₹0', change: '0%', loading: true },
+    cmc100: { value: '₹0', change: '0%', loading: true },
+    fearGreed: { value: '0', sub: 'Loading', loading: true },
+    altcoinSeason: { value: '0', loading: true }
+  })
+  const [usdToInr, setUsdToInr] = useState(83.45)
+
+  const fetchMarketOverviewData = async () => {
+    try {
+      // Fetch crypto market stats
+      const response = await fetch('/api/crypto-market-stats')
+      const data = await response.json()
+      
+      if (data.success) {
+        // Safely handle potentially undefined values
+        const marketCapValue = data.totalMarketCap || 0
+        const marketCapChange = data.marketCapChange || 0
+        const cmc100Value = data.cmc100Index || 0
+        const cmc100Change = data.cmc100Change || 0
+        const currentUsdToInr = data.usdToInr || 83.45
+        
+        setMarketData({
+          marketCap: {
+            value: `₹${(marketCapValue / 1e12).toFixed(2)}T`,
+            change: `${marketCapChange >= 0 ? '+' : ''}${marketCapChange.toFixed(2)}%`,
+            loading: false
+          },
+          cmc100: {
+            value: `₹${Math.round(cmc100Value).toLocaleString('en-IN')}`,
+            change: `${cmc100Change >= 0 ? '+' : ''}${cmc100Change.toFixed(2)}%`,
+            loading: false
+          },
+          fearGreed: {
+            value: (data.fearGreedIndex || 50).toString(),
+            sub: data.fearGreedLabel || 'Neutral',
+            loading: false
+          },
+          altcoinSeason: {
+            value: (data.altcoinSeasonIndex || 20).toString(),
+            loading: false
+          }
+        })
+        setUsdToInr(currentUsdToInr)
+      } else {
+        throw new Error('API not available')
+      }
+    } catch (error) {
+      console.error('Error fetching market overview data:', error)
+      // Show error state 
+      setMarketData({
+        marketCap: {
+          value: 'Error',
+          change: 'N/A',
+          loading: false,
+          error: true
+        },
+        cmc100: {
+          value: 'Error',
+          change: 'N/A',
+          loading: false,
+          error: true
+        },
+        fearGreed: {
+          value: 'N/A',
+          sub: 'Error',
+          loading: false,
+          error: true
+        },
+        altcoinSeason: {
+          value: 'N/A',
+          loading: false,
+          error: true
+        }
+      })
+    }
+  }
+
+  useEffect(() => {
+    fetchMarketOverviewData()
+    // Update every 30 seconds for real-time data
+    const interval = setInterval(fetchMarketOverviewData, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   const metrics = [
     {
       title: 'Market Cap',
-      value: '$3.29T',
-      change: '+0.34%',
+      value: marketData.marketCap.value,
+      change: marketData.marketCap.change,
+      loading: marketData.marketCap.loading,
+      error: marketData.marketCap.error,
       chart: true,
-      chartColor: '#4caf50',
+      chartColor: marketData.marketCap.change?.startsWith('+') ? '#4caf50' : '#ef4444',
     },
     {
       title: 'CMC100',
-      value: '$202.58',
-      change: '+0.49%',
+      value: marketData.cmc100.value,
+      change: marketData.cmc100.change,
+      loading: marketData.cmc100.loading,
+      error: marketData.cmc100.error,
       chart: true,
-      chartColor: '#4caf50',
+      chartColor: marketData.cmc100.change?.startsWith('+') ? '#4caf50' : '#ef4444',
     },
     {
       title: 'Fear & Greed',
-      value: '49',
-      sub: 'Neutral',
+      value: marketData.fearGreed.value,
+      sub: marketData.fearGreed.sub,
+      loading: marketData.fearGreed.loading,
+      error: marketData.fearGreed.error,
       gauge: true,
     },
     {
       title: 'Altcoin Season',
-      value: '20',
+      value: marketData.altcoinSeason.value,
       sub: '/100',
+      loading: marketData.altcoinSeason.loading,
+      error: marketData.altcoinSeason.error,
       bar: true,
     },
   ]
+  
+  const hasError = marketData.marketCap.error || marketData.cmc100.error || marketData.fearGreed.error || marketData.altcoinSeason.error
+  
   return (
-    <div style={{
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '1.5rem',
-      marginTop: '1rem',
-      background: '#181c20',
-      borderRadius: '16px',
-      padding: '2rem 1.5rem',
-      justifyContent: 'flex-start',
-    }}>
-      {metrics.map((m, i) => (
-        <div key={i} style={{
-          background: '#23272f',
-          borderRadius: '14px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-          padding: '1.2rem 1.5rem',
-          minWidth: '200px',
-          maxWidth: '240px',
-          color: '#fff',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          flex: '1 1 220px',
-        }}>
-          <div style={{fontWeight:'bold', fontSize:'1.1rem', marginBottom:'0.2rem'}}>{m.title}</div>
-          <div style={{fontSize:'1.5rem', fontWeight:'bold', marginBottom:'0.2rem'}}>{m.value}{m.sub && <span style={{fontSize:'1rem', color:'#aaa'}}> {m.sub}</span>}</div>
-          {m.change && <div style={{fontSize:'1rem', marginBottom:'0.2rem', color: '#4caf50'}}>{m.change}</div>}
-          {/* Simple chart/gauge/bar visuals */}
-          {m.chart && (
-            <div style={{width:'100%', height:'40px', marginTop:'0.5rem'}}>
-              <svg width="100%" height="40" viewBox="0 0 120 40">
-                <polyline fill="none" stroke={m.chartColor} strokeWidth="3" points="0,30 20,25 40,28 60,18 80,22 100,10 120,18" />
-              </svg>
-            </div>
-          )}
-          {m.gauge && (
-            <div style={{width:'100%', marginTop:'0.5rem', display:'flex', flexDirection:'column', alignItems:'center'}}>
-              <svg width="90" height="50" viewBox="0 0 90 50">
-                <path d="M10,40 Q45,0 80,40" fill="none" stroke="#aaa" strokeWidth="6" />
-                <path d="M10,40 Q45,0 80,40" fill="none" stroke="#4caf50" strokeWidth="6" strokeDasharray="0,60,60,0" />
-                <circle cx="45" cy="40" r="6" fill="#fff" stroke="#aaa" strokeWidth="2" />
-                <circle cx="45" cy="40" r="4" fill="#4caf50" />
-                <text x="45" y="47" textAnchor="middle" fontSize="12" fill="#fff">{m.value}</text>
-              </svg>
-              <div style={{fontSize:'1rem', color:'#fff'}}>{m.sub}</div>
-            </div>
-          )}
-          {m.bar && (
-            <div style={{width:'100%', marginTop:'0.5rem'}}>
-              <div style={{display:'flex', alignItems:'center', gap:'0.5rem'}}>
-                <span style={{fontSize:'0.9rem', color:'#ffa726'}}>Bitcoin</span>
-                <div style={{flex:'1', height:'8px', background:'#333', borderRadius:'4px', overflow:'hidden'}}>
-                  <div style={{width:'20%', height:'100%', background:'#ffa726'}}></div>
-                  <div style={{width:'80%', height:'100%', background:'#42a5f5', float:'right'}}></div>
-                </div>
-                <span style={{fontSize:'0.9rem', color:'#42a5f5'}}>Altcoin</span>
+    <div className={styles.cryptoMarketOverviewContainer}>
+      <h3 className={styles.cryptoMarketOverviewTitle}>
+        Market Overview 
+        <span className={styles.liveIndicator} style={{marginLeft: '1rem', fontSize: '0.8rem'}}>
+          <span className={styles.liveDot} style={{color: hasError ? '#ef4444' : '#4caf50'}}>●</span> 
+          {hasError ? 'ERROR' : 'LIVE'}
+        </span>
+      </h3>
+      <div className={styles.cryptoMetricsGrid}>
+        {metrics.map((m, i) => (
+          <div key={i} className={styles.cryptoMetricCard}>
+            <div style={{fontWeight:'bold', fontSize:'1.1rem', marginBottom:'0.2rem'}}>{m.title}</div>
+            {m.loading ? (
+              <div style={{fontSize:'1.5rem', fontWeight:'bold', marginBottom:'0.2rem', color:'#888'}}>
+                Loading...
               </div>
-            </div>
-          )}
-        </div>
-      ))}
+            ) : m.error ? (
+              <div style={{fontSize:'1.5rem', fontWeight:'bold', marginBottom:'0.2rem', color:'#ef4444'}}>
+                {m.value}{m.sub && <span style={{fontSize:'1rem', color:'#ef4444'}}> {m.sub}</span>}
+              </div>
+            ) : (
+              <div style={{fontSize:'1.5rem', fontWeight:'bold', marginBottom:'0.2rem'}}>
+                {m.value}{m.sub && <span style={{fontSize:'1rem', color:'#aaa'}}> {m.sub}</span>}
+              </div>
+            )}
+            {m.change && !m.loading && !m.error && (
+              <div style={{
+                fontSize:'1rem', 
+                marginBottom:'0.2rem', 
+                color: m.change.startsWith('+') ? '#4caf50' : '#ef4444'
+              }}>
+                {m.change}
+              </div>
+            )}
+            {/* Simple chart/gauge/bar visuals */}
+            {m.chart && !m.loading && !m.error && (
+              <div style={{width:'100%', height:'40px', marginTop:'0.5rem'}}>
+                <svg width="100%" height="40" viewBox="0 0 120 40">
+                  <polyline fill="none" stroke={m.chartColor} strokeWidth="3" points="0,30 20,25 40,28 60,18 80,22 100,10 120,18" />
+                </svg>
+              </div>
+            )}
+            {m.gauge && !m.loading && !m.error && (
+              <div style={{width:'100%', marginTop:'0.5rem', display:'flex', flexDirection:'column', alignItems:'center'}}>
+                <svg width="90" height="50" viewBox="0 0 90 50">
+                  <path d="M10,40 Q45,0 80,40" fill="none" stroke="#aaa" strokeWidth="6" />
+                  <path d="M10,40 Q45,0 80,40" fill="none" stroke="#4caf50" strokeWidth="6" strokeDasharray={`0,${parseInt(m.value) * 1.2},60,0`} />
+                  <circle cx="45" cy="40" r="6" fill="#fff" stroke="#aaa" strokeWidth="2" />
+                  <circle cx="45" cy="40" r="4" fill="#4caf50" />
+                  <text x="45" y="47" textAnchor="middle" fontSize="12" fill="#fff">{m.value}</text>
+                </svg>
+                <div style={{fontSize:'1rem', color:'#fff'}}>{m.sub}</div>
+              </div>
+            )}
+            {m.bar && !m.loading && !m.error && (
+              <div style={{width:'100%', marginTop:'0.5rem'}}>
+                <div style={{display:'flex', alignItems:'center', gap:'0.5rem'}}>
+                  <span style={{fontSize:'0.9rem', color:'#ffa726'}}>Bitcoin</span>
+                  <div style={{flex:'1', height:'8px', background:'#333', borderRadius:'4px', overflow:'hidden'}}>
+                    <div style={{width:`${parseInt(m.value)}%`, height:'100%', background:'#ffa726'}}></div>
+                    <div style={{width:`${100-parseInt(m.value)}%`, height:'100%', background:'#42a5f5', float:'right'}}></div>
+                  </div>
+                  <span style={{fontSize:'0.9rem', color:'#42a5f5'}}>Altcoin</span>
+                </div>
+              </div>
+            )}
+            {m.error && (
+              <div style={{fontSize:'0.9rem', color:'#ef4444', marginTop:'0.5rem', textAlign:'center'}}>
+                Unable to fetch real-time data
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -516,6 +627,8 @@ export default function Dashboard() {
   const [selectedMarket, setSelectedMarket] = useState('INDIAN')
   const [watchlist, setWatchlist] = useState([])
   const [isAddingToWatchlist, setIsAddingToWatchlist] = useState(false)
+  const [showIndexModal, setShowIndexModal] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(null)
 
   // Mock user ID - in a real app, this would come from authentication
   const userId = user?.id || 'user123' // Fallback for demo purposes
@@ -686,6 +799,24 @@ export default function Dashboard() {
     }
   }
 
+  // Function to handle index click
+  const handleIndexClick = (indexData) => {
+    console.log('🎯 Index clicked:', indexData.name, '(', indexData.symbol, ')')
+    console.log('📊 Current data:', {
+      value: indexData.value,
+      change: indexData.change,
+      changePercent: indexData.changePercent
+    })
+    setSelectedIndex(indexData)
+    setShowIndexModal(true)
+  }
+
+  // Function to close modal
+  const closeIndexModal = () => {
+    setShowIndexModal(false)
+    setSelectedIndex(null)
+  }
+
   return (
     <div className={styles.pageContainer}>
       {/* Direct Search at the top */}
@@ -701,7 +832,7 @@ export default function Dashboard() {
       </div>
 
       {/* Show Indian or Crypto Indices based on selection */}
-      {selectedMarket === 'INDIAN' && <IndexPriceWidget />}
+      {selectedMarket === 'INDIAN' && <IndexPriceWidget onIndexClick={handleIndexClick} />}
       {selectedMarket === 'CRYPTO' && (
         <div className={styles.fullWidthCryptoSection}>
           <CryptoIndicesWidget />
@@ -710,21 +841,32 @@ export default function Dashboard() {
 
       <div className={styles.contentGrid}>
         <div className={styles.mainContent}>
-          {/* Show Indian or Crypto Market Overview based on selection */}
-          <div className={styles.card}>
-            <h3>Market Overview</h3>
-            {selectedMarket === 'INDIAN' && (
-              <div className={styles.marketIndices}>
-                <MarketIndexCard name="NIFTY 50" symbol="NIFTY50" indexKey="NIFTY50" />
-                <MarketIndexCard name="SENSEX" symbol="SENSEX" indexKey="SENSEX" />
-                <MarketIndexCard name="NIFTY BANK" symbol="BANKNIFTY" indexKey="BANKNIFTY" />
-              </div>
-            )}
-            {selectedMarket === 'CRYPTO' && <CryptoMarketOverview />}
-          </div>
+          {/* Content moved to CryptoIndicesWidget above */}
         </div>
         <div className={styles.sidebar}>{/* Watchlist or other sidebar content */}</div>
       </div>
+
+      {/* Index Modal */}
+      {showIndexModal && selectedIndex && (
+        <div className={styles.modalOverlay} onClick={closeIndexModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <button className={styles.closeButton} onClick={closeIndexModal}>
+                ×
+              </button>
+              <h2>{selectedIndex.name} Details</h2>
+            </div>
+            <div className={styles.modalBody}>
+              <MarketIndexCard 
+                name={selectedIndex.name} 
+                symbol={selectedIndex.symbol} 
+                indexKey={selectedIndex.symbol}
+                forceExpanded={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
