@@ -33,8 +33,16 @@ export async function getPortfolio(userId, accessToken) {
       }
     }
 
-    // Configure Supabase with the access token
-    const client = supabase
+    // Configure Supabase with the access token if provided
+    let client = supabase
+    if (accessToken) {
+      try {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: '' })
+        client = supabase
+      } catch (err) {
+        // Fallback to default client
+      }
+    }
 
     // Get user portfolio
     const { data: holdings, error: holdingsError } = await client
@@ -75,53 +83,55 @@ export async function GET(request) {
     
     // Check for call_sid for OmniDimension voice commands
     const callSid = searchParams.get('call_sid') || searchParams.get('callSid') || searchParams.get('session_id')
-    let accessToken = null
+    let accessToken = searchParams.get('access_token') || searchParams.get('accessToken') || null
+    let userId = searchParams.get('userId') || searchParams.get('keyName')
     
-    // If call_sid is provided, first try to use it directly as a token
-    // This handles the case where OmniDimension sends the token directly
-    if (callSid) {
-      console.log('🔑 Authenticating with call_sid:', callSid.substring(0, 20) + '...')
-      
-      // First try using it as a direct token
+    // If we have a direct access_token parameter, use it
+    if (accessToken) {
       try {
-        const { data, error } = await supabase.auth.getUser(callSid)
+        const { data, error } = await supabase.auth.getUser(accessToken)
         if (!error && data && data.user) {
-          console.log('✅ Using call_sid directly as access token')
-          accessToken = callSid
           userId = data.user.id
+        }
+      } catch (err) {
+        accessToken = null // Reset if error
+      }
+    }
+    
+    // If access_token not provided directly or invalid, try call_sid
+    if (!accessToken && callSid) {
+      // First check if call_sid is a user ID (OmniDimension sends user ID as call_sid)
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(callSid)) {
+        // Use call_sid as userId directly
+        userId = callSid
+      } else {
+        // Try other methods
+        // Get the session from the session store
+        const session = await getSession(callSid)
+        if (session && session.accessToken) {
+          accessToken = session.accessToken
+          userId = session.userId
         } else {
-          // If not a valid token, try to get it from session store
-          const session = await getSession(callSid)
-          if (session && session.accessToken) {
-            accessToken = session.accessToken
-            userId = session.userId
-            console.log('✅ Retrieved token from session store for call_sid')
+          // Check if call_sid is actually a JWT token
+          try {
+            const { data, error } = await supabase.auth.getUser(callSid)
+            if (!error && data && data.user) {
+              accessToken = callSid // The call_sid is the access token
+              userId = data.user.id
+            }
+          } catch (err) {
+            // Not a valid token, ignore
           }
         }
-      } catch (error) {
-        console.log('❌ Error validating call_sid as token:', error.message)
       }
     }
     
     // First, try to get authenticated user from header
     const authUser = await getAuthenticatedUser(request)
     
-    // Then check for userId parameter (for OmniDimension compatibility)
-    let userId = searchParams.get('userId') || searchParams.get('keyName')
-    
-    // If we have accessToken from call_sid, validate it and get the user
-    if (!authUser && accessToken) {
-      const { data: { user }, error } = await supabase.auth.getUser(accessToken)
-      if (!error && user) {
-        userId = user.id
-        console.log('✅ Using user from call_sid session:', userId)
-      }
-    }
-    
     // Use authenticated user ID if available, otherwise fall back to parameter
     if (authUser) {
       userId = authUser.id
-      console.log('✅ Using authenticated user from header:', userId)
     } else if (!userId) {
       // REQUIRE authentication - no more default demo user
       return Response.json({ 
@@ -140,8 +150,19 @@ export async function GET(request) {
       })
     }
 
+    // Configure Supabase with the access token if provided
+    let client = supabase
+    if (accessToken) {
+      try {
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: '' })
+        client = supabase
+      } catch (err) {
+        // Fallback to default client
+      }
+    }
+    
     // Get user portfolio with current prices
-    const { data: portfolioData, error: portfolioError } = await supabase
+    const { data: portfolioData, error: portfolioError } = await client
       .from('user_portfolio')
       .select('*')
       .eq('user_id', userId)
