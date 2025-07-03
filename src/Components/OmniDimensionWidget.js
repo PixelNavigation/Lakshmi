@@ -121,7 +121,9 @@ const OmniDimensionWidget = () => {
         });
         
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          // Don't throw an error, just log it to avoid breaking the UI
+          console.warn('⚠️ User balance API not available:', response.status);
+          return;
         }
         
         const data = await response.json();
@@ -129,13 +131,17 @@ const OmniDimensionWidget = () => {
         
         // Here you can update the state or context with the fetched balance data if needed
       } catch (error) {
-        console.error('❌ Failed to fetch user balance:', error);
+        // Silently handle the error to prevent UI disruption
+        console.warn('⚠️ User balance fetch failed (non-critical):', error.message);
       }
     };
 
     // Fetch balance only if user is authenticated
     if (user && token) {
-      fetchUserBalance();
+      // Add a small delay to avoid interfering with other components
+      setTimeout(() => {
+        fetchUserBalance();
+      }, 1000);
     }
   }, [user, token]);
 

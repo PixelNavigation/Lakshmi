@@ -260,6 +260,11 @@
   transition: all 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
 }
 
 .addToWatchlistBtn:hover:not(:disabled) {
@@ -267,9 +272,34 @@
   transform: translateY(-1px);
 }
 
-.addToWatchlistBtn:disabled {
-  background: #48bb78;
+.addToWatchlistBtn:disabled,
+.addToWatchlistBtn.alreadyAdded {
+  background: #4a5568;
   cursor: not-allowed;
+  color: #a0a0a0;
+  transform: none;
+}
+
+.addToWatchlistBtn.alreadyAdded {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #9ca3af;
+}
+
+.addToWatchlistBtn.alreadyAdded:hover {
+  background: #2d3748;
+  transform: none;
+}
+
+.checkIcon {
+  font-size: 1rem;
+  color: #48bb78;
+  font-weight: bold;
+}
+
+.plusIcon {
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 /* Live data indicators */
