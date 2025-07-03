@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { setSession, getSession } from '@/lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -16,8 +17,11 @@ export async function OPTIONS(request) {
 export async function POST(request) {
   try {
     const body = await request.json()
+    
+    // Extract parameters from body
+    
     // Accept either 'pin' or 'password' parameter to support both naming conventions
-    const { phone, pin, password, email } = body
+    const { phone, pin, password, email, call_sid } = body
     
     // Use password if pin is not provided
     const userPin = pin || password
@@ -128,6 +132,9 @@ export async function POST(request) {
       })
     }
 
+    // Log authentication success
+    console.log('🎯 Authentication successful for user:', data.user.id);
+
     // Fetch user's phone number from user_profiles
     const { data: profileData } = await supabase
       .from('user_profiles')
@@ -135,6 +142,27 @@ export async function POST(request) {
       .eq('user_id', data.user.id)
       .single();
       
+    // If this is a call from OmniDimension with a call_sid, store the session
+    if (call_sid) {
+      console.log(`📱 Storing session for call_sid: ${call_sid}`);
+      
+      // Store the session with the call_sid as the key
+      try {
+        // Prepare session data with required fields
+        const sessionData = {
+          userId: data.user.id,
+          accessToken: data.session.access_token,
+          expiresAt: data.session.expires_at
+        };
+        
+        // Store the session
+        await setSession(call_sid, sessionData);
+        console.log(`✅ Session stored for call_sid: ${call_sid}`);
+      } catch (err) {
+        console.error(`❌ Error storing session for call_sid: ${call_sid}`, err);
+      }
+    }
+
     // Return user info and access token
     return Response.json({
       success: true,
