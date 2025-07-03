@@ -1,10 +1,14 @@
 /* LakshmiAI - Gold & Grey Dark Theme */
 .fullScreenContainer {
-  min-height: 100vh;
+  height: 100vh; 
+  min-height: 100vh; /* Add min-height for fallback */
   background: #171717;
   color: #FFD700;
-  display: flex;
+  display: flex !important; /* Force display to always be flex */
   flex-direction: column;
+  overflow: hidden; /* Prevent overflow issues */
+  position: relative; /* Create stacking context */
+  z-index: 1; /* Base z-index */
 }
 
 .tickerContainer {
@@ -22,15 +26,22 @@
 }
 
 .mainContent {
-  flex: 1;
-  display: flex;
+  flex: 1 1 auto !important; /* Force flex to expand */
+  display: flex !important; /* Force display to always be flex */
   flex-direction: column;
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
   width: 100%;
-  min-height: 0; /* Important for proper flex behavior */
+  min-height: calc(100vh - 60px); /* Use min-height instead of height */
+  height: calc(100vh - 60px); /* Fixed height based on viewport minus ticker */
+  overflow-y: auto; /* Allow scrolling if content overflows */
   color: #FFD700;
+  position: relative;
+  z-index: 5; /* Increase z-index */
+  visibility: visible !important; /* Force visibility */
+  opacity: 1 !important; /* Ensure opacity */
+  contain: layout; /* Contain layout effects */
 }
 
 /* Welcome Screen Styles */
@@ -242,15 +253,16 @@
 
 /* Chat Screen Styles */
 .chatScreen {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   background: var(--background);
-  height: calc(100vh - 200px); /* Fixed height calculation */
+  min-height: 0; /* Allow proper flexbox behavior */
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: relative; /* Create stacking context */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -325,13 +337,16 @@
 }
 
 .messagesArea {
-  flex: 1;
+  flex: 1 1 auto;
   overflow: hidden;
   min-height: 0; /* Important for proper flex scrolling */
+  position: relative; /* Create stacking context */
+  display: flex;
+  flex-direction: column;
 }
 
 .messagesContainer {
-  height: 100%;
+  flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 1.5rem;

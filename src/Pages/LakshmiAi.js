@@ -4,16 +4,16 @@ import { useState, useRef, useEffect } from 'react'
 import { nanoid } from '@/lib/utils'
 import styles from './LakshmiAi.module.css'
 
-// Import TradingView components
-import { StockChart } from '@/Components/TradingView/StockChart'
-import { PriceWidget } from '@/Components/TradingView/PriceWidget'
-import { StockFinancials } from '@/Components/TradingView/StockFinancials'
-import { StockNews } from '@/Components/TradingView/StockNews'
-import { StockScreener } from '@/Components/TradingView/StockScreener'
-import { MarketOverview } from '@/Components/TradingView/MarketOverview'
-import { MarketHeatmap } from '@/Components/TradingView/MarketHeatmap'
-import { MarketTrending } from '@/Components/TradingView/MarketTrending'
-import { TickerTape } from '@/Components/TradingView/TickerTape'
+// Import Yahoo Finance components
+import {
+  YahooStockChart,
+  YahooStockPrice,
+  YahooStockNews,
+  YahooStockFinancials,
+  YahooMarketOverview,
+  YahooStockScreener,
+  YahooTickerTape
+} from '@/Components/YahooFinance'
 
 // Message components
 function UserMessage({ children }) {
@@ -206,27 +206,6 @@ function parseAIResponse(message, content) {
   const lowercaseMessage = message.toLowerCase()
   const lowercaseContent = content.toLowerCase()
   
-  // Extract TradingView URLs and parse symbols from them
-  const tradingViewUrlPattern = /https?:\/\/(?:www\.)?tradingview\.com\/symbols\/([^\/\?]+)/gi
-  const tvUrlMatches = (message + ' ' + content).match(tradingViewUrlPattern)
-  let tvSymbol = null
-  
-  if (tvUrlMatches) {
-    // Parse the first TradingView URL found
-    const urlMatch = tvUrlMatches[0].match(/\/symbols\/([^\/\?]+)/)
-    if (urlMatch) {
-      let symbol = urlMatch[1]
-      if (symbol.includes('-')) {
-        const [exchange, ticker] = symbol.split('-')
-        // For all exchanges including NSE and BSE, just use the ticker without suffix
-        tvSymbol = ticker
-      } else {
-        // Remove any .NS or .BO suffixes if present
-        tvSymbol = symbol.replace('.NS', '').replace('.BO', '')
-      }
-    }
-  }
-  
   // Extract stock symbols - focusing on Indian stock symbols
   // Matches: RELIANCE, SBIN, INFY, etc.
   const stockSymbolMatch = (message + ' ' + content).match(/\b[A-Z][A-Z0-9]{2,}\b/g)
@@ -244,9 +223,9 @@ function parseAIResponse(message, content) {
     'AXISBANK', 'ZOMATO', 'NYKAA', 'PAYTM', 'POLICYBZR', 'DMART'
   ]
 
-  let mentionedStock = tvSymbol
+  let mentionedStock = null
   
-  if (!mentionedStock && stockSymbolMatch) {
+  if (stockSymbolMatch) {
     // First try to find a match in our known Indian stocks list
     mentionedStock = stockSymbolMatch.find(symbol => commonStocks.includes(symbol));
     
@@ -258,21 +237,95 @@ function parseAIResponse(message, content) {
     }
   }
 
-  // Special handling for TradingView URLs - automatically show chart
-  if (tvUrlMatches && mentionedStock) {
+  // Check for advanced analysis prompts
+  // 1. Fundamental Analysis
+  if ((lowercaseMessage.includes('fundamental analysis') || 
+       (lowercaseMessage.includes('perform') && lowercaseMessage.includes('fundamental analysis'))) && 
+       mentionedStock) {
+    return {
+      type: 'financials',
+      symbol: mentionedStock,
+      content: content,
+      hideText: false,
+      mode: 'fundamental_analysis'
+    }
+  }
+
+  // Warren Buffett-style analysis
+  if ((lowercaseMessage.includes('warren buffett') || lowercaseMessage.includes('buffett')) && 
+       mentionedStock) {
+    return {
+      type: 'financials',
+      symbol: mentionedStock,
+      content: content,
+      hideText: false,
+      mode: 'buffett_analysis'
+    }
+  }
+
+  // 2. Technical Analysis
+  if ((lowercaseMessage.includes('technical analysis') || 
+       lowercaseMessage.includes('chart pattern') ||
+       (lowercaseMessage.includes('perform') && lowercaseMessage.includes('technical analysis'))) && 
+       mentionedStock) {
     return {
       type: 'chart',
       symbol: mentionedStock,
       content: content,
-      hideText: true,  // Hide text when showing chart
-      source: 'tradingview'
+      hideText: false,
+      mode: 'technical_analysis'
     }
   }
 
-  // Priority check: Look for specific widget requests in user message first
+  // 3. Sentiment Analysis
+  if ((lowercaseMessage.includes('sentiment') || 
+       lowercaseMessage.includes('conduct sentiment analysis') ||
+       lowercaseMessage.includes('sentiment classification')) && 
+       mentionedStock) {
+    return {
+      type: 'news',
+      symbol: mentionedStock,
+      content: content,
+      hideText: false,
+      mode: 'sentiment_analysis'
+    }
+  }
+
+  // 4. Stock News & Summaries
+  if ((lowercaseMessage.includes('latest news') || 
+       lowercaseMessage.includes('stock market news') ||
+       lowercaseMessage.includes('executive summary') ||
+       lowercaseMessage.includes('bullet points')) && 
+       (lowercaseMessage.includes('market') || mentionedStock)) {
+    return {
+      type: 'news',
+      symbol: mentionedStock || 'NIFTY50', // Default to market news if no stock specified
+      content: content,
+      hideText: false,
+      mode: 'news_summary'
+    }
+  }
+
+  // 5. Stock Screener for undervalued stocks
+  if ((lowercaseMessage.includes('undervalued stocks') || 
+       lowercaseMessage.includes('find top') || 
+       lowercaseMessage.includes('stock screener'))) {
+    return {
+      type: 'screener',
+      content: content,
+      hideText: false,
+      mode: 'value_screener'
+    }
+  }
+
+  // Standard widget requests (original implementation)
+  
   // CHART - highest priority when explicitly requested
-  if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show chart') || 
-       lowercaseMessage.includes('display chart') || lowercaseMessage.includes('view chart')) && mentionedStock) {
+  if ((lowercaseMessage.includes('chart') || 
+       lowercaseMessage.includes('show chart') || 
+       lowercaseMessage.includes('display chart') || 
+       lowercaseMessage.includes('view chart')) && 
+       mentionedStock) {
     console.log('Chart requested for stock:', mentionedStock);
     return {
       type: 'chart',
@@ -305,13 +358,12 @@ function parseAIResponse(message, content) {
   }
   
   // PRICE - but not if chart or financials are also mentioned
-  // When price is requested, use the TradingView StockPrice component
   if (lowercaseMessage.includes('price') && 
       !lowercaseMessage.includes('chart') && 
       !lowercaseMessage.includes('financial') && 
       mentionedStock) {
     return {
-      type: 'price', // Use the standard TradingView price widget
+      type: 'price',
       symbol: mentionedStock,
       content: content,
       hideText: true // Hide text to show only price
@@ -327,7 +379,8 @@ function parseAIResponse(message, content) {
     }
   }
   
-  if (lowercaseMessage.includes('market') && (lowercaseMessage.includes('overview') || lowercaseMessage.includes('performance'))) {
+  if (lowercaseMessage.includes('market') && 
+     (lowercaseMessage.includes('overview') || lowercaseMessage.includes('performance'))) {
     return {
       type: 'market',
       content: content,  // Show the full AI response
@@ -335,7 +388,8 @@ function parseAIResponse(message, content) {
     }
   }
   
-  if (lowercaseMessage.includes('heatmap') || (lowercaseMessage.includes('sector') && lowercaseMessage.includes('performance'))) {
+  if (lowercaseMessage.includes('heatmap') || 
+     (lowercaseMessage.includes('sector') && lowercaseMessage.includes('performance'))) {
     return {
       type: 'heatmap',
       content: content,  // Show the full AI response
@@ -347,6 +401,16 @@ function parseAIResponse(message, content) {
     return {
       type: 'trending',
       content: content,  // Show the full AI response
+      hideText: false
+    }
+  }
+  
+  // If there's a stock mentioned but no specific widget requested, default to price widget
+  if (mentionedStock) {
+    return {
+      type: 'price',
+      symbol: mentionedStock,
+      content: content,
       hideText: false
     }
   }
@@ -364,53 +428,44 @@ export default function LakshmiAi() {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showScrollToTop, setShowScrollToTop] = useState(false)
+  const [tickerLoaded, setTickerLoaded] = useState(false);
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
 
-  // Suppress TradingView console errors and network errors
+  // More targeted error handling - only suppress very specific errors
   useEffect(() => {
     const originalConsoleError = console.error
     const originalConsoleWarn = console.warn
     
+    // Keep the original console methods during development
+    // Only filter specific TradingView errors that are known to be harmless
     console.error = (...args) => {
       const message = args.join(' ')
-      // Suppress TradingView-related errors
+      // Only suppress very specific TradingView-related errors
       if (
-        message.includes('Chart.DataProblemModel') ||
-        message.includes('support-portal-problems') ||
-        message.includes('tradingview') ||
-        message.includes('Property:The state with a data type: unknown') ||
-        message.includes('Fetch:/support/support-portal-problems') ||
-        message.includes('tradingview-widget.com') ||
-        message.includes('Cannot read properties of null')
+        (message.includes('Chart.DataProblemModel') && message.includes('tradingview')) ||
+        (message.includes('support-portal-problems') && message.includes('tradingview'))
       ) {
-        return // Suppress these errors
+        // Log a simplified message instead of suppressing entirely
+        console.log('Suppressed TradingView error:', message.substring(0, 100) + '...');
+        return;
       }
       originalConsoleError.apply(console, args)
     }
 
-    console.warn = (...args) => {
-      const message = args.join(' ')
-      // Suppress TradingView-related warnings
-      if (
-        message.includes('tradingview') ||
-        message.includes('support-portal-problems') ||
-        message.includes('widget')
-      ) {
-        return // Suppress these warnings
-      }
-      originalConsoleWarn.apply(console, args)
-    }
+    // Keep most warnings visible
+    console.warn = originalConsoleWarn;
 
-    // Also suppress window errors related to TradingView
+    // Only suppress very specific window errors
     const originalWindowError = window.onerror
     window.onerror = (message, source, lineno, colno, error) => {
-      if (typeof message === 'string' && (
-        message.includes('tradingview') ||
-        message.includes('support-portal-problems') ||
-        message.includes('Chart.DataProblemModel')
-      )) {
-        return true // Suppress the error
+      // Only handle specific cases from TradingView
+      if (typeof source === 'string' && 
+          source.includes('tradingview') && 
+          typeof message === 'string' && 
+          message.includes('Chart.DataProblemModel')) {
+        console.log('Suppressed window error from TradingView');
+        return true;
       }
       if (originalWindowError) {
         return originalWindowError(message, source, lineno, colno, error)
@@ -424,6 +479,30 @@ export default function LakshmiAi() {
       window.onerror = originalWindowError
     }
   }, [])
+
+  // Set ticker loaded state and add logging
+  useEffect(() => {
+    // Automatically set ticker loaded to true after a delay
+    const timer = setTimeout(() => {
+      setTickerLoaded(true);
+      console.log('Ticker loaded state set to true');
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Add logging to verify ticker component rendering
+  useEffect(() => {
+    console.log("Ticker tape component rendered, tickerLoaded:", tickerLoaded);
+    
+    // This ensures the main content is always visible regardless of ticker state
+    const mainContent = document.querySelector(`.${styles.mainContent}`);
+    if (mainContent) {
+      mainContent.style.display = 'flex';
+      mainContent.style.visibility = 'visible';
+      mainContent.style.opacity = '1';
+    }
+  }, [tickerLoaded]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -561,24 +640,34 @@ export default function LakshmiAi() {
       icon: "📈"
     },
     {
-      title: "Company Financials",
-      message: "HDFCBANK financials",
+      title: "Fundamental Analysis",
+      message: "Perform a detailed fundamental analysis of TATAMOTORS listed on NSE using the latest financial data",
       icon: "📋"
     },
     {
-      title: "Market Overview",
-      message: "Show Indian market overview",
-      icon: "🌐"
+      title: "Technical Analysis",
+      message: "Perform a Technical Analysis for RELIANCE and identify the chart pattern it has formed",
+      icon: "📉"
     },
     {
-      title: "Company Analysis",
-      message: "Analyze TATAMOTORS company",
-      icon: "🔍"
+      title: "Buffett Analysis",
+      message: "If you were Warren Buffett, would you invest in HDFCBANK? Justify your decision.",
+      icon: "💰"
     },
     {
-      title: "Market Heatmap",
-      message: "NSE market heatmap",
-      icon: "🗺"
+      title: "Sentiment Analysis",
+      message: "Conduct a Sentiment Analysis for SBIN based on the latest news",
+      icon: "🧠"
+    },
+    {
+      title: "Stock News",
+      message: "Provide the latest news about ITC in bullet points",
+      icon: "📰"
+    },
+    {
+      title: "Undervalued Stocks",
+      message: "Find the top undervalued stocks in the Indian stock market right now using fundamental analysis metrics",
+      icon: "�"
     }
   ]
 
@@ -586,45 +675,83 @@ export default function LakshmiAi() {
     // Add console logging to debug widget rendering
     console.log('Rendering widget:', widget);
     
-    // Use stock symbols as-is without appending exchange suffixes
-    // TradingView components will handle the symbol formatting internally
-    
+    // Use Yahoo Finance API-based components instead of TradingView
     switch (widget.type) {
       case 'chart':
-        console.log('Rendering chart with symbol:', widget.symbol);
-        return <StockChart symbol={widget.symbol} />;
+        console.log('Rendering Yahoo chart with symbol:', widget.symbol);
+        return <YahooStockChart symbol={widget.symbol} />;
       case 'price':
-        // Use TradingView's PriceWidget component for all price requests
-        return <PriceWidget symbol={widget.symbol} width={200} height={80} />
+        return <YahooStockPrice symbol={widget.symbol} showDetails={true} />
       case 'financials':
-        return <StockFinancials symbol={widget.symbol} />
+        return <YahooStockFinancials symbol={widget.symbol} />
       case 'news':
-        return <StockNews symbol={widget.symbol} />
+        return <YahooStockNews symbol={widget.symbol} />
       case 'screener':
-        return <StockScreener />
+        return <YahooStockScreener />
       case 'market':
-        return <MarketOverview />
+        return <YahooMarketOverview />
       case 'heatmap':
-        return <MarketHeatmap />
       case 'trending':
-        return <MarketTrending />
+        // For heatmap and trending, we'll use the market overview as a fallback
+        // until we implement specific components for these
+        return <YahooMarketOverview />
       default:
         return null
     }
   }
 
+  // Add logging to help debug rendering issues
+  useEffect(() => {
+    console.log('Render state:', { 
+      tickerLoaded, 
+      messagesCount: messages.length 
+    });
+  }, [tickerLoaded, messages.length]);
+
   return (
-    <div className={styles.fullScreenContainer}>
-      {/* Market Ticker at the top */}
-      <div className={styles.tickerContainer}>
-        <TickerTape />
+    <div className={styles.fullScreenContainer} style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100vh', 
+      minHeight: '100vh',
+      overflow: 'hidden',
+      position: 'relative'
+    }}>
+      {/* Market Ticker at the top - Conditionally render with error fallback */}
+      <div className={styles.tickerContainer} style={{ 
+        height: '60px', 
+        flexShrink: 0, 
+        overflow: 'hidden', 
+        position: 'relative', 
+        zIndex: 10 
+      }}>
+        {/* Use an error boundary pattern with try-catch in render */}
+        {(() => {
+          try {
+            return <YahooTickerTape />;
+          } catch (error) {
+            console.error('Failed to render ticker:', error);
+            return (
+              <div style={{ padding: '10px', textAlign: 'center', color: '#FFD700' }}>
+                Market data ticker unavailable
+              </div>
+            );
+          }
+        })()}
       </div>
 
-      {/* Main content area */}
-      <div className={styles.mainContent}>
+      {/* Main content area with absolute layout fallback */}
+      <div className={styles.mainContent} style={{ 
+        display: 'flex', 
+        flex: '1 1 auto',
+        minHeight: 'calc(100vh - 60px)',
+        visibility: 'visible',
+        opacity: 1,
+        zIndex: 5
+      }}>
         {messages.length === 0 ? (
-          /* Welcome Screen */
-          <div className={styles.welcomeScreen}>
+          /* Welcome Screen - Ensuring it stays visible */
+          <div className={styles.welcomeScreen} style={{ display: 'flex', visibility: 'visible' }}>
             <div className={styles.welcomeContent}>
               <div className={styles.welcomeHeader}>
                 <h1 className={styles.welcomeTitle}>
@@ -691,8 +818,8 @@ export default function LakshmiAi() {
             </div>
           </div>
         ) : (
-          /* Chat Screen */
-          <div className={styles.chatScreen}>
+          /* Chat Screen - Ensuring it stays visible */
+          <div className={styles.chatScreen} style={{ display: 'flex', visibility: 'visible' }}>
             {/* Chat Header with Clear Button */}
             <div className={styles.chatHeader}>
               <div className={styles.chatHeaderContent}>
