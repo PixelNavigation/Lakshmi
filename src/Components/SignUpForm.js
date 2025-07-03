@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import styles from './Auth.module.css'
+import { set } from 'date-fns'
 
 export default function SignUpForm({ onSuccess, onToggleMode }) {
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -17,28 +19,37 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
     setError(null)
     setMessage(null)
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
+    // Validate PIN format - must be exactly 6 digits
+    if (!/^\d{6}$/.test(password)) {
+      setError('PIN must be exactly 6 digits')
       setLoading(false)
       return
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long')
+    if (password !== confirmPassword) {
+      setError('PINs do not match')
       setLoading(false)
       return
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // Create the sign up payload
+      const signUpPayload = {
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            // Store phone as user metadata if provided
+            ...(phone && { phone: phone })
           }
         }
-      })
+      }
+
+      // Log the payload for debugging (remove in production)
+      console.log('Sign up payload:', JSON.stringify(signUpPayload, null, 2))
+
+      const { data, error } = await supabase.auth.signUp(signUpPayload)
 
       if (error) {
         setError(error.message)
@@ -46,6 +57,7 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
         setMessage('Check your email for the confirmation link!')
         // Clear form
         setEmail('')
+        setPhone('')
         setPassword('')
         setConfirmPassword('')
         setFullName('')
@@ -91,25 +103,53 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Password</label>
+            <label className={styles.inputLabel}>Phone (optional)</label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className={styles.authInput}
-              placeholder="Enter your password"
-              required
+              placeholder="Enter your phone number (optional)"
+              required={false}
             />
+            <small className={styles.inputHelp}>Phone number will be stored in your profile but not used for login</small>
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Confirm Password</label>
+            <label className={styles.inputLabel}>6-Digit PIN</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => {
+                // Only allow digits and limit to 6 characters
+                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setPassword(value);
+              }}
+              className={styles.authInput}
+              placeholder="Enter 6-digit PIN"
+              pattern="\d{6}"
+              maxLength="6"
+              inputMode="numeric"
+              required
+            />
+            <small className={styles.inputHelp}>Your PIN must be exactly 6 digits</small>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Confirm PIN</label>
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                // Only allow digits and limit to 6 characters
+                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setConfirmPassword(value);
+              }}
               className={styles.authInput}
-              placeholder="Confirm your password"
+              placeholder="Confirm your 6-digit PIN"
+              pattern="\d{6}"
+              maxLength="6"
+              inputMode="numeric"
               required
             />
           </div>

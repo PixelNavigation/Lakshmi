@@ -54,15 +54,23 @@ export default function LoginForm({ onSuccess, onToggleMode }) {
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Password</label>
+            <label className={styles.inputLabel}>6-Digit PIN</label>
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                // Only allow digits and limit to 6 characters
+                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setPassword(value);
+              }}
               className={styles.authInput}
-              placeholder="Enter your password"
+              placeholder="Enter your 6-digit PIN"
+              pattern="\d{6}"
+              maxLength="6"
+              inputMode="numeric"
               required
             />
+            <small className={styles.inputHelp}>Enter your 6-digit PIN</small>
           </div>
 
           {error && (

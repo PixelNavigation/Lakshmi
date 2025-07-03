@@ -91,7 +91,19 @@ export default function YahooTickerTape({ onLoadComplete = null }) {
         })
         
         const results = await Promise.all(fetchPromises)
-        setTickerData(results.filter(item => item.price !== null))
+        // Use setTimeout to avoid synchronous state updates that might affect DOM
+        setTimeout(() => {
+          // Update data and ensure the main content is preserved
+          setTickerData(results.filter(item => item.price !== null));
+          
+          // Double check main content visibility
+          const mainContent = document.querySelector('[class*="mainContent"]');
+          if (mainContent) {
+            mainContent.style.display = 'flex';
+            mainContent.style.visibility = 'visible';
+            console.log('Protected main content after data update');
+          }
+        }, 0);
       } catch (err) {
         console.error('Error fetching ticker data:', err)
       } finally {
@@ -102,13 +114,35 @@ export default function YahooTickerTape({ onLoadComplete = null }) {
         }, 10);
       }
     }
+      // Add a mutation observer to ensure the main content stays visible
+    const observer = new MutationObserver(() => {
+      // Check main content visibility on any DOM changes
+      const mainContent = document.querySelector('[class*="mainContent"]');
+      if (mainContent) {
+        if (window.getComputedStyle(mainContent).display === 'none' || 
+            window.getComputedStyle(mainContent).visibility === 'hidden') {
+          console.log('Main content was hidden - fixing...');
+          mainContent.style.display = 'flex';
+          mainContent.style.visibility = 'visible';
+        }
+      }
+    });
     
-    fetchTickerData()
-
+    // Start observing the document with the configured parameters
+    observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+    
+    // Start fetching data with a slight delay
+    setTimeout(() => {
+      fetchTickerData();
+    }, 100);
+    
     // Refresh data every 2 minutes
-    const intervalId = setInterval(fetchTickerData, 120000)
+    const intervalId = setInterval(fetchTickerData, 120000);
     
-    return () => clearInterval(intervalId)
+    return () => {
+      clearInterval(intervalId);
+      observer.disconnect();
+    }
   }, [])
 
   // Format price with commas and decimal places
