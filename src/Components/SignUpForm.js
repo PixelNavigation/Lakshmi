@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import styles from './Auth.module.css'
 import { set } from 'date-fns'
 
-export default function SignUpForm({ onSuccess, onToggleMode }) {
+export default function SignUpForm({ onSuccess, onToggleMode, onClose }) {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -12,6 +12,14 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   const handleSignUp = async (e) => {
     e.preventDefault()
@@ -87,6 +95,10 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
         setPassword('')
         setConfirmPassword('')
         setFullName('')
+        // Redirect to login after short delay
+        setTimeout(() => {
+          onToggleMode && onToggleMode();
+        }, 1500);
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -95,16 +107,23 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
     }
   }
 
+  // Close button handler
+  const handleClose = () => {
+    if (onClose) onClose();
+  };
+
   return (
     <div className={styles.authContainer}>
-      <div className={styles.authModal}>
+      <div className={`${styles.authModal} ${styles.wideModal}`}>
+        {/* Close Button */}
+        <button className={styles.closeButton} onClick={handleClose} aria-label="Close signup form">×</button>
         <div className={styles.authHeader}>
-          <h2 className={styles.authTitle}>Create Account</h2>
+          <h2 className={styles.authFormTitle}>Create Account</h2>
           <p className={styles.authSubtitle}>Join Lakshmi.ai for smarter investing</p>
         </div>
-
-        <form onSubmit={handleSignUp} className={styles.authForm}>
-          <div className={styles.inputGroup}>
+        {/* Two-column layout for form fields on desktop */}
+        <form onSubmit={handleSignUp} className={styles.authForm + ' ' + styles.signupFormGrid}>
+          <div className={styles.inputGroup} style={{gridColumn: '1'}}>
             <label className={styles.inputLabel}>Full Name</label>
             <input
               type="text"
@@ -115,8 +134,7 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
               required
             />
           </div>
-
-          <div className={styles.inputGroup}>
+          <div className={styles.inputGroup} style={{gridColumn: '2'}}>
             <label className={styles.inputLabel}>Email</label>
             <input
               type="email"
@@ -127,8 +145,7 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
               required
             />
           </div>
-
-          <div className={styles.inputGroup}>
+          <div className={styles.inputGroup} style={{gridColumn: '1'}}>
             <label className={styles.inputLabel}>Phone</label>
             <input
               type="tel"
@@ -140,8 +157,7 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
             />
             <small className={styles.inputHelp}>Phone number will be stored in your profile</small>
           </div>
-
-          <div className={styles.inputGroup}>
+          <div className={styles.inputGroup} style={{gridColumn: '2'}}>
             <label className={styles.inputLabel}>6-Digit PIN</label>
             <input
               type="password"
@@ -160,8 +176,7 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
             />
             <small className={styles.inputHelp}>Your PIN must be exactly 6 digits</small>
           </div>
-
-          <div className={styles.inputGroup}>
+          <div className={styles.inputGroup} style={{gridColumn: '1 / span 2'}}>
             <label className={styles.inputLabel}>Confirm PIN</label>
             <input
               type="password"
@@ -179,23 +194,21 @@ export default function SignUpForm({ onSuccess, onToggleMode }) {
               required
             />
           </div>
-
           {error && (
-            <div className={styles.errorMessage}>
+            <div className={styles.errorMessage} style={{gridColumn: '1 / span 2'}}>
               {error}
             </div>
           )}
-
           {message && (
-            <div className={styles.successMessage}>
+            <div className={styles.successMessage} style={{gridColumn: '1 / span 2'}}>
               {message}
             </div>
           )}
-
           <button
             type="submit"
             disabled={loading}
             className={styles.authButton}
+            style={{gridColumn: '1 / span 2'}}
           >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>

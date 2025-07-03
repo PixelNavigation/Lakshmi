@@ -156,11 +156,13 @@ export default function Navbar() {
               <LoginForm 
                 onSuccess={handleAuthSuccess}
                 onToggleMode={toggleAuthMode}
+                onClose={closeAuth}
               />
             ) : (
               <SignUpForm 
                 onSuccess={handleAuthSuccess}
                 onToggleMode={toggleAuthMode}
+                onClose={closeAuth}
               />
             )}
           </div>
