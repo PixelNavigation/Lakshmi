@@ -8,6 +8,7 @@ import { convertToTradingViewSymbol } from '../Components/TradingView/TradingVie
 import RealTimeStockPrice from '../Components/RealTimeStockPrice'
 import IndexPriceWidget from '../Components/IndexPriceWidget'
 import CandlestickChart from '../Components/CandlestickChart'
+import MarketOverview from '../Components/TradingView/MarketOverview'
 
 // Yahoo Finance Chart Component (replaces TradingView component)
 function YahooFinanceChart({ symbol }) {
@@ -281,6 +282,156 @@ function MarketIndexCard({ name, symbol, indexKey }) {
   )
 }
 
+// New: Crypto Indices Widget
+function CryptoIndicesWidget() {
+  // Example crypto data; in real use, fetch from API
+  const cryptos = [
+    { name: 'Bitcoin', symbol: 'BTCINR', value: 5125000, change: 42000, changePercent: 0.82, time: '8:17 PM' },
+    { name: 'Ethereum', symbol: 'ETHINR', value: 310000, change: 2800, changePercent: 0.91, time: '8:17 PM' },
+    { name: 'Cardano', symbol: 'ADAINR', value: 45.5, change: -1.5, changePercent: -3.19, time: '8:17 PM' },
+    { name: 'Dogecoin', symbol: 'DOGEINR', value: 28.75, change: 1.58, changePercent: 5.82, time: '8:17 PM' },
+    { name: 'Polygon', symbol: 'MATICINR', value: 72.3, change: 3.2, changePercent: 4.63, time: '8:17 PM' },
+    { name: 'Solana', symbol: 'SOLINR', value: 12650.8, change: 650.8, changePercent: 5.43, time: '8:17 PM' },
+  ]
+  return (
+    <div className={styles.indexPriceWidgetContainer}>
+      <div className={styles.indexPriceWidgetHeader}>
+        <h3>Crypto Indices</h3>
+        <div className={styles.liveIndicator}><span className={styles.liveDot}>●</span> LIVE</div>
+      </div>
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '1.5rem',
+        marginTop: '1rem',
+        justifyContent: 'flex-start',
+      }}>
+        {cryptos.map((crypto, i) => (
+          <div key={i} className={styles.indexCard} style={{
+            background:'#181c20',
+            borderRadius:'12px',
+            boxShadow:'0 2px 8px rgba(0,0,0,0.12)',
+            padding:'1.2rem 1.5rem',
+            minWidth:'180px',
+            maxWidth:'220px',
+            color:'#fff',
+            display:'flex',
+            flexDirection:'column',
+            alignItems:'flex-start',
+            flex: '1 1 220px',
+          }}>
+            <div style={{fontWeight:'bold', fontSize:'1.1rem', marginBottom:'0.2rem'}}>{crypto.name}</div>
+            <div style={{fontSize:'1.5rem', fontWeight:'bold', marginBottom:'0.2rem'}}>
+              ₹{crypto.value.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            </div>
+            <div style={{fontSize:'1rem', marginBottom:'0.2rem', color: crypto.change >= 0 ? '#4caf50' : '#ff5252'}}>
+              {(crypto.change >= 0 ? '+' : '') + crypto.change} ({(crypto.changePercent >= 0 ? '+' : '') + crypto.changePercent}%)
+            </div>
+            <div style={{fontSize:'0.9rem', color:'#aaa', marginTop:'0.2rem'}}>{crypto.time}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// New: Crypto Market Overview (TradingView widget for crypto)
+function CryptoMarketOverview() {
+  // Example static data for the metrics
+  const metrics = [
+    {
+      title: 'Market Cap',
+      value: '$3.29T',
+      change: '+0.34%',
+      chart: true,
+      chartColor: '#4caf50',
+    },
+    {
+      title: 'CMC100',
+      value: '$202.58',
+      change: '+0.49%',
+      chart: true,
+      chartColor: '#4caf50',
+    },
+    {
+      title: 'Fear & Greed',
+      value: '49',
+      sub: 'Neutral',
+      gauge: true,
+    },
+    {
+      title: 'Altcoin Season',
+      value: '20',
+      sub: '/100',
+      bar: true,
+    },
+  ]
+  return (
+    <div style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '1.5rem',
+      marginTop: '1rem',
+      background: '#181c20',
+      borderRadius: '16px',
+      padding: '2rem 1.5rem',
+      justifyContent: 'flex-start',
+    }}>
+      {metrics.map((m, i) => (
+        <div key={i} style={{
+          background: '#23272f',
+          borderRadius: '14px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          padding: '1.2rem 1.5rem',
+          minWidth: '200px',
+          maxWidth: '240px',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          flex: '1 1 220px',
+        }}>
+          <div style={{fontWeight:'bold', fontSize:'1.1rem', marginBottom:'0.2rem'}}>{m.title}</div>
+          <div style={{fontSize:'1.5rem', fontWeight:'bold', marginBottom:'0.2rem'}}>{m.value}{m.sub && <span style={{fontSize:'1rem', color:'#aaa'}}> {m.sub}</span>}</div>
+          {m.change && <div style={{fontSize:'1rem', marginBottom:'0.2rem', color: '#4caf50'}}>{m.change}</div>}
+          {/* Simple chart/gauge/bar visuals */}
+          {m.chart && (
+            <div style={{width:'100%', height:'40px', marginTop:'0.5rem'}}>
+              <svg width="100%" height="40" viewBox="0 0 120 40">
+                <polyline fill="none" stroke={m.chartColor} strokeWidth="3" points="0,30 20,25 40,28 60,18 80,22 100,10 120,18" />
+              </svg>
+            </div>
+          )}
+          {m.gauge && (
+            <div style={{width:'100%', marginTop:'0.5rem', display:'flex', flexDirection:'column', alignItems:'center'}}>
+              <svg width="90" height="50" viewBox="0 0 90 50">
+                <path d="M10,40 Q45,0 80,40" fill="none" stroke="#aaa" strokeWidth="6" />
+                <path d="M10,40 Q45,0 80,40" fill="none" stroke="#4caf50" strokeWidth="6" strokeDasharray="0,60,60,0" />
+                <circle cx="45" cy="40" r="6" fill="#fff" stroke="#aaa" strokeWidth="2" />
+                <circle cx="45" cy="40" r="4" fill="#4caf50" />
+                <text x="45" y="47" textAnchor="middle" fontSize="12" fill="#fff">{m.value}</text>
+              </svg>
+              <div style={{fontSize:'1rem', color:'#fff'}}>{m.sub}</div>
+            </div>
+          )}
+          {m.bar && (
+            <div style={{width:'100%', marginTop:'0.5rem'}}>
+              <div style={{display:'flex', alignItems:'center', gap:'0.5rem'}}>
+                <span style={{fontSize:'0.9rem', color:'#ffa726'}}>Bitcoin</span>
+                <div style={{flex:'1', height:'8px', background:'#333', borderRadius:'4px', overflow:'hidden'}}>
+                  <div style={{width:'20%', height:'100%', background:'#ffa726'}}></div>
+                  <div style={{width:'80%', height:'100%', background:'#42a5f5', float:'right'}}></div>
+                </div>
+                <span style={{fontSize:'0.9rem', color:'#42a5f5'}}>Altcoin</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
   const [selectedMarket, setSelectedMarket] = useState('INDIAN')
@@ -379,41 +530,30 @@ export default function Dashboard() {
           markets={markets}
           watchlist={watchlist}
           addToWatchlist={addToWatchlist}
-          onTradeComplete={refreshData} // Pass refresh function
+          onTradeComplete={refreshData}
         />
       </div>
-      
-      {/* Real-time index price widget */}
-      <IndexPriceWidget />
+
+      {/* Show Indian or Crypto Indices based on selection */}
+      {selectedMarket === 'INDIAN' && <IndexPriceWidget />}
+      {selectedMarket === 'CRYPTO' && <CryptoIndicesWidget />}
 
       <div className={styles.contentGrid}>
         <div className={styles.mainContent}>
-          {/* Market Overview with Yahoo Finance Charts */}
+          {/* Show Indian or Crypto Market Overview based on selection */}
           <div className={styles.card}>
             <h3>Market Overview</h3>
-            <div className={styles.marketIndices}>
-              <MarketIndexCard 
-                name="NIFTY 50"
-                symbol="NIFTY50"
-                indexKey="NIFTY50"
-              />
-              <MarketIndexCard 
-                name="SENSEX"
-                symbol="SENSEX"
-                indexKey="SENSEX"
-              />
-              <MarketIndexCard 
-                name="NIFTY BANK"
-                symbol="BANKNIFTY"
-                indexKey="BANKNIFTY"
-              />
-            </div>
+            {selectedMarket === 'INDIAN' && (
+              <div className={styles.marketIndices}>
+                <MarketIndexCard name="NIFTY 50" symbol="NIFTY50" indexKey="NIFTY50" />
+                <MarketIndexCard name="SENSEX" symbol="SENSEX" indexKey="SENSEX" />
+                <MarketIndexCard name="NIFTY BANK" symbol="BANKNIFTY" indexKey="BANKNIFTY" />
+              </div>
+            )}
+            {selectedMarket === 'CRYPTO' && <CryptoMarketOverview />}
           </div>
         </div>
-
-        <div className={styles.sidebar}>
-          {/* Watchlist or other sidebar content can go here */}
-        </div>
+        <div className={styles.sidebar}>{/* Watchlist or other sidebar content */}</div>
       </div>
     </div>
   )
