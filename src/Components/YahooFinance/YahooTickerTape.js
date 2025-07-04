@@ -167,9 +167,11 @@ export default function YahooTickerTape({ onLoadComplete = null }) {
       style={{ 
         position: 'relative', 
         zIndex: 1000, 
-        height: '38px', 
+        height: '40px', 
         overflow: 'hidden',
-        isolation: 'isolate' // Create a stacking context
+        isolation: 'isolate',
+        backgroundColor: 'black',
+        scrollBehavior: 'auto' // Create a stacking context
       }}
       data-ticker-state={loading ? 'loading' : 'loaded'}
     >

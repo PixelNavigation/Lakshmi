@@ -322,7 +322,7 @@ async function fetchStockData(symbol, retries = 3) {
 
 export async function POST(request) {
   try {
-    const { message, requestChart = false } = await request.json()
+    const { message, requestChart = false, isAutoAnalysis = false } = await request.json()
     
     if (!message) {
       return NextResponse.json({ 
@@ -333,11 +333,16 @@ export async function POST(request) {
 
     // Check if GEMINI_API_KEY is available
     if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not found in environment variables')
       return NextResponse.json({ 
         success: false, 
-        error: 'GEMINI_API_KEY is not configured' 
+        error: 'GEMINI_API_KEY is not configured. Please add it to your .env.local file.' 
       })
     }
+
+    console.log('Processing message:', message.substring(0, 100) + '...')
+    console.log('Request chart:', requestChart)
+    console.log('Is auto analysis:', isAutoAnalysis)
 
     // Extract stock symbols from the message
     const stockSymbols = extractStockSymbols(message)
@@ -584,11 +589,27 @@ Use all the real-time data provided above for your analysis. Focus on Indian mar
     }, { headers: corsHeaders })
 
   } catch (error) {
-    console.error('Error in Gemini chat:', error)
+    console.error('Error in Gemini chat API:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to generate response'
+    if (error.message.includes('API key')) {
+      errorMessage = 'Invalid or missing Gemini API key. Please check your .env.local file.'
+    } else if (error.message.includes('quota')) {
+      errorMessage = 'Gemini API quota exceeded. Please try again later.'
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      errorMessage = 'Network error while connecting to Gemini API. Please check your internet connection.'
+    }
+    
     return NextResponse.json({
       success: false,
-      error: 'Failed to generate response. Please check your Gemini API key.',
-      details: error.message
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     }, { 
       status: 500,
       headers: corsHeaders

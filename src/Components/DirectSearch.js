@@ -10,7 +10,8 @@ export default function DirectSearch({
   markets, 
   watchlist, 
   addToWatchlist,
-  onTradeComplete 
+  onTradeComplete,
+  onAnalyzeWithAI
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -743,6 +744,20 @@ export default function DirectSearch({
                     )}
                   </div>
                   <div className={styles.resultActions}>
+                    <button 
+                      className={styles.analyzeWithAIBtn}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        console.log(`🤖 DirectSearch: Analyzing "${result.symbol}" with AI`)
+                        if (onAnalyzeWithAI) {
+                          onAnalyzeWithAI(result.symbol, result.name || result.symbol)
+                        }
+                      }}
+                      title="Analyze this stock with Lakshmi AI"
+                    >
+                      <span className={styles.aiIcon}>🤖</span>
+                      Analyze with AI
+                    </button>
                     <button 
                       className={`${styles.addToWatchlistBtn} ${
                         watchlist.includes(result.symbol) ? styles.alreadyAdded : ''

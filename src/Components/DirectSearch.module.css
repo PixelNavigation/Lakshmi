@@ -245,7 +245,47 @@
 .resultActions {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-top: 8px;
+}
+
+.analyzeWithAIBtn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.analyzeWithAIBtn:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.aiIcon {
+  font-size: 1rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .addToWatchlistBtn {
@@ -353,6 +393,13 @@
     padding: 12px;
   }
   
+  .resultActions {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .analyzeWithAIBtn,
   .addToWatchlistBtn {
     width: 100%;
   }
