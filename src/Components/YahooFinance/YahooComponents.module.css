@@ -883,32 +883,261 @@
   }
 }
 
-.errorContainer {
-  padding: 1rem;
-  margin: 1rem 0;
-  border: 1px solid #ffcdd2;
-  background-color: #ffebee;
-  border-radius: 4px;
-  text-align: center;
+/* MoneyControl Style Heatmap */
+.moneyControlHeatmap {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #333;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
-.retryButton {
+.heatmapHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heatmapHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.timeFilters {
+  display: flex;
+  gap: 8px;
+}
+
+.timeFilter {
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeFilter:hover {
+  background-color: #e0e0e0;
+}
+
+.timeFilter.active {
   background-color: #2196f3;
   color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  margin: 0.5rem 0;
+  border-color: #1e88e5;
+}
+
+.heatmapContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.heatmapBlock {
+  position: relative;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 80px;
+  min-height: 80px;
 }
 
-.retryButton:hover {
-  background-color: #1976d2;
+.heatmapBlock:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.retryButton:disabled {
-  background-color: #bbdefb;
-  cursor: not-allowed;
+.blockContent {
+  padding: 12px;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.blockTitle {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #333;
+  word-break: break-word;
+}
+
+.blockChange {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.blockMarketCap {
+  font-size: 12px;
+  color: #666;
+}
+
+.stocksList {
+  width: 100%;
+}
+
+.sectorHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sectorHeader h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: #2196f3;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.backButton:hover {
+  background-color: #f5f5f5;
+}
+
+.sectorChange {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.stocksHeatmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  padding: 16px 0;
+}
+
+.stockBlock {
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stockBlock:hover {
+  transform: translateY(-2px);
+}
+
+.stockSymbol {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.stockChange {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.heatmapFooter {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.colorScale {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.scaleLabel {
+  font-size: 12px;
+  color: #666;
+}
+
+.gradientBar {
+  height: 10px;
+  width: 200px;
+  background: linear-gradient(to right, #B71C1C, #FFCDD2, #E0E0E0, #E8F5E9, #32CD32);
+  border-radius: 5px;
+}
+
+.disclaimer {
+  text-align: center;
+  font-size: 12px;
+  color: #757575;
+  margin-top: 8px;
+}
+
+.heatmapWrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  .moneyControlHeatmap {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+  
+  .blockTitle, .stockSymbol {
+    color: #e0e0e0;
+  }
+  
+  .timeFilter {
+    background-color: #333;
+    border-color: #444;
+    color: #e0e0e0;
+  }
+  
+  .timeFilter:hover {
+    background-color: #444;
+  }
+  
+  .timeFilter.active {
+    background-color: #2196f3;
+    color: white;
+  }
+  
+  .backButton {
+    color: #64b5f6;
+  }
+  
+  .backButton:hover {
+    background-color: #333;
+  }
+  
+  .heatmapFooter {
+    border-top-color: #444;
+  }
+  
+  .blockMarketCap, .scaleLabel {
+    color: #aaa;
+  }
+  
+  .disclaimer {
+    color: #aaa;
+  }
 }

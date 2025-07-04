@@ -12,7 +12,8 @@ import {
   YahooStockNews,
   YahooStockScreener,
   YahooMarketOverview,
-  YahooTickerTape
+  YahooTickerTape,
+  MoneyControlHeatmap
 } from '@/Components/YahooFinance'
 
 // Import TradingView components
@@ -22,8 +23,13 @@ import { EnhancedTickerTape } from '@/Components/TradingView/EnhancedTickerTape'
 // Message components
 function UserMessage({ children }) {
   return (
-    <div className={styles.userMessage}>
-      {children}
+    <div className={styles.userMessageContainer}>
+      <div className={styles.userMessage}>
+        {children}
+      </div>
+      <div className={styles.userAvatar}>
+        <span className={styles.userAvatarEmoji}>👤</span>
+      </div>
     </div>
   )
 }
@@ -41,85 +47,19 @@ function FormattedStockAnalysis({ content, symbol, analysisType = 'default' }) {
     <div className={styles.stockAnalysis}>
       <div className={styles.analysisHeader}>
         <h3>
-          📈 Indian Stock {isFinancialOnly ? 'Financials' : 'Analysis'} 
-          {symbol ? ` for ${symbol}` : ''}
+          📈 {symbol ? `${symbol} - ` : ''}{isFinancialOnly ? 'Financial Overview' : 'Stock Analysis'}
         </h3>
       </div>
       
-      {/* Show pros and cons only for company analysis */}
-      {isCompanyAnalysis && (
-        <div className={styles.prosConsContainer}>
-          <div className={styles.prosSection}>
-            <h4>
-              <span className={styles.prosIcon}>✅</span> Potential Pros
-            </h4>
-            <ul className={styles.prosList}>
-              <li>Position in Indian market and brand recognition</li>
-              <li>Growth potential in emerging Indian economy</li>
-              <li>Diversified business model suited for Indian markets</li>
-              <li>Technology adaptation for Indian consumers</li>
-              <li>Performance history in context of Indian economy</li>
-            </ul>
-          </div>
-          
-          <div className={styles.consSection}>
-            <h4>
-              <span className={styles.consIcon}>⚠</span> Potential Risks
-            </h4>
-            <ul className={styles.consList}>
-              <li>Indian market volatility and regulatory changes</li>
-              <li>Competitive pressure in the Indian industry</li>
-              <li>Sectoral challenges specific to Indian economy</li>
-              <li>Valuation concerns in current Indian market</li>
-              <li>Economic and policy risks in Indian context</li>
-            </ul>
-          </div>
-        </div>
-      )}
+      <div className={styles.analysisContent}>
+        {content}
+      </div>
       
-      {!isFinancialOnly && (
-        <div className={styles.keyMetrics}>
-          <h4>📊 Key Investment Considerations</h4>
-          <div className={styles.metricsGrid}>
-            <div className={styles.metric}>
-              <span className={styles.metricLabel}>Risk Level:</span>
-              <span className={styles.metricValue}>Moderate to High (Indian markets)</span>
-            </div>
-            <div className={styles.metric}>
-              <span className={styles.metricLabel}>Time Horizon:</span>
-              <span className={styles.metricValue}>Long-term investment in Indian equities</span>
-            </div>
-            <div className={styles.metric}>
-              <span className={styles.metricLabel}>Market Segment:</span>
-              <span className={styles.metricValue}>Indian Stock Market (NSE/BSE)</span>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {!isFinancialOnly && (
-        <div className={styles.disclaimer}>
-          <p>
-            <strong>💡 Investment Recommendation:</strong> Consider your risk tolerance and investment timeline in the Indian market. 
-            Always conduct thorough research and consider consulting with a SEBI registered financial advisor.
-          </p>
-          <p>
-            <strong>📈 Analysis Based On:</strong> Current Indian market conditions, company fundamentals, 
-            and industry trends in the Indian economy as of the latest available data.
-          </p>
-        </div>
-      )}
-      
-      {content && (
-        <div className={styles.originalResponse}>
-          <details>
-            <summary>View AI Response Details</summary>
-            <div className={styles.responseContent}>
-              {content}
-            </div>
-          </details>
-        </div>
-      )}
+      <div className={styles.analysisFooter}>
+        <p className={styles.analysisDisclaimer}>
+          This is AI-generated analysis based on available market data. Not financial advice.
+        </p>
+      </div>
     </div>
   );
 }
@@ -147,7 +87,7 @@ function BotMessage({ content, children, isStreaming = false, analysisType }) {
   return (
     <div className={styles.botMessageContainer}>
       <div className={styles.botAvatar}>
-        🤖
+        <span className={styles.botAvatarEmoji}>🤖</span>
       </div>
       <div className={styles.botMessage}>
         {content && (
@@ -169,14 +109,8 @@ function BotMessage({ content, children, isStreaming = false, analysisType }) {
               />
             ) : (
               <div className={styles.enhancedTextResponse}>
-                <div className={styles.responseHeader}>
-                  <span className={styles.responseIcon}>💬</span>
-                  <span className={styles.responseTitle}>AI Response</span>
-                </div>
-                <div className={styles.responseBody}>
-                  {content}
-                  {isStreaming && <span className={styles.streamingCursor}>|</span>}
-                </div>
+                {content}
+                {isStreaming && <span className={styles.streamingCursor}>|</span>}
               </div>
             )}
           </>
@@ -188,16 +122,34 @@ function BotMessage({ content, children, isStreaming = false, analysisType }) {
 }
 
 function BotCard({ children }) {
+  // Create a ref to access the card element
+  const cardRef = useRef(null);
+  
+  // Effect to ensure the chart container stays within bounds
+  useEffect(() => {
+    if (cardRef.current) {
+      // Force the container to fit within its parent
+      const resizeObserver = new ResizeObserver(() => {
+        if (cardRef.current) {
+          const parent = cardRef.current.parentElement;
+          if (parent) {
+            const parentWidth = parent.getBoundingClientRect().width;
+            // Ensure card doesn't exceed parent width
+            cardRef.current.style.maxWidth = `${parentWidth}px`;
+          }
+        }
+      });
+      
+      resizeObserver.observe(cardRef.current);
+      
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, []);
+  
   return (
-    <div className={styles.botCardContainer}>
-      <div className={styles.botAvatar}>
-        🤖
-      </div>
-      <div className={styles.botCardHeader}>
-        <div className={styles.botCardLabel}>
-          Here's what I found:
-        </div>
-      </div>
+    <div className={styles.botCardContainer} ref={cardRef}>
       <div className={styles.botCard}>
         {children}
       </div>
@@ -643,7 +595,17 @@ export default function LakshmiAi() {
         if (!widget.symbol.includes('.NS') && !widget.symbol.includes('.BO') && !/^\^/.test(widget.symbol)) {
           console.log('Using standard Indian stock symbol without exchange suffix:', widget.symbol);
         }
-        return <YahooStockChart symbol={widget.symbol} />;
+        return (
+          <div style={{ 
+            width: '100%', 
+            maxWidth: '100%', 
+            overflowX: 'hidden',
+            position: 'relative',
+            height: '400px'
+          }}>
+            <YahooStockChart symbol={widget.symbol} />
+          </div>
+        );
       case 'price':
         // Use Yahoo Finance's PriceWidget component for all price requests
         return <YahooStockPrice symbol={widget.symbol} width={200} height={80} />
@@ -656,8 +618,8 @@ export default function LakshmiAi() {
       case 'market':
         return <YahooMarketOverview />
       case 'heatmap':
-        // Use Yahoo MarketOverview as a substitute for heatmap
-        return <YahooMarketOverview viewType="heatmap" />
+        // Use our MoneyControl-style heatmap
+        return <MoneyControlHeatmap />
       case 'trending':
         // Use our enhanced TradingView TickerTape with trending support
         return <EnhancedTickerTape showTrending={true} />

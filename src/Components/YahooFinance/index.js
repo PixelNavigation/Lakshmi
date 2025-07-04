@@ -7,6 +7,7 @@ import YahooStockFinancials from './YahooStockFinancials'
 import YahooMarketOverview from './YahooMarketOverview'
 import YahooStockScreener from './YahooStockScreener'
 import YahooTickerTape from './YahooTickerTape'
+import MoneyControlHeatmap from './MoneyControlHeatmap'
 
 export {
   YahooStockChart,
@@ -15,5 +16,6 @@ export {
   YahooStockFinancials,
   YahooMarketOverview,
   YahooStockScreener,
-  YahooTickerTape
+  YahooTickerTape,
+  MoneyControlHeatmap
 }
