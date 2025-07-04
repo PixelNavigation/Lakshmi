@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { AlertCircle, RefreshCw, Play, Pause, Settings, Info, ZoomIn, ZoomOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import styles from './StockGraph.module.css'
 
@@ -40,38 +41,230 @@ const StockGraph = () => {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [currentZoom, setCurrentZoom] = useState(1)
-  const [selectedLayout, setSelectedLayout] = useState('grid')
-  
+  const [selectedLayout, setSelectedLayout] = useState('circle')
+  const [analysisStats, setAnalysisStats] = useState(null)
+  const [showDetails, setShowDetails] = useState(false)
+  const [selectedNode, setSelectedNode] = useState(null)
+  const [selectedEdge, setSelectedEdge] = useState(null)
+
   // Add refs to track if we should regenerate the graph
   const graphGeneratedRef = useRef(false)
-  const watchlistLengthRef = useRef(0)
   const cytoscapeRef = useRef(null) // Ref for the Cytoscape container
   const cyRef = useRef(null) // Ref for the Cytoscape instance
+  const refreshInProgressRef = useRef(false)
+  const autoRefreshIntervalRef = useRef(null)
 
-  const userId = user?.id || 'user123' // Fallback for demo purposes
+  const userId = user?.id || 'demo-user'
 
-  // Initialize Cytoscape and register layouts
-  useEffect(() => {
-    const ensureCytoscapeReady = async () => {
-      // Wait for Cytoscape to be fully initialized
-      if (!cytoscape) {
-        const success = await initCytoscape()
-        if (!success) {
-          setError('Failed to initialize Cytoscape visualization library')
-          return false
-        }
+  // Fetch watchlist from frontend API
+  const fetchWatchlist = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/user-watchlist?userId=${userId}`)
+      const data = await response.json()
+      if (data.success && data.watchlist && data.watchlist.length > 0) {
+        setWatchlistData(data.watchlist)
+        return data.watchlist
+      } else {
+        setError('No stocks in your watchlist.')
+        setLoading(false)
+        return []
       }
-      return true
+    } catch (err) {
+      setError('Failed to fetch watchlist')
+      setLoading(false)
+      return []
     }
-    
-    ensureCytoscapeReady()
+  }, [userId])
+
+  // Fetch prices for each stock in the watchlist
+  const fetchStockPrices = useCallback(async (watchlist) => {
+    if (!watchlist || watchlist.length === 0) return {}
+    const prices = {}
+    for (const stock of watchlist) {
+      try {
+        const timestamp = Date.now()
+        const response = await fetch(`/api/stock-detail?symbol=${stock.symbol}&t=${timestamp}`, {
+          cache: 'no-cache',
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+        })
+        const data = await response.json()
+        if (data.success && data.data) {
+          prices[stock.symbol] = data.data
+        }
+      } catch (err) {
+        // skip failed
+      }
+    }
+    setStockPrices(prices)
+    setLastUpdated(new Date())
+    return prices
   }, [])
 
-  // Initialize and update Cytoscape graph
+  // Send prices to backend for correlation analysis
+  const fetchCorrelations = useCallback(async (prices) => {
+    try {
+      setLoading(true)
+      const response = await fetch('http://localhost:5001/api/granger-causality', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock_prices: prices })
+      })
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      const data = await response.json()
+      if (data.edges && Array.isArray(data.edges)) {
+        setEdges(data.edges)
+        setAnalysisStats(data.analysis_summary || null)
+        setBackendConnected(true)
+        
+        // Log data sources information
+        if (data.data_sources) {
+          console.log('📊 Data Sources for Historical Analysis:', data.data_sources)
+          const realDataCount = Object.values(data.data_sources).filter(source => source.includes('Yahoo')).length
+          const totalCount = Object.values(data.data_sources).length
+          console.log(`📊 Real data usage: ${realDataCount}/${totalCount} stocks (${((realDataCount/totalCount)*100).toFixed(1)}%)`)
+        }
+      } else {
+        setEdges([])
+        setBackendConnected(false)
+      }
+    } catch (err) {
+      console.error('Backend connection error:', err)
+      setEdges([])
+      setBackendConnected(false)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Generate nodes from stockPrices and watchlistData
+  useEffect(() => {
+    if (!watchlistData.length || !Object.keys(stockPrices).length) return
+    const stockNodes = watchlistData.map(stock => {
+      const data = stockPrices[stock.symbol] || {}
+      return {
+        id: stock.symbol,
+        name: stock.name || stock.symbol,
+        price: data.price || 0,
+        change: data.change || 0,
+        changePercent: data.changePercent || 0,
+        volume: data.volume || 0,
+        color: (data.change !== undefined && data.change >= 0) ? '#22c55e' : '#ef4444',
+        isRealData: data.isRealData || false,
+        source: data.source || 'API'
+      }
+    })
+    setNodes(stockNodes)
+  }, [watchlistData, stockPrices])
+
+  // Initial load: fetch watchlist, then prices, then correlations
+  useEffect(() => {
+    const loadAll = async () => {
+      setLoading(true)
+      const wl = await fetchWatchlist()
+      if (wl.length > 0) {
+        const prices = await fetchStockPrices(wl)
+        await fetchCorrelations(prices)
+      }
+      setLoading(false)
+    }
+    loadAll()
+  }, [fetchWatchlist, fetchStockPrices, fetchCorrelations])
+
+  // Auto-refresh
+  useEffect(() => {
+    if (autoRefresh) {
+      autoRefreshIntervalRef.current = setInterval(async () => {
+        const prices = await fetchStockPrices(watchlistData)
+        await fetchCorrelations(prices)
+      }, 30000)
+    } else {
+      if (autoRefreshIntervalRef.current) clearInterval(autoRefreshIntervalRef.current)
+    }
+    return () => {
+      if (autoRefreshIntervalRef.current) clearInterval(autoRefreshIntervalRef.current)
+    }
+  }, [autoRefresh, watchlistData, fetchStockPrices, fetchCorrelations])
+
+  // Cytoscape integration
+  useEffect(() => {
+    if (nodes.length > 0 && cytoscape) {
+      initializeCytoscapeGraph()
+    }
+  }, [nodes, edges, selectedLayout])
+
+  const getLayoutConfig = (layoutName) => {
+    const layouts = {
+      circle: {
+        name: 'circle',
+        radius: 200,
+        padding: 50,
+        animate: true,
+        animationDuration: 1000
+      },
+      grid: {
+        name: 'grid',
+        rows: Math.ceil(Math.sqrt(nodes.length)),
+        cols: Math.ceil(Math.sqrt(nodes.length)),
+        padding: 50,
+        animate: true,
+        animationDuration: 1000
+      },
+      cose: {
+        name: 'cose',
+        padding: 50,
+        animate: true,
+        animationDuration: 1000,
+        idealEdgeLength: 100,
+        nodeOverlap: 20,
+        refresh: 20,
+        fit: true,
+        randomize: false,
+        componentSpacing: 100,
+        nodeRepulsion: 400000,
+        edgeElasticity: 100,
+        nestingFactor: 5,
+        gravity: 80,
+        numIter: 1000,
+        initialTemp: 200,
+        coolingFactor: 0.95,
+        minTemp: 1.0
+      },
+      concentric: {
+        name: 'concentric',
+        padding: 50,
+        animate: true,
+        animationDuration: 1000,
+        concentric: (node) => node.data('changePercent') || 0,
+        levelWidth: () => 2,
+        minNodeSpacing: 50
+      }
+    }
+    return layouts[layoutName] || layouts.circle
+  }
+
+  const determineEdgeColor = (correlation, method) => {
+    if (method === 'granger') {
+      return correlation > 0 ? '#3b82f6' : '#ef4444'
+    } else {
+      return correlation > 0 ? '#10b981' : '#f59e0b'
+    }
+  }
+
+  const showNodeDetails = (nodeData) => {
+    setSelectedNode(nodeData)
+    setSelectedEdge(null)
+    setShowDetails(true)
+  }
+
+  const showEdgeDetails = (edgeData) => {
+    setSelectedEdge(edgeData)
+    setSelectedNode(null)
+    setShowDetails(true)
+  }
+
   const initializeCytoscapeGraph = useCallback(async () => {
     if (!cytoscapeRef.current || nodes.length === 0) return
-    
-    // Ensure Cytoscape is loaded
     if (!cytoscape) {
       await initCytoscape()
       if (!cytoscape) {
@@ -79,51 +272,42 @@ const StockGraph = () => {
         return
       }
     }
-
     try {
-      // Destroy existing instance
       if (cyRef.current) {
         cyRef.current.destroy()
       }
-
-      console.log('🎯 Initializing Cytoscape graph with', nodes.length, 'nodes and', edges.length, 'edges')
-
-      // Convert data to Cytoscape format
       const cytoscapeNodes = nodes.map(node => ({
         data: {
           id: node.id,
           label: node.id,
-          name: node.name,
-          price: node.price,
-          change: node.change,
-          changePercent: node.changePercent,
-          isRealData: node.isRealData,
-          isHistoricalData: node.isHistoricalData,
-          isStaticData: node.isStaticData,
-          hasIncompleteData: node.hasIncompleteData,
-          source: node.source,
-          lastUpdated: node.lastUpdated,
-          // Store color and other visual properties in data to be referenced by style
-          nodeColor: node.color,
-          nodeSize: Math.max(30, Math.min(80, 30 + (node.val * 10))),
-          borderColor: node.change >= 0 ? '#16a34a' : '#dc2626'
+          name: node.name || node.id,
+          price: node.price || 0,
+          change: node.change || 0,
+          changePercent: node.changePercent || 0,
+          volume: node.volume || 0,
+          nodeColor: node.color || (node.change >= 0 ? '#22c55e' : '#ef4444'),
+          nodeSize: Math.max(40, Math.min(100, 50 + (Math.abs(node.changePercent || 0) * 2))),
+          borderColor: node.change >= 0 ? '#16a34a' : '#dc2626',
+          borderWidth: 3,
+          isRealData: node.isRealData || false,
+          dataSource: node.source || 'API'
         }
       }))
-
       const cytoscapeEdges = edges.map((edge, index) => ({
         data: {
           id: `edge-${index}`,
           source: edge.source,
           target: edge.target,
-          weight: edge.value,
-          correlation: edge.correlation,
-          // Move style properties to data for stylesheet reference
-          edgeColor: edge.color,
-          edgeWidth: Math.max(1, edge.width || 2)
+          weight: Math.abs(edge.correlation || edge.value || 0),
+          correlation: Number(edge.correlation || edge.value || 0).toFixed(3),
+          method: edge.method || 'unknown',
+          edgeColor: determineEdgeColor(edge.correlation || edge.value || 0, edge.method),
+          edgeWidth: Math.max(2, Math.abs(edge.correlation || edge.value || 0) * 10),
+          opacity: Math.max(0.9, Math.abs(edge.correlation || edge.value || 0)), // Increased from 0.7 to 0.9 for better visibility
+          pValue: edge.p_value || null,
+          importance: edge.importance || null
         }
       }))
-
-      // Initialize Cytoscape
       cyRef.current = cytoscape({
         container: cytoscapeRef.current,
         elements: [...cytoscapeNodes, ...cytoscapeEdges],
@@ -132,7 +316,7 @@ const StockGraph = () => {
             selector: 'node',
             style: {
               'background-color': 'data(nodeColor)',
-              'border-width': 2,
+              'border-width': 'data(borderWidth)',
               'border-color': 'data(borderColor)',
               'width': 'data(nodeSize)',
               'height': 'data(nodeSize)',
@@ -140,10 +324,11 @@ const StockGraph = () => {
               'color': '#1f2937',
               'text-valign': 'center',
               'text-halign': 'center',
-              'font-size': '10px',
+              'font-size': '12px',
               'font-weight': 'bold',
-              'text-outline-width': 1,
-              'text-outline-color': '#fff'
+              'text-outline-width': 2,
+              'text-outline-color': '#ffffff',
+              'text-outline-opacity': 0.7
             }
           },
           {
@@ -154,14 +339,14 @@ const StockGraph = () => {
               'target-arrow-color': 'data(edgeColor)',
               'target-arrow-shape': 'triangle',
               'curve-style': 'bezier',
-              'opacity': 0.8
-            }
-          },
-          {
-            selector: 'node:selected',
-            style: {
-              'border-width': 4,
-              'border-color': '#3b82f6'
+              'opacity': 'data(opacity)',
+              'label': 'data(correlation)',
+              'font-size': '10px',
+              'color': '#1f2937',
+              'text-background-color': '#ffffff',
+              'text-background-opacity': 0.95,
+              'text-background-padding': '2px',
+              'text-background-shape': 'roundrectangle'
             }
           }
         ],
@@ -170,465 +355,130 @@ const StockGraph = () => {
         userZoomingEnabled: true,
         panningEnabled: true,
         userPanningEnabled: true,
-        boxSelectionEnabled: false,
-        selectionType: 'single',
-        touchTapThreshold: 8,
-        desktopTapThreshold: 4,
-        autolock: false,
-        autoungrabify: false,
-        autounselectify: false,
-        minZoom: 0.5,
-        maxZoom: 3
+        minZoom: 0.3,
+        maxZoom: 4
       })
-
-      // Add event listeners
-      cyRef.current.on('zoom', () => {
-        const zoom = cyRef.current.zoom()
-        setCurrentZoom(zoom)
+      cyRef.current?.on('zoom', () => {
+        setCurrentZoom(cyRef.current?.zoom() || 1)
       })
-
-      cyRef.current.on('tap', 'node', (evt) => {
+      cyRef.current?.on('tap', 'node', (evt) => {
         const node = evt.target
         const data = node.data()
-        console.log('Node clicked:', data)
-        
-        // Show node info in tooltip or sidebar
-        // You can expand this to show detailed stock information
+        showNodeDetails(data)
       })
-
-      // Fit to view initially
-      setTimeout(() => {
-        if (cyRef.current) {
-          cyRef.current.fit(null, 50)
-        }
-      }, 100)
-
-      console.log('✅ Cytoscape graph initialized successfully')
+      cyRef.current?.on('tap', 'edge', (evt) => {
+        const edge = evt.target
+        const data = edge.data()
+        showEdgeDetails(data)
+      })
+      graphGeneratedRef.current = true
     } catch (error) {
-      console.error('❌ Error initializing Cytoscape graph:', error)
+      setError('Failed to initialize graph visualization')
     }
   }, [nodes, edges, selectedLayout])
 
-  // Get layout configuration
-  const getLayoutConfig = (layoutName) => {
-    const configs = {
-      'circle': {
-        name: 'circle',
-        fit: true,
-        padding: 30,
-        boundingBox: undefined,
-        avoidOverlap: true,
-        nodeDimensionsIncludeLabels: false,
-        spacingFactor: undefined,
-        radius: undefined,
-        startAngle: 3 / 2 * Math.PI,
-        sweep: undefined,
-        clockwise: true,
-        sort: undefined,
-        animate: false,
-        animationDuration: 500,
-        animationEasing: undefined,
-        transform: function(node, position) { return position; }
-      },
-      'grid': {
-        name: 'grid',
-        fit: true,
-        padding: 30,
-        boundingBox: undefined,
-        avoidOverlap: true,
-        avoidOverlapPadding: 10,
-        nodeDimensionsIncludeLabels: false,
-        spacingFactor: undefined,
-        condense: false,
-        rows: undefined,
-        cols: undefined,
-        position: function(node) {},
-        sort: undefined,
-        animate: false,
-        animationDuration: 500,
-        animationEasing: undefined,
-        transform: function(node, position) { return position; }
-      }
+  const handleRefresh = () => {
+    if (watchlistData.length > 0) {
+      fetchStockPrices(watchlistData).then(prices => fetchCorrelations(prices))
     }
-    return configs[layoutName] || configs['grid']
   }
 
-  // Cytoscape control functions
   const handleZoomIn = () => {
     if (cyRef.current) {
-      cyRef.current.zoom(cyRef.current.zoom() * 1.5)
-      cyRef.current.center()
+      cyRef.current.zoom(cyRef.current.zoom() * 1.2)
     }
   }
 
   const handleZoomOut = () => {
     if (cyRef.current) {
-      const minZoom = 0.5;
-      const newZoom = Math.max(cyRef.current.zoom() * 0.9, minZoom);
-      cyRef.current.zoom(newZoom);
-      cyRef.current.center();
+      cyRef.current.zoom(cyRef.current.zoom() * 0.8)
     }
   }
 
-  const handleResetZoom = () => {
+  const handleFitGraph = () => {
     if (cyRef.current) {
-      cyRef.current.fit(null, 50)
+      cyRef.current.fit()
     }
   }
 
-  const handleLayoutChange = (newLayout) => {
-    setSelectedLayout(newLayout)
+  const handleLayoutChange = (layout) => {
+    setSelectedLayout(layout)
     if (cyRef.current) {
-      const layout = cyRef.current.layout(getLayoutConfig(newLayout))
-      layout.run()
+      cyRef.current.layout(getLayoutConfig(layout)).run()
     }
   }
 
-  const fetchStockPrices = useCallback(async (watchlist, isManualRefresh = false) => {
-    if (!watchlist || watchlist.length === 0) return
-    
-    // Only show loading for manual refresh or initial load
-    if (isManualRefresh || !graphGeneratedRef.current) {
-      setLoading(true)
-    }
-    
-    const prices = {}
-    let realDataCount = 0
-    let historicalDataCount = 0
-    let staticDataCount = 0
-    let failedCount = 0
-    
-    console.log('📊 Starting to fetch prices for watchlist:', watchlist)
+  const layoutOptions = [
+    { value: 'circle', label: 'Circle' },
+    { value: 'grid', label: 'Grid' },
+    { value: 'cose', label: 'Force-directed' },
+    { value: 'concentric', label: 'Concentric' }
+  ];
 
-    for (const stock of watchlist) {
-      try {
-        console.log(`🔍 Fetching price for ${stock.symbol}...`)
-        // Add timestamp to force fresh data and avoid cache
-        const timestamp = Date.now()
-        const response = await fetch(`/api/stock-detail?symbol=${stock.symbol}&t=${timestamp}`, {
-          cache: 'no-cache',
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        })
-        const data = await response.json()
-        
-        console.log(`📈 Response for ${stock.symbol}:`, data)
-        
-        if (data.success && data.data) {
-          const stockData = data.data
-          
-          // Validate that we have the essential data for display
-          if (stockData.price && (stockData.change !== null || stockData.changePercent !== null)) {
-            prices[stock.symbol] = stockData
-            
-            // Count data types
-            if (stockData.isRealData) {
-              realDataCount++
-              console.log(`✅ Real-time data for ${stock.symbol}: ₹${stockData.price} (${stockData.source || 'Unknown source'})`)
-            } else if (stockData.isHistoricalData) {
-              historicalDataCount++
-              console.log(`📅 Historical data for ${stock.symbol}: $${stockData.price} (${stockData.source || 'Historical'})`)
-            } else if (stockData.isStaticData) {
-              staticDataCount++
-              console.log(`🏛️ Static data for ${stock.symbol}: $${stockData.price} (${stockData.source || 'Static'})`)
-            }
-          } else {
-            console.warn(`⚠️ Incomplete data for ${stock.symbol}:`, stockData)
-            // Still add it but flag the issue
-            prices[stock.symbol] = {
-              ...stockData,
-              change: stockData.change || 0,
-              changePercent: stockData.changePercent || 0,
-              hasIncompleteData: true
-            }
-          }
-        } else {
-          console.log(`❌ API call failed for ${stock.symbol}:`, data.error || 'Unknown error')
-          failedCount++
-        }
-      } catch (err) {
-        console.error(`💥 Network error fetching price for ${stock.symbol}:`, err)
-        failedCount++
-      }
-    }
-
-    console.log('📊 Final pricing summary:')
-    console.log(`  - Real-time data: ${realDataCount} stocks`)
-    console.log(`  - Historical data: ${historicalDataCount} stocks`)
-    console.log(`  - Static data: ${staticDataCount} stocks`)
-    console.log(`  - Failed: ${failedCount} stocks`)
-    console.log('📊 Final prices object:', prices)
-    
-    setStockPrices(prices)
-    setLastUpdated(new Date())
-    setLoading(false)
-    
-    // Only regenerate graph if watchlist changed or this is manual refresh
-    if (isManualRefresh || watchlist.length !== watchlistLengthRef.current) {
-      watchlistLengthRef.current = watchlist.length
-      graphGeneratedRef.current = false // Force regeneration
-    }
-  }, [])
-
-  // Initial watchlist fetch - only once
-  useEffect(() => {
-    const fetchWatchlist = async () => {
-      try {
-        const response = await fetch(`/api/user-watchlist?userId=${userId}`)
-        const data = await response.json()
-
-        if (data.success && data.watchlist && data.watchlist.length > 0) {
-          setWatchlistData(data.watchlist)
-          await fetchStockPrices(data.watchlist, false)
-        } else {
-          console.log('⚠️ User watchlist empty or failed, using sample watchlist')
-          // Use a sample watchlist for demonstration
-          const sampleWatchlist = [
-            { symbol: 'AAPL', name: 'Apple Inc.' },
-            { symbol: 'MSFT', name: 'Microsoft Corporation' },
-            { symbol: 'GOOGL', name: 'Alphabet Inc.' },
-            { symbol: 'TSLA', name: 'Tesla, Inc.' },
-            { symbol: 'NVDA', name: 'NVIDIA Corporation' }
-          ]
-          setWatchlistData(sampleWatchlist)
-          await fetchStockPrices(sampleWatchlist, false)
-        }
-      } catch (err) {
-        console.error('❌ Error fetching watchlist:', err)
-        setError('Error fetching watchlist: ' + err.message)
-        setLoading(false)
-      }
-    }
-
-    fetchWatchlist()
-  }, [userId]) // Removed fetchStockPrices from dependencies
-
-  // Auto-refresh prices only (NOT the graph) - only when enabled
-  useEffect(() => {
-    if (!autoRefresh || watchlistData.length === 0) return
-
-    const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing stock prices only...')
-      fetchStockPrices(watchlistData, false) // false = not manual, don't regenerate graph
-    }, 30000) // 30 seconds
-
-    return () => clearInterval(interval)
-  }, [watchlistData, autoRefresh]) // Removed fetchStockPrices from dependencies
-
-  // Generate graph data only when needed
-  const generateGraph = useCallback(async () => {
-    if (graphGeneratedRef.current || watchlistData.length === 0 || Object.keys(stockPrices).length === 0) {
-      return
-    }
-
-    console.log('🎯 Starting graph data generation...')
-    
-    const newNodes = watchlistData
-      .filter(stock => stockPrices[stock.symbol])
-      .map(stock => {
-        const stockData = stockPrices[stock.symbol]
-        
-        if (!stockData) {
-          console.warn(`⚠️ No stock data found for ${stock.symbol}`)
-          return null
-        }
-        
-        return {
-          id: stock.symbol,
-          name: stock.name || stock.symbol,
-          val: 1 + (stockData.marketCap ? Math.log(stockData.marketCap) / 200 : 1),
-          color: (stockData.change !== undefined && stockData.change >= 0) ? '#22c55e' : '#ef4444',
-          price: stockData.price || 0,
-          change: stockData.change || 0,
-          changePercent: stockData.changePercent || 0,
-          isRealData: stockData.isRealData || false,
-          isHistoricalData: stockData.isHistoricalData || false,
-          isStaticData: stockData.isStaticData || false,
-          hasIncompleteData: stockData.hasIncompleteData || false,
-          source: stockData.source || 'Unknown',
-          lastUpdated: stockData.timestamp ? new Date(stockData.timestamp).toLocaleTimeString() : 'Unknown'
-        }
-      })
-      .filter(node => node !== null) // Remove null nodes
-
-    console.log('🎯 Created nodes:', newNodes)
-
-    const grangerEdges = await fetchGrangerCausality(stockPrices)
-    console.log('🔗 Granger edges received:', grangerEdges)
-    
-    let newEdges = grangerEdges.map(edge => {
-      console.log('🔗 Processing edge:', edge)
-      return {
-        source: edge.source,
-        target: edge.target,
-        value: Math.abs(edge.correlation || 0.5),
-        width: Math.max(2, Math.abs(edge.correlation || 0.5) * 5),
-        color: (edge.correlation || 0) > 0 ? '#2563eb' : '#dc2626',
-        correlation: edge.correlation || 0
-      }
-    })
-
-    // Fallback: Create some sample edges if no Granger edges are found
-    if (newEdges.length === 0 && newNodes.length > 1) {
-      console.log('🔧 No Granger edges found, creating sample edges for visualization')
-      // Create a more interesting pattern of connections
-      for (let i = 0; i < newNodes.length; i++) {
-        for (let j = i + 1; j < newNodes.length; j++) {
-          // Only create edges for some pairs to avoid clutter
-          if (Math.random() > 0.7) { // 30% chance of connection
-            const correlation = (Math.random() * 2 - 1) * 0.8; // Random correlation between -0.8 and 0.8
-            newEdges.push({
-              source: newNodes[i].id,
-              target: newNodes[j].id,
-              value: Math.abs(correlation),
-              width: Math.random() * 4 + 2, // Random width 2-6
-              color: correlation > 0 ? '#3b82f6' : '#f97316', // Blue for positive, orange for negative
-              correlation: correlation
-            })
-          }
-        }
-      }
-      console.log('🔧 Created fallback edges:', newEdges)
-    }
-
-    console.log('✅ Final result - Nodes:', newNodes.length, 'Edges:', newEdges.length)
-    console.log('📊 Sample node:', newNodes[0])
-    console.log('🔗 Sample edge:', newEdges[0])
-
-    setNodes(newNodes)
-    setEdges(newEdges)
-    graphGeneratedRef.current = true
-    
-    // The graph will be initialized in the useEffect that watches nodes and edges
-  }, [watchlistData, stockPrices])
-
-  // Only generate graph when watchlist or prices change significantly
-  useEffect(() => {
-    generateGraph()
-  }, [watchlistData, stockPrices, generateGraph])
-
-  // Initialize the Cytoscape graph when nodes and edges change
-  useEffect(() => {
-    const initGraph = async () => {
-      if (nodes.length > 0 && edges.length > 0) {
-        // Make sure Cytoscape is ready first
-        if (!cytoscape) {
-          await initCytoscape()
-        }
-        
-        // Small timeout to ensure the DOM is ready
-        setTimeout(() => {
-          initializeCytoscapeGraph()
-        }, 200)
-      }
-    }
-    
-    initGraph()
-  }, [nodes, edges, initializeCytoscapeGraph])
-
-  const fetchGrangerCausality = async (prices) => {
-    try {
-      const response = await fetch('http://localhost:5001/api/granger-causality', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock_prices: prices })
-      });
-      const data = await response.json();
-      setBackendConnected(true);
-      // Filter weak edges and ensure single direction
-      const filteredEdges = data.edges
-        .filter(edge => edge.value > 0.2) // Only significant influences
-        .filter(edge => edge.source !== edge.target); // Remove self-loops
-      return filteredEdges;
-    } catch (error) {
-      console.error('💥 Error fetching Granger causality:', error)
-      setBackendConnected(false)
-      return []
-    }
-  };
-
-  // Manual refresh function
-  const handleManualRefresh = () => {
-    console.log('🔄 Manual refresh triggered - will regenerate graph')
-    graphGeneratedRef.current = false // Force graph regeneration
-    fetchStockPrices(watchlistData, true) // true = manual refresh
-  }
-
-  // Update node data when prices change (but don't regenerate entire graph)
-  useEffect(() => {
-    if (graphGeneratedRef.current && nodes.length > 0 && Object.keys(stockPrices).length > 0) {
-      const updatedNodes = nodes.map(node => {
-        const stockData = stockPrices[node.id]
-        if (stockData) {
-          const updatedNode = {
-            ...node,
-            price: stockData.price || 0,
-            change: stockData.change || 0,
-            changePercent: stockData.changePercent || 0,
-            color: (stockData.change !== undefined && stockData.change >= 0) ? '#22c55e' : '#ef4444',
-            lastUpdated: stockData.timestamp ? new Date(stockData.timestamp).toLocaleTimeString() : 'Unknown'
-          }
-          
-          // Also update the node in Cytoscape if it exists
-          if (cyRef.current) {
-            const cyNode = cyRef.current.getElementById(node.id)
-            if (cyNode && cyNode.length > 0) {
-              // Update data properties
-              cyNode.data('price', updatedNode.price)
-              cyNode.data('change', updatedNode.change)
-              cyNode.data('changePercent', updatedNode.changePercent)
-              cyNode.data('lastUpdated', updatedNode.lastUpdated)
-              
-              // Update the properties used by style mappings
-              cyNode.data('nodeColor', updatedNode.color)
-              cyNode.data('borderColor', updatedNode.change >= 0 ? '#16a34a' : '#dc2626')
-            }
-          }
-          
-          return updatedNode
-        }
-        return node
-      })
-
-      setNodes(updatedNodes)
-    }
-  }, [stockPrices]) // Only depend on stockPrices, not nodes
-
-  // Additional styles for the Cytoscape container
   const cytoscapeStyles = {
     width: '100%',
     height: '600px',
-    backgroundColor: '#f8fafc',
     borderRadius: '8px',
-    overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-  };
-  
-  // Layout options for the dropdown
-  const layoutOptions = [
-    { value: 'grid', label: 'Grid Layout' },
-    { value: 'circle', label: 'Circle Layout' }
-  ];
+    border: '1px solid #e5e7eb',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    position: 'relative',
+    overflow: 'hidden'
+  }
 
-  if (loading) return (
-    <div className={styles.loadingContainer}>
-      <div className={styles.loadingContent}>
-        <div className={styles.spinner}></div>
-        <p className={styles.loadingText}>Loading stock network...</p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex items-center space-x-2">
+          <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+          <span className="text-gray-600">Loading stock correlations...</span>
+        </div>
       </div>
-    </div>
-  )
-  
-  if (error) return (
-    <div className={styles.errorContainer}>
-      <div className={styles.errorContent}>
-        <div className={styles.errorIcon}>⚠️</div>
-        <p className={styles.errorText}>Error: {error}</p>
-      </div>
-    </div>
-  )
+    )
+  }
+
+  if (error) {
+    // For warnings about no correlation data but backend is connected,
+    // show the warning as an overlay but still render the graph
+    if (backendConnected && error.includes("correlation")) {
+      // Continue rendering the graph with the warning overlay
+    } else {
+      // For other errors, show full error screen
+      return (
+        <div className={styles.errorContainer}>
+          <div className={styles.errorContent}>
+            <div className={styles.errorIcon}>⚠️</div>
+            <p className={styles.errorText}>Error: {error}</p>
+            {error && error.includes("correlation") && (
+              <div style={{ marginTop: '1rem' }}>
+                <p>To fix this issue:</p>
+                <ol style={{ textAlign: 'left', marginTop: '0.5rem' }}>
+                  <li>Make sure the backend server is running on http://localhost:5001</li>
+                  <li>Check that the API endpoint /api/granger-causality is available</li>
+                  <li>Ensure network connectivity between this app and the backend</li>
+                  <li>Try refreshing the page after the backend is running</li>
+                </ol>
+                <button
+                  onClick={() => setError(null)}
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  View Graph Without Correlations
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+  }
 
   return (
     <div className={styles.pageContainer}>
@@ -636,10 +486,61 @@ const StockGraph = () => {
         <h1>Stock Network Graph</h1>
         <p>Interactive visualization of your watchlist correlations</p>
         
+        {/* Error overlay for correlation warning but backend connected */}
+        {error && backendConnected && error.includes("correlation") && (
+          <div style={{ 
+            marginTop: '1rem', 
+            padding: '0.5rem 1rem', 
+            backgroundColor: '#fef3c7', 
+            color: '#92400e', 
+            borderRadius: '4px',
+            border: '1px solid #f59e0b'
+          }}>
+            <strong>⚠️ Notice:</strong> {error}
+            <button
+              onClick={() => setError(null)}
+              style={{
+                marginLeft: '1rem',
+                padding: '0.25rem 0.75rem',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+        
+        {/* Backend connection warning */}
+        {!backendConnected && (
+          <div style={{ 
+            marginTop: '1rem', 
+            padding: '0.5rem 1rem', 
+            backgroundColor: '#fed7aa', 
+            color: '#7c2d12', 
+            borderRadius: '4px',
+            border: '1px solid #f97316'
+          }}>
+            <strong>⚠️ Notice:</strong> The correlation analysis service is not connected. 
+            Stock nodes are displayed but without correlation edges.
+            <div style={{ marginTop: '0.5rem' }}>
+              <strong>To see stock correlations:</strong>
+              <ol style={{ marginTop: '0.25rem', paddingLeft: '1.5rem', textAlign: 'left' }}>
+                <li>Ensure backend server is running at http://localhost:5001</li>
+                <li>Check that the API endpoint /api/granger-causality is available</li>
+                <li>Click "Refresh Graph & Prices" after the backend is running</li>
+              </ol>
+            </div>
+          </div>
+        )}
+        
         {/* Refresh Controls */}
         <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button 
-            onClick={handleManualRefresh}
+            onClick={handleRefresh}
             disabled={loading}
             style={{
               padding: '0.5rem 1rem',
@@ -651,11 +552,12 @@ const StockGraph = () => {
               opacity: loading ? 0.6 : 1
             }}
           >
-            🔄 Refresh Graph & Prices
+            <RefreshCw className="w-4 h-4 inline-block" /> 
+            <span className="align-middle"> Refresh Graph & Prices</span>
           </button>
           
           <button 
-            onClick={handleResetZoom}
+            onClick={handleFitGraph}
             style={{
               padding: '0.5rem 1rem',
               backgroundColor: '#3b82f6',
@@ -665,7 +567,8 @@ const StockGraph = () => {
               cursor: 'pointer'
             }}
           >
-            🎯 Reset Zoom
+            <ZoomIn className="w-4 h-4 inline-block" /> 
+            <span className="align-middle"> Fit Graph</span>
           </button>
           
           <button 
@@ -679,7 +582,8 @@ const StockGraph = () => {
               cursor: 'pointer'
             }}
           >
-            🔍 Zoom In
+            <ZoomIn className="w-4 h-4 inline-block" /> 
+            <span className="align-middle"> Zoom In</span>
           </button>
           
           <button 
@@ -693,7 +597,8 @@ const StockGraph = () => {
               cursor: 'pointer'
             }}
           >
-            🔍 Zoom Out
+            <ZoomOut className="w-4 h-4 inline-block" /> 
+            <span className="align-middle"> Zoom Out</span>
           </button>
           
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white' }}>
@@ -714,15 +619,21 @@ const StockGraph = () => {
           <span style={{ fontSize: '12px', opacity: 0.7, color: 'white' }}>
             Zoom: {(currentZoom * 100).toFixed(0)}%
           </span>
-        </div>
-        
-        {/* Debug info */}
+        </div>          {/* Debug info */}
         <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '10px', color: 'white' }}>
           Debug: User ID: {userId} | Watchlist: {watchlistData.length} stocks, Prices: {Object.keys(stockPrices).length} loaded, Nodes: {nodes.length}, Edges: {edges.length}
           <br />
           Backend Status: <span style={{ color: backendConnected ? '#22c55e' : '#ef4444' }}>
-            {backendConnected ? '🟢 Connected' : '🔴 Disconnected (using fallback edges)'}
+            {backendConnected ? '🟢 Connected' : '🔴 Disconnected (no correlation data available)'}
           </span>
+          <br />
+          {analysisStats && (
+            <>
+              Analysis: {analysisStats.granger_edges || 0} Granger + {analysisStats.naive_bayes_edges || 0} Naive Bayes = {analysisStats.total_edges || 0} total edges
+              <br />
+              Data Sources: {analysisStats.real_data_stocks || 0} real / {analysisStats.total_stocks || 0} total stocks ({analysisStats.real_data_percentage || 0}% real data)
+            </>
+          )}
           <br />
           Real-time Data: {Object.values(stockPrices).filter(stock => stock.isRealData).length} real, {Object.values(stockPrices).filter(stock => stock.isHistoricalData).length} historical, {Object.values(stockPrices).filter(stock => stock.isStaticData).length} static, {Object.values(stockPrices).filter(stock => stock.hasIncompleteData).length} incomplete
         </div>
@@ -772,54 +683,169 @@ const StockGraph = () => {
           }}></div>
         </div>
         
-        <div className={styles.sidebar}>
-          <div className={styles.watchlistSection}>
-            <h3>Your Watchlist</h3>
-            <div className={styles.stockList}>
-              {nodes.map(node => (
-                <div key={node.id} className={styles.stockItem}>
-                  <div className={styles.stockSymbol}>
-                    {node.id}
-                    <span style={{ 
-                      fontSize: '10px', 
-                      marginLeft: '4px',
-                      color: node.isRealData ? '#22c55e' : node.isHistoricalData ? '#f59e0b' : node.isStaticData ? '#f97316' : '#ef4444'
-                    }}>
-                      {node.isRealData ? '🟢' : node.isHistoricalData ? '🟡' : node.isStaticData ? '🟠' : '🔴'}
-                    </span>
-                  </div>
-                  <div className={styles.stockName}>{node.name}</div>
-                  <div className={`${styles.stockChange} ${node.change >= 0 ? styles.positive : styles.negative}`}>
-                    {node.changePercent?.toFixed(2)}%
-                  </div>
-                  <div style={{ fontSize: '10px', opacity: 0.7, color: 'white' }}>
-                    {node.lastUpdated}
+        {/* Details panel */}
+        {showDetails && (
+          <div className={styles.sidebar}>
+            <div style={{ padding: '1rem', backgroundColor: '#1f2937', borderRadius: '8px', margin: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ color: 'white', margin: 0 }}>Details</h3>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: '20px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Node details */}
+              {selectedNode && (
+                <div style={{ color: 'white' }}>
+                  <h4 style={{ color: '#22c55e', marginBottom: '0.5rem' }}>Stock: {selectedNode.name}</h4>
+                  <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Price:</span>
+                      <span style={{ fontWeight: 'bold' }}>${selectedNode.price}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Change:</span>
+                      <span style={{ 
+                        fontWeight: 'bold',
+                        color: selectedNode.change >= 0 ? '#22c55e' : '#ef4444'
+                      }}>
+                        {selectedNode.change >= 0 ? '+' : ''}${selectedNode.change} ({selectedNode.changePercent}%)
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Volume:</span>
+                      <span style={{ fontWeight: 'bold' }}>{selectedNode.volume?.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Data Source:</span>
+                      <span style={{ fontWeight: 'bold' }}>{selectedNode.dataSource}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Real Data:</span>
+                      <span style={{ 
+                        fontWeight: 'bold',
+                        color: selectedNode.isRealData ? '#22c55e' : '#f59e0b'
+                      }}>
+                        {selectedNode.isRealData ? 'Yes' : 'No'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Edge details */}
+              {selectedEdge && (
+                <div style={{ color: 'white' }}>
+                  <h4 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>Correlation</h4>
+                  <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>From:</span>
+                      <span style={{ fontWeight: 'bold' }}>{selectedEdge.source}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>To:</span>
+                      <span style={{ fontWeight: 'bold' }}>{selectedEdge.target}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Correlation:</span>
+                      <span style={{ 
+                        fontWeight: 'bold',
+                        color: selectedEdge.correlation >= 0 ? '#22c55e' : '#ef4444'
+                      }}>
+                        {selectedEdge.correlation}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Method:</span>
+                      <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{selectedEdge.method}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Strength:</span>
+                      <span style={{ fontWeight: 'bold' }}>
+                        {Math.abs(selectedEdge.correlation) > 0.7 ? 'Strong' : 
+                         Math.abs(selectedEdge.correlation) > 0.4 ? 'Moderate' : 'Weak'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Direction:</span>
+                      <span style={{ 
+                        fontWeight: 'bold',
+                        color: selectedEdge.correlation > 0 ? '#22c55e' : '#ef4444'
+                      }}>
+                        {selectedEdge.correlation > 0 ? 'Positive' : 'Negative'}
+                      </span>
+                    </div>
+                    {selectedEdge.pValue && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span>P-value:</span>
+                        <span style={{ fontWeight: 'bold' }}>{selectedEdge.pValue}</span>
+                      </div>
+                    )}
+                    {selectedEdge.importance && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Importance:</span>
+                        <span style={{ fontWeight: 'bold' }}>{selectedEdge.importance}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Analysis stats */}
+              {analysisStats && !selectedNode && !selectedEdge && (
+                <div style={{ color: 'white' }}>
+                  <h4 style={{ color: '#8b5cf6', marginBottom: '0.5rem' }}>Analysis Summary</h4>
+                  <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Total Edges:</span>
+                      <span style={{ fontWeight: 'bold' }}>{analysisStats.total_edges}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span>Granger Causality:</span>
+                      <span style={{ fontWeight: 'bold' }}>{analysisStats.granger_edges}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Naive Bayes:</span>
+                      <span style={{ fontWeight: 'bold' }}>{analysisStats.naive_bayes_edges}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Legend */}
+              <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #374151' }}>
+                <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>Legend</h4>
+                <div style={{ fontSize: '12px', color: '#d1d5db' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ width: '12px', height: '12px', backgroundColor: '#22c55e', borderRadius: '50%' }}></div>
+                    <span>Positive correlation</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ width: '12px', height: '12px', backgroundColor: '#ef4444', borderRadius: '50%' }}></div>
+                    <span>Negative correlation</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div style={{ width: '12px', height: '3px', backgroundColor: '#3b82f6' }}></div>
+                    <span>Granger causality</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '12px', height: '3px', backgroundColor: '#10b981' }}></div>
+                    <span>Naive Bayes</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div className={styles.guideSection}>
-            <h3 style={{ marginTop: '1rem' }}>Network Guide</h3>
-            <div className={styles.guideItem}>
-              <div className={styles.greenCircle}></div>
-              <span>Positive Performance</span>
-            </div>
-            <div className={styles.guideItem}>
-              <div className={styles.redCircle}></div>
-              <span>Negative Performance</span>
-            </div>
-            <div className={styles.guideItem}>
-              <div className={styles.blueLine}></div>
-              <span>Positive Correlation</span>
-            </div>
-            <div className={styles.guideItem}>
-              <div className={styles.orangeLine}></div>
-              <span>Negative Correlation</span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
