@@ -144,6 +144,7 @@ export async function POST(request) {
       
     // If this is a call from OmniDimension with a call_sid, store the session
     if (call_sid) {
+      console.log(`Storing session for call_sid: ${call_sid}`);
       // Store the session with the call_sid as the key
       try {
         // Prepare session data with required fields
