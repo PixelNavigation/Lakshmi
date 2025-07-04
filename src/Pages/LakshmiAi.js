@@ -5,316 +5,151 @@ import { nanoid } from '@/lib/utils'
 import styles from './LakshmiAi.module.css'
 
 // Import Yahoo Finance components
-import {
-  YahooStockChart,
-  YahooStockPrice,
+import { 
+  YahooStockChart, 
+  YahooStockPrice, 
+  YahooStockNews, 
   YahooStockFinancials,
-  YahooStockNews,
-  YahooStockScreener,
   YahooMarketOverview,
+  YahooStockScreener,
   YahooTickerTape,
   MoneyControlHeatmap
 } from '@/Components/YahooFinance'
 
-// Import TradingView components
-import { TickerTape } from '@/Components/TradingView/TickerTape'
-import { EnhancedTickerTape } from '@/Components/TradingView/EnhancedTickerTape'
-
-// Message components
 function UserMessage({ children }) {
   return (
-    <div className={styles.userMessageContainer}>
-      <div className={styles.userMessage}>
+    <div className={styles.userMessage}>
+      <div className={styles.userAvatar}>👤</div>
+      <div className={styles.userContent}>
         {children}
       </div>
-      <div className={styles.userAvatar}>
-        <span className={styles.userAvatarEmoji}>👤</span>
-      </div>
     </div>
   )
 }
 
-function FormattedStockAnalysis({ content, symbol, analysisType = 'default' }) {
-  // Determine if this is a company analysis that should show pros and cons
-  const isCompanyAnalysis = analysisType === 'company_analysis' || 
-                           content?.toLowerCase().includes('analyz') || 
-                           content?.toLowerCase().includes('analysis') ||
-                           content?.toLowerCase().includes('assess');
-                           
-  const isFinancialOnly = analysisType === 'financial_only';
-  
-  return (
-    <div className={styles.stockAnalysis}>
-      <div className={styles.analysisHeader}>
-        <h3>
-          📈 {symbol ? `${symbol} - ` : ''}{isFinancialOnly ? 'Financial Overview' : 'Stock Analysis'}
-        </h3>
-      </div>
-      
-      <div className={styles.analysisContent}>
-        {content}
-      </div>
-      
-      <div className={styles.analysisFooter}>
-        <p className={styles.analysisDisclaimer}>
-          This is AI-generated analysis based on available market data. Not financial advice.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function BotMessage({ content, children, isStreaming = false, analysisType }) {
-  // Check if this is a stock-related response that should show enhanced formatting
-  const isStockAnalysis = content && (
-    content.toLowerCase().includes('stock') ||
-    content.toLowerCase().includes('investment') ||
-    content.toLowerCase().includes('analysis') ||
-    content.toLowerCase().includes('price') ||
-    content.toLowerCase().includes('company') ||
-    content.toLowerCase().includes('financial') ||
-    content.toLowerCase().includes('nse') ||
-    content.toLowerCase().includes('bse') ||
-    content.toLowerCase().includes('sensex') ||
-    content.toLowerCase().includes('nifty') ||
-    /\b[A-Z][A-Z0-9]{2,}\b/.test(content) // Contains potential Indian stock symbols
-  )
-  
-  // Extract potential Indian stock symbol from content
-  const stockSymbolMatch = content?.match(/\b[A-Z][A-Z0-9]{2,}\b/g)
-  const symbol = stockSymbolMatch?.[0]
-
+function BotMessage({ content, isStreaming = false }) {
   return (
     <div className={styles.botMessageContainer}>
-      <div className={styles.botAvatar}>
-        <span className={styles.botAvatarEmoji}>🤖</span>
-      </div>
+      <div className={styles.botAvatar}>🤖</div>
       <div className={styles.botMessage}>
-        {content && (
-          <>
-            {isStockAnalysis ? (
-              <FormattedStockAnalysis 
-                content={content} 
-                symbol={symbol}
-                analysisType={
-                  // Use passed analysis type if available, otherwise determine based on content
-                  analysisType || (
-                    content.toLowerCase().includes('analyz') || content.toLowerCase().includes('analysis') 
-                      ? 'company_analysis'
-                      : content.toLowerCase().includes('financial') 
-                        ? 'financial_only'
-                        : 'default'
-                  )
-                }
-              />
-            ) : (
-              <div className={styles.enhancedTextResponse}>
-                {content}
-                {isStreaming && <span className={styles.streamingCursor}>|</span>}
-              </div>
-            )}
-          </>
-        )}
-        {children}
+        <div className={styles.responseContent}>
+          {content}
+          {isStreaming && <span className={styles.streamingCursor}>|</span>}
+        </div>
       </div>
     </div>
   )
 }
 
-function BotCard({ children }) {
-  // Create a ref to access the card element
-  const cardRef = useRef(null);
-  
-  // Effect to ensure the chart container stays within bounds
-  useEffect(() => {
-    if (cardRef.current) {
-      // Force the container to fit within its parent
-      const resizeObserver = new ResizeObserver(() => {
-        if (cardRef.current) {
-          const parent = cardRef.current.parentElement;
-          if (parent) {
-            const parentWidth = parent.getBoundingClientRect().width;
-            // Ensure card doesn't exceed parent width
-            cardRef.current.style.maxWidth = `${parentWidth}px`;
-          }
-        }
-      });
-      
-      resizeObserver.observe(cardRef.current);
-      
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }
-  }, []);
-  
+function BotCard({ children, title }) {
   return (
-    <div className={styles.botCardContainer} ref={cardRef}>
+    <div className={styles.botCardContainer}>
+      <div className={styles.botAvatar}>🤖</div>
       <div className={styles.botCard}>
+        {title && <div className={styles.cardTitle}>{title}</div>}
         {children}
       </div>
     </div>
   )
 }
 
-function parseAIResponse(message, content) {
-  // Check user's original message and AI response for widget requests
+function parseUserMessage(message) {
   const lowercaseMessage = message.toLowerCase()
-  const lowercaseContent = content.toLowerCase()
   
-  // Extract TradingView URLs and parse symbols from them
-  const tradingViewUrlPattern = /https?:\/\/(?:www\.)?tradingview\.com\/symbols\/([^\/\?]+)/gi
-  const tvUrlMatches = (message + ' ' + content).match(tradingViewUrlPattern)
-  let tvSymbol = null
+  // Enhanced company name to stock symbol mapping
+  const companyMappings = {
+    'tcs': 'TCS', 'tata consultancy': 'TCS', 'infosys': 'INFY', 'wipro': 'WIPRO',
+    'hcl tech': 'HCLTECH', 'tech mahindra': 'TECHM', 'sbi': 'SBIN', 'state bank': 'SBIN',
+    'hdfc bank': 'HDFCBANK', 'icici bank': 'ICICIBANK', 'axis bank': 'AXISBANK',
+    'kotak bank': 'KOTAKBANK', 'reliance': 'RELIANCE', 'ril': 'RELIANCE',
+    'tata motors': 'TATAMOTORS', 'maruti': 'MARUTI', 'bajaj finance': 'BAJFINANCE',
+    'asian paints': 'ASIANPAINT', 'sun pharma': 'SUNPHARMA', 'titan': 'TITAN',
+    'bharti airtel': 'BHARTIARTL', 'airtel': 'BHARTIARTL', 'itc': 'ITC',
+    'larsen toubro': 'LT', 'l&t': 'LT', 'ongc': 'ONGC', 'ntpc': 'NTPC',
+    'coal india': 'COALINDIA', 'power grid': 'POWERGRID', 'tata steel': 'TATASTEEL',
+    'jsw steel': 'JSWSTEEL', 'ultratech': 'ULTRACEMCO', 'shree cement': 'SHREECEM',
+    'nestle': 'NESTLEIND', 'hindustan unilever': 'HINDUNILVR', 'hul': 'HINDUNILVR',
+    'britannia': 'BRITANNIA', 'dr reddy': 'DRREDDY', 'cipla': 'CIPLA',
+    'apollo hospital': 'APOLLOHOSP', 'apollo': 'APOLLOHOSP', 'hindalco': 'HINDALCO',
+    'grasim': 'GRASIM', 'bajaj auto': 'BAJAJ-AUTO', 'hero motocorp': 'HEROMOTOCO',
+    'eicher motors': 'EICHERMOT', 'mahindra': 'M&M', 'bpcl': 'BPCL', 'ioc': 'IOC',
+    'zomato': 'ZOMATO', 'nykaa': 'NYKAA', 'paytm': 'PAYTM', 'dmart': 'DMART',
+    'adani enterprises': 'ADANIENT', 'adani ports': 'ADANIPORTS'
+  }
   
-  if (tvUrlMatches) {
-    // Parse the first TradingView URL found
-    const urlMatch = tvUrlMatches[0].match(/\/symbols\/([^\/\?]+)/)
-    if (urlMatch) {
-      let symbol = urlMatch[1]
-      if (symbol.includes('-')) {
-        const [exchange, ticker] = symbol.split('-')
-        // For all exchanges including NSE and BSE, just use the ticker without suffix
-        tvSymbol = ticker
-      } else {
-        // Remove any .NS or .BO suffixes if present
-        tvSymbol = symbol.replace('.NS', '').replace('.BO', '')
-      }
+  // Extract stock symbols from direct patterns and company names
+  const stockSymbolMatch = message.match(/\b[A-Z][A-Z0-9]{2,}\b/g)
+  let mentionedStock = null
+  
+  // First check for company name mappings
+  for (const [companyName, symbol] of Object.entries(companyMappings)) {
+    if (lowercaseMessage.includes(companyName)) {
+      mentionedStock = symbol
+      break
     }
   }
   
-  // Extract stock symbols - focusing on Indian stock symbols
-  // Matches: RELIANCE, SBIN, INFY, etc.
-  const stockSymbolMatch = (message + ' ' + content).match(/\b[A-Z][A-Z0-9]{2,}\b/g)
-  
-  // Common stocks list - Indian stocks without exchange suffixes
-  const commonStocks = [
-    'KOTAKBANK', 'BHARTIARTL', 'ITC', 'SBIN', 'LT', 'ASIANPAINT',
-    'MARUTI', 'BAJFINANCE', 'HCLTECH', 'WIPRO', 'ULTRACEMCO',
-    'TITAN', 'SUNPHARMA', 'POWERGRID', 'NTPC', 'ONGC', 'TATASTEEL',
-    'TECHM', 'NESTLEIND', 'COALINDIA', 'HINDALCO', 'GRASIM',
-    'BPCL', 'DRREDDY', 'EICHERMOT', 'CIPLA', 'HEROMOTOCO',
-    'BAJAJFINSV', 'BRITANNIA', 'SHREECEM', 'DIVISLAB', 'TATACONSUM',
-    'JSWSTEEL', 'APOLLOHOSP', 'INDUSINDBK', 'ADANIENT', 'TATAMOTORS',
-    'NCC', 'RELIANCE', 'INFY', 'TCS', 'HDFCBANK', 'HDFC', 'ICICIBANK',
-    'AXISBANK', 'ZOMATO', 'NYKAA', 'PAYTM', 'POLICYBZR', 'DMART'
-  ]
-
-  let mentionedStock = tvSymbol
-  
+  // If no company name found, check for direct stock symbols
   if (!mentionedStock && stockSymbolMatch) {
-    // First try to find a match in our known Indian stocks list
-    mentionedStock = stockSymbolMatch.find(symbol => commonStocks.includes(symbol));
+    const commonStocks = [
+      'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL',
+      'ITC', 'LT', 'KOTAKBANK', 'ASIANPAINT', 'MARUTI', 'BAJFINANCE', 'HCLTECH',
+      'WIPRO', 'ULTRACEMCO', 'TITAN', 'SUNPHARMA', 'POWERGRID', 'NTPC', 'ONGC',
+      'TATASTEEL', 'TECHM', 'NESTLEIND', 'COALINDIA', 'HINDALCO', 'GRASIM',
+      'BPCL', 'DRREDDY', 'EICHERMOT', 'CIPLA', 'HEROMOTOCO', 'BAJAJFINSV',
+      'BRITANNIA', 'SHREECEM', 'DIVISLAB', 'TATACONSUM', 'JSWSTEEL', 'APOLLOHOSP',
+      'INDUSINDBK', 'ADANIENT', 'TATAMOTORS', 'AXISBANK', 'HDFC', 'ZOMATO', 'NYKAA',
+      'PAYTM', 'DMART', 'HINDUNILVR', 'ADANIPORTS', 'VEDL', 'GODREJCP'
+    ]
     
-    // If not found in common list, try any symbol matching the pattern for Indian stocks
+    mentionedStock = stockSymbolMatch.find(symbol => commonStocks.includes(symbol))
+    
     if (!mentionedStock) {
       mentionedStock = stockSymbolMatch.find(symbol => 
         /^[A-Z]{2,10}$/.test(symbol) && !symbol.includes('.NS') && !symbol.includes('.BO')
-      );
+      )
     }
   }
 
-  // Special handling for TradingView URLs - automatically show chart
-  if (tvUrlMatches && mentionedStock) {
-    return {
-      type: 'chart',
-      symbol: mentionedStock,
-      content: content,
-      hideText: true,  // Hide text when showing chart
-      source: 'tradingview'
-    }
-  }
-
-  // Priority check: Look for specific widget requests in user message first
-  // CHART - highest priority when explicitly requested
+  // Check for specific widget requests
   if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show chart') || 
-       lowercaseMessage.includes('display chart') || lowercaseMessage.includes('view chart')) && mentionedStock) {
-    console.log('Chart requested for stock:', mentionedStock);
-    // Log the detected stock symbol for debugging
-    console.log(`Processing chart request for stock: ${mentionedStock}`);
-    return {
-      type: 'chart',
-      symbol: mentionedStock,
-      content: content,
-      hideText: true  // Hide text when showing chart as requested
-    }
+       lowercaseMessage.includes('display chart')) && mentionedStock) {
+    return { type: 'chart', symbol: mentionedStock }
   }
   
-  // NEWS - high priority for news requests
-  if (lowercaseMessage.includes('news') && mentionedStock) {
-    return {
-      type: 'news',
-      symbol: mentionedStock,
-      content: content,  // Show the full AI response
-      hideText: false
-    }
+  if ((lowercaseMessage.includes('price') || lowercaseMessage.includes('current price') || 
+       lowercaseMessage.includes('stock price')) && mentionedStock) {
+    return { type: 'price', symbol: mentionedStock }
   }
   
-  // FINANCIALS - check before price to avoid conflicts, but not if chart was requested
-  if ((lowercaseMessage.includes('financial') || lowercaseMessage.includes('financials')) && 
-      !lowercaseMessage.includes('chart') && mentionedStock) {
-    return {
-      type: 'financials',
-      symbol: mentionedStock,
-      content: content,  // Show the full AI response
-      hideText: true,    // Hide text response, show only financial data
-      mode: 'financial_only'
-    }
+  if ((lowercaseMessage.includes('financial') || lowercaseMessage.includes('financials') ||
+       lowercaseMessage.includes('balance sheet') || lowercaseMessage.includes('income statement')) && mentionedStock) {
+    return { type: 'financials', symbol: mentionedStock }
   }
   
-  // PRICE - but not if chart or financials are also mentioned
-  // When price is requested, use the TradingView StockPrice component
-  if (lowercaseMessage.includes('price') && 
-      !lowercaseMessage.includes('chart') && 
-      !lowercaseMessage.includes('financial') && 
-      mentionedStock) {
-    return {
-      type: 'price', // Use the standard TradingView price widget
-      symbol: mentionedStock,
-      content: content,
-      hideText: true // Hide text to show only price
-    }
+  if ((lowercaseMessage.includes('news') || lowercaseMessage.includes('latest news')) && mentionedStock) {
+    return { type: 'news', symbol: mentionedStock }
   }
   
-  // Market-wide widgets (no stock symbol needed)
-  if (lowercaseMessage.includes('screener') || lowercaseMessage.includes('screen')) {
-    return {
-      type: 'screener',
-      content: content,  // Show the full AI response
-      hideText: false
-    }
+  if (lowercaseMessage.includes('screener') || lowercaseMessage.includes('screen stocks') ||
+      lowercaseMessage.includes('stock screener')) {
+    return { type: 'screener' }
   }
   
-  if (lowercaseMessage.includes('market') && (lowercaseMessage.includes('overview') || lowercaseMessage.includes('performance'))) {
-    return {
-      type: 'market',
-      content: content,  // Show the full AI response
-      hideText: false
-    }
+  if ((lowercaseMessage.includes('market overview') || lowercaseMessage.includes('market performance') ||
+       lowercaseMessage.includes('indian market') || lowercaseMessage.includes('sensex') ||
+       lowercaseMessage.includes('nifty')) && !mentionedStock) {
+    return { type: 'market' }
   }
   
-  if (lowercaseMessage.includes('heatmap') || (lowercaseMessage.includes('sector') && lowercaseMessage.includes('performance'))) {
-    return {
-      type: 'heatmap',
-      content: content,  // Show the full AI response
-      hideText: false
-    }
+  if (lowercaseMessage.includes('heatmap') || lowercaseMessage.includes('heat map') ||
+      lowercaseMessage.includes('moneycontrol heatmap') || lowercaseMessage.includes('money control heatmap') ||
+      lowercaseMessage.includes('market heatmap') || lowercaseMessage.includes('stock heatmap')) {
+    return { type: 'heatmap' }
   }
   
-  if (lowercaseMessage.includes('trending') || lowercaseMessage.includes('movers')) {
-    return {
-      type: 'trending',
-      content: content,  // Show the full AI response
-      hideText: false
-    }
-  }
-  
-  // Default: just show text response (no widget)
-  return {
-    type: 'text',
-    content: content,  // Show the full AI response
-    hideText: false
-  }
+  // Default: just show text response
+  return { type: 'text', symbol: mentionedStock }
 }
 
 export default function LakshmiAi() {
@@ -480,13 +315,22 @@ export default function LakshmiAi() {
       setInputValue('')
       
       try {
-        // Call the API
-        const response = await fetch('/api/groq-chat', {
+        // Check if user is asking for charts
+        const lowercaseMessage = messageContent.toLowerCase()
+        const isChartRequest = lowercaseMessage.includes('chart') || 
+                              lowercaseMessage.includes('show chart') ||
+                              lowercaseMessage.includes('display chart')
+        
+        // Call the Gemini API with chart request flag if needed
+        const response = await fetch('/api/gemini-chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ message: messageContent }),
+          body: JSON.stringify({ 
+            message: messageContent,
+            requestChart: isChartRequest
+          }),
         })
         
         if (!response.ok) {
@@ -495,33 +339,54 @@ export default function LakshmiAi() {
         
         const data = await response.json()
         
-        if (data.error) {
-          throw new Error(data.error)
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to get response')
         }
         
-        // Parse the response to determine if we should show widgets
-        const parsedResponse = parseAIResponse(messageContent, data.response)
-        
-        const botMessage = {
-          id: nanoid(),
-          type: 'bot',
-          content: parsedResponse.content,
-          widget: parsedResponse.type !== 'text' ? {
-            type: parsedResponse.type,
-            symbol: parsedResponse.symbol,
-            hideText: parsedResponse.hideText,
-            mode: parsedResponse.mode
-          } : null
+        // Handle chart requests - show chart widget directly
+        if (data.showChart && data.chartSymbol) {
+          const botMessage = {
+            id: nanoid(),
+            type: 'bot',
+            content: data.response,
+            widget: {
+              type: 'chart',
+              symbol: data.chartSymbol
+            }
+          }
+          setMessages(prev => [...prev, botMessage])
+        } else {
+          // For all other requests, show comprehensive analysis
+          // Parse the response to determine if we should show additional widgets
+          const parsedResponse = parseUserMessage(messageContent)
+          
+          let widget = null
+          if (parsedResponse.type !== 'text' && parsedResponse.type !== 'chart') {
+            widget = {
+              type: parsedResponse.type,
+              symbol: parsedResponse.symbol
+            }
+          }
+          
+          const botMessage = {
+            id: nanoid(),
+            type: 'bot',
+            content: data.response,
+            widget: widget,
+            analysisType: data.analysisType,
+            stockData: data.stockData,
+            symbols: data.symbols
+          }
+          
+          setMessages(prev => [...prev, botMessage])
         }
-        
-        setMessages(prev => [...prev, botMessage])
         
       } catch (error) {
         console.error('Error:', error)
         const errorMessage = {
           id: nanoid(),
           type: 'bot',
-          content: `Sorry, I encountered an error: ${error.message}. Please make sure you have set your GROQ_API_KEY in the .env.local file.`,
+          content: `Sorry, I encountered an error: ${error.message}. Please make sure you have set your GEMINI_API_KEY in the .env.local file.`,
           isError: true
         }
         setMessages(prev => [...prev, errorMessage])
@@ -550,81 +415,57 @@ export default function LakshmiAi() {
 
   const exampleQuestions = [
     {
-      title: "Stock Analysis",
-      message: "What is the price of RELIANCE?",
+      title: "Company Analysis",
+      message: "Analyze Reliance Industries with real-time data",
       icon: "📊"
     },
     {
       title: "Chart View", 
-      message: "Show me a chart for SBIN",
+      message: "Show me TCS chart for technical analysis",
       icon: "📈"
     },
     {
-      title: "Company Financials",
-      message: "HDFCBANK financials",
-      icon: "📋"
+      title: "Bank Analysis",
+      message: "Compare of HDFC Bank and IDFC Bank",
+      icon: "🏦"
+    },
+    {
+      title: "Chart Request",
+      message: "Display chart for Infosys",
+      icon: "📉"
+    },
+    {
+      title: "Auto Sector",
+      message: "Maruti Suzuki share overview and score",
+      icon: "🚗"
     },
     {
       title: "Market Overview",
-      message: "Show Indian market overview",
-      icon: "🌐"
-    },
-    {
-      title: "Company Analysis",
-      message: "Analyze TATAMOTORS company",
-      icon: "🔍"
-    },
-    {
-      title: "Market Heatmap",
-      message: "NSE market heatmap",
-      icon: "🗺"
+      message: "Show Indian market overview and performance",
+      icon: "🇮�"
     }
   ]
 
   const renderWidget = (widget) => {
-    // Add console logging to debug widget rendering
-    console.log('Rendering widget:', widget);
-    
-    // Use stock symbols as-is without appending exchange suffixes
-    // Yahoo Finance components will handle the symbol formatting internally
+    if (!widget) return null;
     
     switch (widget.type) {
       case 'chart':
-        console.log('Rendering chart with symbol:', widget.symbol);
-        // Adding extra checks for Indian stock symbols
-        if (!widget.symbol.includes('.NS') && !widget.symbol.includes('.BO') && !/^\^/.test(widget.symbol)) {
-          console.log('Using standard Indian stock symbol without exchange suffix:', widget.symbol);
-        }
-        return (
-          <div style={{ 
-            width: '100%', 
-            maxWidth: '100%', 
-            overflowX: 'hidden',
-            position: 'relative',
-            height: '400px'
-          }}>
-            <YahooStockChart symbol={widget.symbol} />
-          </div>
-        );
+        return <YahooStockChart symbol={widget.symbol} />;
       case 'price':
-        // Use Yahoo Finance's PriceWidget component for all price requests
-        return <YahooStockPrice symbol={widget.symbol} width={200} height={80} />
+        return <YahooStockPrice symbol={widget.symbol} />;
       case 'financials':
-        return <YahooStockFinancials symbol={widget.symbol} />
+        return <YahooStockFinancials symbol={widget.symbol} />;
       case 'news':
-        return <YahooStockNews symbol={widget.symbol} />
+        return <YahooStockNews symbol={widget.symbol} />;
       case 'screener':
-        return <YahooStockScreener />
+        return <YahooStockScreener />;
       case 'market':
-        return <YahooMarketOverview />
+        return <YahooMarketOverview />;
       case 'heatmap':
-        // Use our MoneyControl-style heatmap
-        return <MoneyControlHeatmap />
-      case 'trending':
-        // Use our enhanced TradingView TickerTape with trending support
-        return <EnhancedTickerTape showTrending={true} />
+        return <MoneyControlHeatmap />;
       default:
-        return null
+        return null;
     }
   }
 
@@ -638,7 +479,7 @@ export default function LakshmiAi() {
             <div className={styles.welcomeContent}>
               {/* Market Ticker integrated within welcome screen */}
               <div className={styles.tickerSection}>
-                <TickerTape />
+                <YahooTickerTape />
               </div>
               <div className={styles.welcomeHeader}>
                 <h1 className={styles.welcomeTitle}>
@@ -646,7 +487,7 @@ export default function LakshmiAi() {
                   Lakshmi AI 
                 </h1>
                 <p className={styles.welcomeSubtitle}>
-                  Your intelligent Indian stock market assistant powered by Groq AI
+                  Your intelligent Indian stock market assistant powered by Gemini AI
                 </p>
               </div>
 
@@ -678,7 +519,7 @@ export default function LakshmiAi() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask about Indian stocks like RELIANCE, SBIN, or TATAMOTORS (no .NS/.BO suffix needed)..."
+                  placeholder="Ask about any Indian company: 'Show Reliance chart', 'Analyze TCS', 'Market overview'"
                   className={styles.chatInput}
                   disabled={isLoading}
                   autoComplete="off"
@@ -752,23 +593,9 @@ export default function LakshmiAi() {
                       <UserMessage>{message.content}</UserMessage>
                     ) : (
                       <>
-                        {/* Show AI text response if not a chart, price, or financial-only request */}
-                        {(!message.widget || 
-                          (message.widget && 
-                           !(message.widget.type === 'chart' && message.widget.hideText === true) &&
-                           !(message.widget.type === 'financials' && message.widget.hideText === true) &&
-                           !(message.widget.type === 'price' && message.widget.hideText === true)
-                          )
-                         ) && (
-                          <BotMessage 
-                            content={message.content} 
-                            analysisType={message.widget?.mode}
-                          />
-                        )}
-                        
-                        {/* Show widget if available */}
+                        <BotMessage content={message.content} />
                         {message.widget && (
-                          <BotCard>
+                          <BotCard title="Live Data">
                             {renderWidget(message.widget)}
                           </BotCard>
                         )}
@@ -778,7 +605,7 @@ export default function LakshmiAi() {
                 ))}
                 
                 {isLoading && (
-                  <BotMessage>
+                  <BotMessage content="">
                     <div className={styles.loadingDots}>
                       <div></div>
                       <div></div>
@@ -800,7 +627,7 @@ export default function LakshmiAi() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask about Indian stocks like RELIANCE, SBIN, or TATAMOTORS "
+                  placeholder="Ask about any Indian company: 'Show Reliance chart', 'Analyze TCS', 'Market overview'"
                   className={styles.chatInput}
                   disabled={isLoading}
                   autoComplete="off"
