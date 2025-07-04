@@ -8,7 +8,6 @@ import RealTimeStockPrice from '../Components/RealTimeStockPrice'
 import IndexPriceWidget from '../Components/IndexPriceWidget'
 import CandlestickChart from '../Components/CandlestickChart'
 
-// Yahoo Finance Chart Component (replaces TradingView component)
 function YahooFinanceChart({ symbol }) {
   const [chartData, setChartData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -702,6 +701,32 @@ export default function Dashboard() {
     }
   }
 
+  // Function to handle AI analysis
+  const handleAnalyzeWithAI = (symbol, name) => {
+    console.log(`🤖 Redirecting to Lakshmi AI for analysis of: ${symbol} (${name})`)
+    
+    // Navigate to Lakshmi AI page with stock symbol as parameter
+    if (typeof window !== 'undefined') {
+      // Store the selected stock for analysis
+      sessionStorage.setItem('lakshmiAI_selectedStock', JSON.stringify({
+        symbol: symbol,
+        name: name,
+        timestamp: Date.now()
+      }))
+      
+      // Navigate using the same method as navbar
+      if (window.navigateApp) {
+        window.navigateApp('lakshmiAi')
+      } else {
+        // Fallback navigation method
+        const event = new CustomEvent('navigate', { 
+          detail: { page: 'lakshmiAi', stock: { symbol, name } } 
+        })
+        window.dispatchEvent(event)
+      }
+    }
+  }
+
   // Function to refresh data after trades (simplified since we only need to maintain the callback interface)
   const refreshData = () => {
     // The Portfolio and Balance tabs will refresh their own data when navigated to
@@ -828,6 +853,7 @@ export default function Dashboard() {
           watchlist={watchlist}
           addToWatchlist={addToWatchlist}
           onTradeComplete={refreshData}
+          onAnalyzeWithAI={handleAnalyzeWithAI}
         />
       </div>
 

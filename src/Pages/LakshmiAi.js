@@ -242,6 +242,61 @@ export default function LakshmiAi() {
     }
   }, [])
 
+  // Check for pre-selected stock from Dashboard "Analyze with AI" feature
+  useEffect(() => {
+    const checkForPreSelectedStock = () => {
+      try {
+        const storedStock = sessionStorage.getItem('lakshmiAI_selectedStock')
+        if (storedStock) {
+          const stockData = JSON.parse(storedStock)
+          const { symbol, name, timestamp } = stockData
+          
+          // Check if the data is recent (within last 5 minutes)
+          const fiveMinutesAgo = Date.now() - (5 * 60 * 1000)
+          if (timestamp > fiveMinutesAgo) {
+            console.log(`🤖 LakshmiAI: Auto-analyzing pre-selected stock: ${symbol} (${name})`)
+            
+            // Add a welcome message indicating auto-analysis
+            const welcomeMessage = {
+              id: nanoid(),
+              type: 'bot',
+              content: `🎯 **Analyzing ${name} (${symbol})**\n\nYou've been redirected from the Dashboard for AI analysis of this stock. Let me provide you with a comprehensive analysis...`
+            }
+            
+            setMessages(prev => [...prev, welcomeMessage])
+            
+            // Create an automated analysis message
+            const analysisMessage = `Analyze ${name} (${symbol}) stock - provide detailed analysis including price trends, financial health, market position, and investment recommendation.`
+            
+            // Set the input value and trigger analysis
+            setInputValue(analysisMessage)
+            
+            // Auto-send the message after a short delay
+            setTimeout(() => {
+              handleSendMessage(analysisMessage, true) // true flag for auto-send
+            }, 1500) // Increased delay to show welcome message first
+            
+            // Clear the stored data
+            sessionStorage.removeItem('lakshmiAI_selectedStock')
+          } else {
+            // Remove stale data
+            sessionStorage.removeItem('lakshmiAI_selectedStock')
+            console.log('🤖 LakshmiAI: Removed stale pre-selected stock data')
+          }
+        }
+      } catch (error) {
+        console.error('🤖 LakshmiAI: Error processing pre-selected stock:', error)
+        sessionStorage.removeItem('lakshmiAI_selectedStock')
+      }
+    }
+    
+    // Check immediately and also after a short delay to ensure component is ready
+    checkForPreSelectedStock()
+    const timeoutId = setTimeout(checkForPreSelectedStock, 500)
+    
+    return () => clearTimeout(timeoutId)
+  }, [])
+
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ 
@@ -298,25 +353,32 @@ export default function LakshmiAi() {
     }
   }, [messages])
 
-  const handleSendMessage = async () => {
-    if (inputValue.trim() && !isLoading) {
+  const handleSendMessage = async (messageOverride = null, isAutoSend = false) => {
+    const messageToSend = messageOverride || inputValue.trim()
+    
+    if (messageToSend && !isLoading) {
       setIsLoading(true)
       
       // Add user message
       const userMessage = {
         id: nanoid(),
         type: 'user',
-        content: inputValue
+        content: messageToSend
       }
       
       setMessages(prev => [...prev, userMessage])
       
-      const messageContent = inputValue
-      setInputValue('')
+      // Clear input only if not using override (auto-send case)
+      if (!messageOverride) {
+        setInputValue('')
+      } else {
+        // For auto-send, clear the input after sending
+        setTimeout(() => setInputValue(''), 100)
+      }
       
       try {
         // Check if user is asking for charts
-        const lowercaseMessage = messageContent.toLowerCase()
+        const lowercaseMessage = messageToSend.toLowerCase()
         const isChartRequest = lowercaseMessage.includes('chart') || 
                               lowercaseMessage.includes('show chart') ||
                               lowercaseMessage.includes('display chart')
@@ -328,8 +390,9 @@ export default function LakshmiAi() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ 
-            message: messageContent,
-            requestChart: isChartRequest
+            message: messageToSend,
+            requestChart: isChartRequest,
+            isAutoAnalysis: isAutoSend
           }),
         })
         
@@ -358,7 +421,7 @@ export default function LakshmiAi() {
         } else {
           // For all other requests, show comprehensive analysis
           // Parse the response to determine if we should show additional widgets
-          const parsedResponse = parseUserMessage(messageContent)
+          const parsedResponse = parseUserMessage(messageToSend)
           
           let widget = null
           if (parsedResponse.type !== 'text' && parsedResponse.type !== 'chart') {
@@ -430,8 +493,8 @@ export default function LakshmiAi() {
       icon: "🏦"
     },
     {
-      title: "Chart Request",
-      message: "Display chart for Infosys",
+      title: "market heatmap",
+      message: "Show market heatmap",
       icon: "📉"
     },
     {
