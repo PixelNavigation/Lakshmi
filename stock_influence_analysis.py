@@ -419,7 +419,7 @@ def run_server():
             request_data = request.get_json()
             stock_prices = request_data.get('stock_prices', {})
             
-            print(f"📡 Received request for {len(stock_prices)} stocks")
+            print(f"📡 Received request for {len(stock_prices)} stocks: {list(stock_prices.keys())}")
             
             if not stock_prices:
                 return jsonify({"success": False, "message": "No stock prices provided"}), 400
@@ -430,22 +430,34 @@ def run_server():
                     "message": "Need at least 2 stocks for correlation analysis"
                 }), 400
             
-            # Create cache key
-            cache_key = create_cache_key(stock_prices)
+            # Create cache key based on symbol count and symbols (to detect new stocks)
+            symbols_set = set(stock_prices.keys())
+            cache_key = create_cache_key(stock_prices, symbols_set)
             
-            # Check cache first
+            # Check if we have cached results and if the symbol set matches
+            cache_valid = False
             if cache_key in results_cache:
-                print(f"📦 Using cached result for {len(stock_prices)} stocks")
+                cached_symbols = results_cache[cache_key].get('symbols_set', set())
+                if cached_symbols == symbols_set:
+                    cache_valid = True
+                    print(f"📦 Using cached result for {len(stock_prices)} stocks")
+                else:
+                    print(f"🔄 Symbol set changed, invalidating cache. Old: {cached_symbols}, New: {symbols_set}")
+                    # Remove invalid cache entry
+                    del results_cache[cache_key]
+            
+            if cache_valid:
                 cached_result = results_cache[cache_key]
                 return jsonify({
                     "success": True, 
                     "edges": cached_result['edges'],
                     "cached": True,
                     "timestamp": cached_result['timestamp'],
-                    "data_sources": cached_result.get('data_sources', {})
+                    "data_sources": cached_result.get('data_sources', {}),
+                    "analysis_summary": cached_result.get('analysis_summary', {})
                 })
             
-            print(f"🔄 Running fresh analysis for {len(stock_prices)} stocks")
+            print(f"🔄 Running fresh analysis for {len(stock_prices)} stocks: {list(stock_prices.keys())}")
             
             # Run analysis
             result = analyze_stock_influence(stock_data=stock_prices)
@@ -469,36 +481,44 @@ def run_server():
                 
                 edges.append(edge)
             
-            # Cache the result
-            results_cache[cache_key] = {
-                'edges': edges,
-                'timestamp': time.time(),
-                'data_sources': result.get('data_sources', {})
-            }
-            
-            # Limit cache size
-            if len(results_cache) > 10:
-                oldest_key = min(results_cache.keys(), key=lambda k: results_cache[k]['timestamp'])
-                del results_cache[oldest_key]
-            
             real_data_count = len([s for s in result.get('data_sources', {}).values() if 'Yahoo' in s])
             total_count = len(result.get('data_sources', {}))
             
-            print(f"✅ Analysis complete: {len(edges)} edges found")
+            analysis_summary = {
+                "total_edges": len(edges),
+                "granger_edges": len([e for e in edges if e['method'] == 'granger']),
+                "naive_bayes_edges": len([e for e in edges if e['method'] == 'naive_bayes']),
+                "real_data_stocks": real_data_count,
+                "total_stocks": total_count,
+                "real_data_percentage": round(real_data_count/total_count*100, 1) if total_count > 0 else 0
+            }
+            
+            # Cache the result with symbol set for validation
+            results_cache[cache_key] = {
+                'edges': edges,
+                'timestamp': time.time(),
+                'data_sources': result.get('data_sources', {}),
+                'analysis_summary': analysis_summary,
+                'symbols_set': symbols_set  # Store the symbols set for cache validation
+            }
+            
+            # Clear old cache entries if we have too many
+            if len(results_cache) > 5:  # Reduced cache size to be more responsive
+                # Sort by timestamp and keep only the 3 most recent
+                sorted_cache = sorted(results_cache.items(), key=lambda x: x[1]['timestamp'], reverse=True)
+                results_cache.clear()
+                for key, value in sorted_cache[:3]:
+                    results_cache[key] = value
+                print(f"🧹 Cleaned cache, keeping {len(results_cache)} most recent entries")
+            
+            print(f"✅ Analysis complete: {len(edges)} edges found for {len(stock_prices)} stocks")
             print(f"📊 Real data: {real_data_count}/{total_count} stocks ({real_data_count/total_count*100:.1f}%)" if total_count > 0 else "📊 No data sources info")
             
             return jsonify({
                 "success": True, 
                 "edges": edges,
                 "cached": False,
-                "analysis_summary": {
-                    "total_edges": len(edges),
-                    "granger_edges": len([e for e in edges if e['method'] == 'granger']),
-                    "naive_bayes_edges": len([e for e in edges if e['method'] == 'naive_bayes']),
-                    "real_data_stocks": real_data_count,
-                    "total_stocks": total_count,
-                    "real_data_percentage": round(real_data_count/total_count*100, 1) if total_count > 0 else 0
-                },
+                "analysis_summary": analysis_summary,
                 "data_sources": result.get('data_sources', {})
             })
             
@@ -512,17 +532,19 @@ def run_server():
                 "error_type": type(e).__name__
             }), 500
     
-    def create_cache_key(stock_prices):
-        """Create a stable cache key from stock prices"""
-        symbols = sorted(stock_prices.keys())
-        key_parts = []
+    def create_cache_key(stock_prices, symbols_set):
+        """Create a stable cache key from stock prices that includes symbol count"""
+        symbols = sorted(symbols_set)  # Use the symbols set for consistency
+        key_parts = [f"count_{len(symbols)}"]  # Include count to detect additions
         
         for symbol in symbols:
             price = round(float(stock_prices[symbol].get('price', 0)), 2)
             change = round(float(stock_prices[symbol].get('changePercent', 0)), 1)
             key_parts.append(f"{symbol}:{price}:{change}")
         
-        return "_".join(key_parts)
+        cache_key = "_".join(key_parts)
+        print(f"🔑 Generated cache key: {cache_key[:100]}..." if len(cache_key) > 100 else f"🔑 Generated cache key: {cache_key}")
+        return cache_key
     
     @app.route('/api/health', methods=['GET'])
     def health_check():
@@ -530,6 +552,19 @@ def run_server():
         return jsonify({
             "status": "healthy",
             "timestamp": time.time(),
+            "cache_size": len(results_cache),
+            "cached_symbol_sets": [list(entry.get('symbols_set', [])) for entry in results_cache.values()]
+        })
+
+    @app.route('/api/clear-cache', methods=['POST'])
+    def clear_cache():
+        """Clear the analysis cache"""
+        cache_count = len(results_cache)
+        results_cache.clear()
+        print(f"🧹 Cache cleared: removed {cache_count} entries")
+        return jsonify({
+            "success": True,
+            "message": f"Cache cleared: removed {cache_count} entries",
             "cache_size": len(results_cache)
         })
 
@@ -537,6 +572,7 @@ def run_server():
     print("📡 Available endpoints:")
     print("  POST /api/granger-causality - Run correlation analysis")
     print("  GET  /api/health - Health check")
+    print("  POST /api/clear-cache - Clear analysis cache")
     
     app.run(port=5001, debug=True, use_reloader=False)
 
