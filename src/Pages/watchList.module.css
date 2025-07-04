@@ -974,3 +974,176 @@
   background: var(--background);
   border-radius: 0 0 16px 16px;
 }
+
+/* Animation styles for price changes */
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+}
+
+.priceAnimation {
+  animation: pulse 1s ease-in-out;
+}
+
+/* Real-time data indicator */
+.liveDataIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--gold-secondary);
+  margin-left: 0.5rem;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  background: #4caf50;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* Yahoo Finance integration styles */
+.yahooFinanceSection {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+}
+
+.yahooFinanceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.yahooFinanceLogo {
+  font-size: 0.9rem;
+  color: var(--gold-secondary);
+  font-weight: 600;
+}
+
+.refreshButton {
+  background: var(--gold-primary);
+  color: var(--grey-900);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.refreshButton:hover {
+  background: var(--gold-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Enhanced watchlist controls layout */
+.watchlistControls {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.searchContainer {
+  flex: 1;
+  max-width: 400px;
+}
+
+.searchInput {
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.categoryFilters {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.filterButton,
+.activeFilter {
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.filterButton:hover {
+  background: var(--gold-secondary);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.activeFilter {
+  background: var(--gold-primary) !important;
+  color: var(--grey-900) !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .watchlistControls {
+    padding: 1rem;
+  }
+  
+  .searchContainer {
+    max-width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .categoryFilters {
+    justify-content: flex-start;
+  }
+  
+  .filterButton,
+  .activeFilter {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

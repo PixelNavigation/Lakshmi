@@ -131,3 +131,69 @@
     opacity: 0.3;
   }
 }
+
+/* Compact mode styles for watchlist */
+.compactCard {
+  background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: #e0e0e0;
+  text-align: center;
+  min-width: 180px;
+  transition: all 0.2s ease;
+}
+
+.compactCard:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #555;
+}
+
+.compactName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #FFD700;
+  margin-bottom: 0.5rem;
+}
+
+.compactPrice {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0.3rem;
+}
+
+.compactChange {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.compactTime {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #aaa;
+  gap: 0.25rem;
+}
+
+.compactTime .liveIndicator {
+  font-size: 0.6rem;
+}
+
+@media (max-width: 768px) {
+  .compactCard {
+    min-width: 140px;
+    padding: 0.5rem;
+  }
+  
+  .compactPrice {
+    font-size: 1rem;
+  }
+  
+  .compactChange {
+    font-size: 0.8rem;
+  }
+}

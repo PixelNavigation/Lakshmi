@@ -28,6 +28,7 @@
     "lightweight-charts": "^4.2.0",
     "nanoid": "^5.1.5",
     "next": "15.3.4",
+    "openai": "^5.8.2",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",

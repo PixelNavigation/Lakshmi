@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import styles from './watchList.module.css'
-
-// Import TradingView Chart component
-import { StockChart } from '../Components/TradingView/StockChart'
-import { PriceWidget } from '../Components/TradingView/PriceWidget'
+import CandlestickChart from '../Components/CandlestickChart'
+import RealTimeStockPrice from '../Components/RealTimeStockPrice'
 
 export default function WatchList() {
   const { user } = useAuth()
@@ -18,8 +16,9 @@ export default function WatchList() {
   const [refreshing, setRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [chartModal, setChartModal] = useState({ isOpen: false, symbol: '', displaySymbol: '', name: '' })
+  const [chartTimeframe, setChartTimeframe] = useState('1m')
   const [priceAnimations, setPriceAnimations] = useState({})
-  const [viewMode, setViewMode] = useState('tradingview') // Only TradingView mode
+  const [viewMode, setViewMode] = useState('yahoo')
 
   const userId = user?.id || 'user123' // Fallback for demo purposes
 
@@ -61,7 +60,7 @@ export default function WatchList() {
     }
   }
 
-  // Refresh stock data for watchlist items
+  // Refresh stock data for watchlist items using Yahoo Finance
   const refreshStockData = async (watchlistData = watchlistItems) => {
     try {
       setRefreshing(true)
@@ -72,7 +71,8 @@ export default function WatchList() {
         return
       }
 
-      const response = await fetch('/api/watchlist-data', {
+      // Use Yahoo Finance API for real-time data
+      const response = await fetch('/api/yahoo-finance-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbols })
@@ -81,11 +81,11 @@ export default function WatchList() {
       const result = await response.json()
       
       if (result.success) {
-        // Merge watchlist data with stock data
+        // Merge watchlist data with Yahoo Finance stock data
         const enhancedItems = watchlistData.map(watchlistItem => {
           const stockData = result.data.find(stock => stock.symbol === watchlistItem.symbol)
           const currentItem = watchlistItems.find(item => item.symbol === watchlistItem.symbol)
-          const newPrice = stockData?.price || 0
+          const newPrice = stockData?.regularMarketPrice || stockData?.price || 0
           
           // Detect price changes for animation
           if (currentItem && currentItem.price !== newPrice && newPrice > 0) {
@@ -108,9 +108,10 @@ export default function WatchList() {
           return {
             ...watchlistItem,
             price: newPrice,
-            change: stockData?.change || 0,
-            changePercent: stockData?.changePercent || 0,
-            volume: stockData?.volume || '0',
+            change: stockData?.regularMarketChange || stockData?.change || 0,
+            changePercent: stockData?.regularMarketChangePercent || stockData?.changePercent || 0,
+            volume: stockData?.regularMarketVolume?.toLocaleString() || stockData?.volume || '0',
+            marketCap: stockData?.marketCap || 0,
             currency: stockData?.currency || 'INR',
             category: categorizeStock(watchlistItem.symbol),
             alerts: [] // TODO: Implement alerts system
@@ -247,20 +248,16 @@ export default function WatchList() {
     loadWatchlist()
   }, [])
 
-  // Auto-refresh every 10 seconds for more real-time feel (skip if pure TradingView mode)
+  // Auto-refresh every 10 seconds for Yahoo Finance real-time data
   useEffect(() => {
-    if (viewMode === 'tradingview') {
-      return // No need to refresh API data in TradingView-only mode
-    }
-    
     const interval = setInterval(() => {
       if (watchlistItems.length > 0 && !refreshing) {
         refreshStockData()
       }
-    }, 10000) // Reduced from 30 seconds to 10 seconds
+    }, 10000) // Refresh every 10 seconds for real-time data
 
     return () => clearInterval(interval)
-  }, [watchlistItems, refreshing, viewMode])
+  }, [watchlistItems, refreshing])
 
   // Format currency based on type
   const formatCurrency = (value, currency = 'INR') => {
@@ -285,13 +282,15 @@ export default function WatchList() {
     }).format(Number(value))
   }
 
-  // Render price cell with TradingView widget
+  // Render price cell with Yahoo Finance real-time data
   const renderPriceCell = (item) => {
-    // Use display symbol for TradingView widget (clean symbol without .NS/.BO/INR)
-    const displaySymbol = item.displaySymbol || item.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <PriceWidget symbol={displaySymbol} width={200} height={80} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+        <RealTimeStockPrice 
+          symbol={item.symbol} 
+          displayName={item.displaySymbol || item.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')}
+          compact={true}
+        />
       </div>
     )
   }
@@ -337,6 +336,15 @@ export default function WatchList() {
     <div className={styles.pageContainer}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>👁️ Watch List</h1>
+        <p className={styles.pageSubtitle}>
+          Track your favorite stocks with real-time Yahoo Finance data
+          {lastUpdated && (
+            <span className={styles.liveDataIndicator}>
+              <span className={styles.liveDot}></span>
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </p>
         {error && (
           <div style={{ 
             background: '#f8d7da', 
@@ -367,47 +375,96 @@ export default function WatchList() {
       <div className={styles.contentGrid}>
         <div className={styles.mainContent}>
           <div className={styles.card}>
-            <div className={styles.watchlistControls} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div className={styles.searchContainer} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  placeholder="Search stocks..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={styles.searchInput}
+            <div className={styles.watchlistControls} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+              {/* Top row: Search and Refresh */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div className={styles.searchContainer} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="Search stocks..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={styles.searchInput}
+                    style={{ 
+                      padding: '0.5rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      minWidth: '200px'
+                    }}
+                  />
+                  <button className={styles.primaryButton} style={{ padding: '0.5rem 1rem' }}>
+                    🔍 Search
+                  </button>
+                </div>
+                
+                <button 
+                  className={styles.refreshButton}
+                  onClick={() => refreshStockData()}
+                  disabled={refreshing}
                   style={{ 
-                    padding: '0.5rem',
-                    border: '1px solid #ddd',
+                    padding: '0.5rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: refreshing ? '#ccc' : '#28a745',
+                    color: 'white',
+                    border: 'none',
                     borderRadius: '4px',
-                    minWidth: '200px'
+                    cursor: refreshing ? 'not-allowed' : 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    transition: 'all 0.2s ease'
                   }}
-                />
-                <button className={styles.primaryButton} style={{ padding: '0.5rem 1rem' }}>
-                  🔍 Search
+                >
+                  {refreshing ? (
+                    <>
+                      <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>
+                      <style jsx>{`
+                        @keyframes spin {
+                          from { transform: rotate(0deg); }
+                          to { transform: rotate(360deg); }
+                        }
+                      `}</style>
+                    </>
+                  ) : '📊'} 
+                  {refreshing ? 'Refreshing...' : 'Refresh Data'}
                 </button>
               </div>
               
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div className={styles.categoryFilters} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {/* Bottom row: Category filters in one line */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div className={styles.categoryFilters} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center', flex: 1 }}>
                   {categories.map(category => (
                     <button
                       key={category}
                       onClick={() => setSelectedCategory(category)}
                       className={selectedCategory === category ? styles.activeFilter : styles.filterButton}
                       style={{
-                        padding: '0.5rem 1rem',
+                        padding: '0.4rem 0.8rem',
                         border: 'none',
                         borderRadius: '20px',
                         cursor: 'pointer',
                         backgroundColor: selectedCategory === category ? '#007bff' : '#f8f9fa',
                         color: selectedCategory === category ? 'white' : '#333',
                         textTransform: 'capitalize',
-                        fontSize: '0.9rem'
+                        fontSize: '0.85rem',
+                        fontWeight: selectedCategory === category ? '600' : '500',
+                        transition: 'all 0.2s ease',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       {category}
                     </button>
                   ))}
+                </div>
+                
+                {/* Results counter */}
+                <div style={{ 
+                  fontSize: '0.9rem', 
+                  color: '#666', 
+                  fontWeight: '500',
+                  whiteSpace: 'nowrap'
+                }}>
                 </div>
               </div>
             </div>
@@ -430,7 +487,7 @@ export default function WatchList() {
                   <thead>
                     <tr style={{ borderBottom: '2px solid #eee' }}>
                       <th style={{ textAlign: 'left', padding: '1rem', fontWeight: 'bold', width: '25%' }}>Symbol / Exchange</th>
-                      <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '30%' }}>TradingView Price</th>
+                      <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '30%' }}>Price</th>
                       <th style={{ textAlign: 'right', padding: '1rem', fontWeight: 'bold', width: '15%' }}>Volume</th>
                       <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '10%' }}>Alerts</th>
                       <th style={{ textAlign: 'center', padding: '1rem', fontWeight: 'bold', width: '20%' }}>Actions</th>
@@ -620,20 +677,6 @@ export default function WatchList() {
             </div>
           </div>
 
-          <div className={styles.card}>
-            <h3>Quick Actions</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <button 
-                className={styles.primaryButton}
-                onClick={() => window.location.href = '/dashboard'}
-              >
-                ➕ Add Stock
-              </button>
-              <button className={styles.secondaryButton}>📋 Import List</button>
-              <button className={styles.secondaryButton}>📤 Export List</button>
-              <button className={styles.secondaryButton}>⚙️ Alert Settings</button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -647,36 +690,65 @@ export default function WatchList() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className={styles.chartModalHeader}>
-              <h3 className={styles.chartModalTitle}>
-                📊 {chartModal.displaySymbol || chartModal.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')} - {chartModal.name}
-              </h3>
-              <div style={{ 
-                fontSize: '0.8rem', 
-                backgroundColor: chartModal.symbol.includes('.NS') ? '#e3f2fd' : 
-                                chartModal.symbol.includes('.BO') ? '#fff3e0' : 
-                                chartModal.symbol.includes('INR') ? '#f3e5f5' : '#f8f9fa',
-                color: chartModal.symbol.includes('.NS') ? '#1976d2' : 
-                       chartModal.symbol.includes('.BO') ? '#f57c00' : 
-                       chartModal.symbol.includes('INR') ? '#7b1fa2' : '#666',
-                padding: '0.3rem 0.6rem',
-                borderRadius: '12px',
-                fontWeight: 'bold',
-                marginRight: '1rem'
-              }}>
-                {chartModal.symbol.includes('.NS') ? 'NSE' : 
-                 chartModal.symbol.includes('.BO') ? 'BSE' : 
-                 chartModal.symbol.includes('INR') ? 'CRYPTO' : 'OTHER'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 className={styles.chartModalTitle}>
+                  📊 {chartModal.displaySymbol || chartModal.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')} - {chartModal.name}
+                </h3>
+                <div style={{ 
+                  fontSize: '0.8rem', 
+                  backgroundColor: chartModal.symbol.includes('.NS') ? '#e3f2fd' : 
+                                  chartModal.symbol.includes('.BO') ? '#fff3e0' : 
+                                  chartModal.symbol.includes('INR') ? '#f3e5f5' : '#f8f9fa',
+                  color: chartModal.symbol.includes('.NS') ? '#1976d2' : 
+                         chartModal.symbol.includes('.BO') ? '#f57c00' : 
+                         chartModal.symbol.includes('INR') ? '#7b1fa2' : '#666',
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: '12px',
+                  fontWeight: 'bold'
+                }}>
+                  {chartModal.symbol.includes('.NS') ? 'NSE' : 
+                   chartModal.symbol.includes('.BO') ? 'BSE' : 
+                   chartModal.symbol.includes('INR') ? 'CRYPTO' : 'OTHER'}
+                </div>
               </div>
-              <button 
-                onClick={closeChart}
-                className={styles.closeButton}
-                title="Close Chart"
-              >
-                ✕
-              </button>
+              
+              {/* Timeframe controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {['1m', '6m', '1y'].map(tf => (
+                  <button
+                    key={tf}
+                    onClick={() => setChartTimeframe(tf)}
+                    style={{
+                      padding: '0.3rem 0.6rem',
+                      border: '1px solid #ddd',
+                      backgroundColor: chartTimeframe === tf ? '#007bff' : 'white',
+                      color: chartTimeframe === tf ? 'white' : '#333',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: chartTimeframe === tf ? '600' : '400'
+                    }}
+                  >
+                    {tf.replace('m', 'M').replace('d', 'D').replace('y', 'Y')}
+                  </button>
+                ))}
+                <button 
+                  onClick={closeChart}
+                  className={styles.closeButton}
+                  title="Close Chart"
+                  style={{ marginLeft: '1rem' }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <div className={styles.chartContainer}>
-              <StockChart symbol={chartModal.displaySymbol || chartModal.symbol.replace('.NS', '').replace('.BO', '').replace('INR', '')} />
+              <CandlestickChart 
+                symbol={chartModal.symbol} 
+                data={null} 
+                timeframe={chartTimeframe}
+                height={400}
+              />
             </div>
           </div>
         </div>

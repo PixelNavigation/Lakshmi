@@ -183,9 +183,15 @@ function getPeriodForTimeframe(timeframe) {
       start.setDate(start.getDate() - 5)
       break
     case '1m':
+    case '1mo':
       start.setMonth(start.getMonth() - 1)
       break
+    case '3m':
+    case '3mo':
+      start.setMonth(start.getMonth() - 3)
+      break
     case '6m':
+    case '6mo':
       start.setMonth(start.getMonth() - 6)
       break
     case '1y':

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import styles from './RealTimeStockPrice.module.css'
 
-export default function RealTimeStockPrice({ symbol, displayName }) {
+export default function RealTimeStockPrice({ symbol, displayName, compact = false }) {
   const [stockData, setStockData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -60,8 +60,10 @@ export default function RealTimeStockPrice({ symbol, displayName }) {
 
   if (loading && !stockData) {
     return (
-      <div className={styles.stockPriceCard}>
-        <div className={styles.stockName}>{displayName || symbol}</div>
+      <div className={compact ? styles.compactCard : styles.stockPriceCard}>
+        <div className={compact ? styles.compactName : styles.stockName}>
+          {displayName || symbol}
+        </div>
         <div className={styles.loading}>Loading...</div>
       </div>
     )
@@ -69,14 +71,34 @@ export default function RealTimeStockPrice({ symbol, displayName }) {
 
   if (error && !stockData) {
     return (
-      <div className={styles.stockPriceCard}>
-        <div className={styles.stockName}>{displayName || symbol}</div>
+      <div className={compact ? styles.compactCard : styles.stockPriceCard}>
+        <div className={compact ? styles.compactName : styles.stockName}>
+          {displayName || symbol}
+        </div>
         <div className={styles.error}>{error}</div>
       </div>
     )
   }
 
   const isPositive = stockData?.change >= 0
+
+  // Compact mode for watchlist
+  if (compact) {
+    return (
+      <div className={styles.compactCard}>
+        <div className={styles.compactPrice}>
+          ₹{formatPrice(stockData?.price)}
+        </div>
+        <div className={`${styles.compactChange} ${isPositive ? styles.positive : styles.negative}`}>
+          {stockData?.change ? formatChange(stockData?.changePercent) : '0.00%'}
+        </div>
+        <div className={styles.compactTime}>
+          <div className={styles.liveIndicator}>●</div>
+          <span>{stockData?.time || 'Live'}</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.stockPriceCard}>

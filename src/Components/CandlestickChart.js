@@ -1,14 +1,74 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from '../Pages/Dashboard.module.css'
 
-export default function CandlestickChart({ symbol, data, timeframe = '1m' }) {
+export default function CandlestickChart({ symbol, data, timeframe = '1m', height = 300 }) {
   const chartContainer = useRef(null)
   const chartInstance = useRef(null)
 
+  // Fetch Yahoo Finance data if not provided
+  const [chartData, setChartData] = useState(data)
+  const [loading, setLoading] = useState(!data)
+  const [error, setError] = useState(null)
+
   useEffect(() => {
-    if (!data || data.length === 0 || !chartContainer.current) return
+    if (!data && symbol) {
+      fetchChartData()
+    } else {
+      setChartData(data)
+    }
+  }, [symbol, timeframe, data])
+
+  const fetchChartData = async () => {
+    try {
+      setLoading(true)
+      
+      // Determine appropriate interval based on timeframe to get 20-30 candles
+      let interval = '1d'
+      let period = timeframe
+      
+      switch (timeframe) {
+        case '1d':
+          interval = '30m' // 30-minute intervals for 1 day = ~13 candles (market hours)
+          period = '1d'
+          break
+        case '1m':
+          interval = '1d' // Daily intervals for 1 month = ~22 candles
+          period = '1mo'
+          break
+        case '6m':
+          interval = '1wk' // Weekly intervals for 6 months = ~26 candles
+          period = '6mo'
+          break
+        case '1y':
+          interval = '1wk' // Weekly intervals for 1 year = ~52 candles
+          period = '1y'
+          break
+        default:
+          interval = '1d'
+          period = timeframe
+      }
+      
+      const response = await fetch(`/api/yahoo-finance?symbol=${symbol}&timeframe=${period}&interval=${interval}`)
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        setChartData(result.data)
+        setError(null)
+      } else {
+        throw new Error(result.error || 'Failed to fetch chart data')
+      }
+    } catch (err) {
+      console.error(`Error fetching chart data for ${symbol}:`, err)
+      setError('Unable to load chart data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!chartData || chartData.length === 0 || !chartContainer.current) return
 
     // Clean up function to ensure proper disposal of resources
     const cleanupChart = () => {
@@ -56,7 +116,7 @@ export default function CandlestickChart({ symbol, data, timeframe = '1m' }) {
         // Create the chart
         const chart = createChart(chartContainer.current, {
           width: chartContainer.current.clientWidth,
-          height: 300,
+          height: height,
           layout: {
             background: { color: '#171717' },
             textColor: '#DDD',
@@ -95,16 +155,15 @@ export default function CandlestickChart({ symbol, data, timeframe = '1m' }) {
           wickDownColor: '#ef4444',
           wickUpColor: '#22c55e',
         })
-        
-        // Format data for the candlestick chart
-        const formattedData = data.map(item => {
+          // Format data for the candlestick chart
+        const formattedData = chartData.map(item => {
           try {
             return {
-              time: new Date(item.x || item.timestamp || item.date).getTime() / 1000,
-              open: item.o || item.open,
-              high: item.h || item.high,
-              low: item.l || item.low,
-              close: item.c || item.close
+              time: new Date(item.date || item.timestamp || item.x).getTime() / 1000,
+              open: item.open || item.o,
+              high: item.high || item.h,
+              low: item.low || item.l,
+              close: item.close || item.c
             }
           } catch (error) {
             console.warn('Error formatting data item:', item, error)
@@ -116,11 +175,36 @@ export default function CandlestickChart({ symbol, data, timeframe = '1m' }) {
           console.warn('No valid data after formatting')
           return
         }
-        
+
         candlestickSeries.setData(formattedData)
+
+        // Add Simple Moving Averages (SMA)
+        if (formattedData.length >= 20) {
+          // 20-period SMA
+          const sma20Series = chart.addLineSeries({
+            color: '#ffd700',
+            lineWidth: 2,
+            title: 'SMA 20'
+          })
+
+          const sma20Data = calculateSMA(formattedData, 20)
+          sma20Series.setData(sma20Data)
+
+          // 50-period SMA (if enough data)
+          if (formattedData.length >= 50) {
+            const sma50Series = chart.addLineSeries({
+              color: '#ff6b6b',
+              lineWidth: 2,
+              title: 'SMA 50'
+            })
+
+            const sma50Data = calculateSMA(formattedData, 50)
+            sma50Series.setData(sma50Data)
+          }
+        }
         
         // Add volume histogram
-        if (data[0]?.v || data[0]?.volume) {
+        if (chartData[0]?.volume || chartData[0]?.v) {
           const volumeSeries = chart.addHistogramSeries({
             color: '#26a69a',
             priceFormat: {
@@ -133,12 +217,12 @@ export default function CandlestickChart({ symbol, data, timeframe = '1m' }) {
             },
           })
           
-          const volumeData = data.map(item => {
-            const vol = item.v || item.volume
-            const isUp = item.c > item.o || item.close > item.open
+          const volumeData = chartData.map(item => {
+            const vol = item.volume || item.v
+            const isUp = (item.close || item.c) > (item.open || item.o)
             
             return {
-              time: new Date(item.x || item.timestamp || item.date).getTime() / 1000,
+              time: new Date(item.date || item.timestamp || item.x).getTime() / 1000,
               value: vol,
               color: isUp ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 82, 82, 0.3)',
             }
@@ -192,7 +276,49 @@ export default function CandlestickChart({ symbol, data, timeframe = '1m' }) {
         console.warn('Error during useEffect cleanup:', error)
       }
     }
-  }, [data])
+  }, [chartData])
+
+  // Helper function to calculate Simple Moving Average
+  const calculateSMA = (data, period) => {
+    const smaData = []
+    for (let i = period - 1; i < data.length; i++) {
+      let sum = 0
+      for (let j = 0; j < period; j++) {
+        sum += data[i - j].close
+      }
+      smaData.push({
+        time: data[i].time,
+        value: sum / period
+      })
+    }
+    return smaData
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.candlestickChartContainer}>
+        <div className={styles.chartHeader}>
+          <h4>{symbol} - {getTimeframeLabel(timeframe)}</h4>
+        </div>
+        <div className={styles.loading} style={{ height: height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>Loading chart data...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={styles.candlestickChartContainer}>
+        <div className={styles.chartHeader}>
+          <h4>{symbol} - {getTimeframeLabel(timeframe)}</h4>
+        </div>
+        <div className={styles.error} style={{ height: height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>{error}</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.candlestickChartContainer}>
@@ -205,9 +331,15 @@ export default function CandlestickChart({ symbol, data, timeframe = '1m' }) {
           <span className={styles.legendItem}>
             <span className={styles.bearishDot}></span> Bearish
           </span>
+          <span className={styles.legendItem}>
+            <span style={{ color: '#ffd700' }}>━</span> SMA 20
+          </span>
+          <span className={styles.legendItem}>
+            <span style={{ color: '#ff6b6b' }}>━</span> SMA 50
+          </span>
         </div>
       </div>
-      <div ref={chartContainer} className={styles.candlestickChart}></div>
+      <div ref={chartContainer} className={styles.candlestickChart} style={{ height: height }}></div>
     </div>
   )
 }
