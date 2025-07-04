@@ -47,13 +47,107 @@ export async function GET(request) {
       }
     }
 
+    // Check if this is a cryptocurrency symbol
+    if (symbol.includes('-INR') || symbol.includes('-USD') || isCryptoSymbol(symbol)) {
+      console.log(`🪙 Cryptocurrency detected: ${symbol}`)
+      
+      // Handle crypto symbols directly with Yahoo Finance
+      try {
+        // Convert to Yahoo Finance format if needed
+        let yahooSymbol = symbol
+        if (symbol.includes('-INR')) {
+          // For INR pairs, use USD pairs and convert
+          yahooSymbol = symbol.replace('-INR', '-USD')
+        }
+        
+        console.log(`🔍 Fetching crypto data for ${yahooSymbol}`)
+        
+        const yahooResponse = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1d&range=1d`
+        )
+        const yahooData = await yahooResponse.json()
+        
+        if (yahooData.chart?.result?.[0]) {
+          const result = yahooData.chart.result[0]
+          const meta = result.meta
+          
+          if (meta && meta.regularMarketPrice) {
+            let currentPrice = meta.regularMarketPrice
+            const previousClose = meta.previousClose || meta.chartPreviousClose
+            
+            // Convert to INR if needed
+            if (symbol.includes('-INR') && yahooSymbol.includes('-USD')) {
+              const usdToInr = 83.45 // You can fetch real-time rate
+              try {
+                const forexResponse = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/USDINR=X')
+                if (forexResponse.ok) {
+                  const forexData = await forexResponse.json()
+                  if (forexData?.chart?.result?.[0]?.meta?.regularMarketPrice) {
+                    const realRate = forexData.chart.result[0].meta.regularMarketPrice
+                    currentPrice = currentPrice * realRate
+                    console.log(`💱 USD to INR conversion: ${meta.regularMarketPrice} * ${realRate} = ${currentPrice}`)
+                  } else {
+                    currentPrice = currentPrice * usdToInr
+                    console.log(`💱 Using fallback USD to INR rate: ${usdToInr}`)
+                  }
+                } else {
+                  currentPrice = currentPrice * usdToInr
+                }
+              } catch (forexError) {
+                currentPrice = currentPrice * usdToInr
+                console.log(`💱 Forex API failed, using fallback rate: ${usdToInr}`)
+              }
+            }
+            
+            const change = currentPrice - (previousClose * (symbol.includes('-INR') ? 83.45 : 1))
+            const changePercent = (change / (previousClose * (symbol.includes('-INR') ? 83.45 : 1))) * 100
+
+            const cryptoData = {
+              symbol: symbol,
+              name: getCryptoName(symbol),
+              price: Number(currentPrice.toFixed(2)),
+              change: Number(change.toFixed(2)),
+              changePercent: Number(changePercent.toFixed(2)),
+              volume: meta.regularMarketVolume || 0,
+              dayHigh: meta.regularMarketDayHigh || currentPrice,
+              dayLow: meta.regularMarketDayLow || currentPrice,
+              previousClose: Number((previousClose * (symbol.includes('-INR') ? 83.45 : 1)).toFixed(2)),
+              marketCap: meta.marketCap || 0,
+              currency: symbol.includes('-INR') ? 'INR' : 'USD',
+              exchange: 'Crypto',
+              timestamp: Date.now(),
+              isRealData: true,
+              source: 'Yahoo Finance Crypto'
+            }
+            
+            console.log(`✅ Crypto data found for ${symbol}:`, cryptoData)
+            
+            return NextResponse.json({
+              success: true,
+              data: cryptoData,
+              symbol: symbol
+            }, { headers: corsHeaders })
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching crypto data for ${symbol}:`, error)
+      }
+      
+      // If crypto fetch fails, return error
+      return NextResponse.json({
+        success: false,
+        error: `Unable to fetch real-time data for ${symbol}. Please try again later.`,
+        symbol: symbol
+      }, { headers: corsHeaders })
+    }
+
     // Check if this is an Indian stock symbol or convert to Indian format
     const indianSymbol = convertToIndianSymbol(symbol)
     
     if (!indianSymbol) {
       return NextResponse.json({
         success: false,
-        error: `${symbol} is not available in the Indian market. Please use Indian stock symbols (e.g., RELIANCE.NS, TCS.NS, INFY.NS)`,
+        error: `${symbol} is not available in the Indian market. Please use Indian stock symbols (e.g., RELIANCE.NS, TCS.NS, INFY.NS) or cryptocurrency symbols (e.g., BTC-INR, ETH-INR)`,
         symbol: symbol
       }, { headers: corsHeaders })
     }
@@ -970,6 +1064,55 @@ function formatYahooSymbol(symbol) {
   
   // Default case - assume NSE
   return symbol + '.NS'
+}
+
+// Helper function to check if symbol is a cryptocurrency
+function isCryptoSymbol(symbol) {
+  const cryptoPatterns = [
+    /^[A-Z]+-INR$/,  // Crypto-INR pairs
+    /^[A-Z]+-USD$/,  // Crypto-USD pairs  
+    /^BTC/i, /^ETH/i, /^XRP/i, /^ADA/i, /^SOL/i, /^DOGE/i, /^DOT/i, /^MATIC/i, /^LINK/i, /^UNI/i
+  ]
+  
+  return cryptoPatterns.some(pattern => pattern.test(symbol))
+}
+
+// Helper function to get cryptocurrency name
+function getCryptoName(symbol) {
+  const cryptoNames = {
+    'BTC-INR': 'Bitcoin',
+    'BTC-USD': 'Bitcoin', 
+    'ETH-INR': 'Ethereum',
+    'ETH-USD': 'Ethereum',
+    'XRP-INR': 'XRP',
+    'XRP-USD': 'XRP',
+    'ADA-INR': 'Cardano',
+    'ADA-USD': 'Cardano',
+    'SOL-INR': 'Solana',
+    'SOL-USD': 'Solana',
+    'DOGE-INR': 'Dogecoin',
+    'DOGE-USD': 'Dogecoin',
+    'DOT-INR': 'Polkadot',
+    'DOT-USD': 'Polkadot',
+    'MATIC-INR': 'Polygon',
+    'MATIC-USD': 'Polygon',
+    'LINK-INR': 'Chainlink',
+    'LINK-USD': 'Chainlink',
+    'UNI-INR': 'Uniswap',
+    'UNI-USD': 'Uniswap',
+    'AVAX-INR': 'Avalanche',
+    'AVAX-USD': 'Avalanche',
+    'LTC-INR': 'Litecoin',
+    'LTC-USD': 'Litecoin',
+    'BCH-INR': 'Bitcoin Cash',
+    'BCH-USD': 'Bitcoin Cash',
+    'ATOM-INR': 'Cosmos',
+    'ATOM-USD': 'Cosmos',
+    'NEAR-INR': 'NEAR Protocol',
+    'NEAR-USD': 'NEAR Protocol'
+  }
+  
+  return cryptoNames[symbol] || symbol.replace('-INR', '').replace('-USD', '')
 }
 
 
