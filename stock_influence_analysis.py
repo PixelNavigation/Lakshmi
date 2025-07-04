@@ -204,21 +204,33 @@ def analyze_stock_influence(stock_data):
                     print(f"⚠️ Naive Bayes error for {target_symbol}: {e}")
                     continue
         
-        # Combine and deduplicate edges
+        # Combine and deduplicate edges - remove bidirectional correlations, keep stronger one
         final_edges = []
-        seen_pairs = set()
+        processed_pairs = set()
         
         # Sort edges by strength (value) descending
-        influence_edges.sort(key=lambda x: x['value'], reverse=True)
+        influence_edges.sort(key=lambda x: abs(x.get('correlation', x.get('value', 0))), reverse=True)
         
         for edge in influence_edges:
-            pair = (edge['source'], edge['target'])
-            if pair not in seen_pairs:
-                seen_pairs.add(pair)
+            source = edge['source']
+            target = edge['target']
+            
+            # Create a normalized pair (alphabetically sorted to catch both A->B and B->A)
+            pair = tuple(sorted([source, target]))
+            reverse_pair = (target, source) if source < target else (source, target)
+            
+            # Skip if we've already processed this pair in either direction
+            if pair not in processed_pairs:
+                processed_pairs.add(pair)
                 final_edges.append(edge)
+                print(f"✅ Keeping edge: {source} -> {target} (correlation: {edge.get('correlation', 'N/A')}, strength: {edge.get('value', 'N/A')})")
+            else:
+                print(f"⏭️ Skipping duplicate: {source} -> {target} (weaker correlation)")
         
         # Limit to top edges to avoid clutter
         final_edges = final_edges[:min(20, len(final_edges))]
+        
+        print(f"🔄 Removed {len(influence_edges) - len(final_edges)} duplicate/weaker correlations")
         
         # Build result
         nodes = [{"id": s} for s in symbols]

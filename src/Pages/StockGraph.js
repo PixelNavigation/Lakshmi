@@ -39,7 +39,6 @@ const StockGraph = () => {
   const [error, setError] = useState(null)
   const [backendConnected, setBackendConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const [autoRefresh, setAutoRefresh] = useState(false)
   const [currentZoom, setCurrentZoom] = useState(1)
   const [selectedLayout, setSelectedLayout] = useState('circle')
   const [analysisStats, setAnalysisStats] = useState(null)
@@ -52,7 +51,6 @@ const StockGraph = () => {
   const cytoscapeRef = useRef(null) // Ref for the Cytoscape container
   const cyRef = useRef(null) // Ref for the Cytoscape instance
   const refreshInProgressRef = useRef(false)
-  const autoRefreshIntervalRef = useRef(null)
 
   const userId = user?.id || 'demo-user'
 
@@ -170,21 +168,6 @@ const StockGraph = () => {
     }
     loadAll()
   }, [fetchWatchlist, fetchStockPrices, fetchCorrelations])
-
-  // Auto-refresh
-  useEffect(() => {
-    if (autoRefresh) {
-      autoRefreshIntervalRef.current = setInterval(async () => {
-        const prices = await fetchStockPrices(watchlistData)
-        await fetchCorrelations(prices)
-      }, 30000)
-    } else {
-      if (autoRefreshIntervalRef.current) clearInterval(autoRefreshIntervalRef.current)
-    }
-    return () => {
-      if (autoRefreshIntervalRef.current) clearInterval(autoRefreshIntervalRef.current)
-    }
-  }, [autoRefresh, watchlistData, fetchStockPrices, fetchCorrelations])
 
   // Cytoscape integration
   useEffect(() => {
@@ -537,79 +520,8 @@ const StockGraph = () => {
           </div>
         )}
         
-        {/* Refresh Controls */}
+        {/* Status info */}
         <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button 
-            onClick={handleRefresh}
-            disabled={loading}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#22c55e',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1
-            }}
-          >
-            <RefreshCw className="w-4 h-4 inline-block" /> 
-            <span className="align-middle"> Refresh Graph & Prices</span>
-          </button>
-          
-          <button 
-            onClick={handleFitGraph}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            <ZoomIn className="w-4 h-4 inline-block" /> 
-            <span className="align-middle"> Fit Graph</span>
-          </button>
-          
-          <button 
-            onClick={handleZoomIn}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#8b5cf6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            <ZoomIn className="w-4 h-4 inline-block" /> 
-            <span className="align-middle"> Zoom In</span>
-          </button>
-          
-          <button 
-            onClick={handleZoomOut}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#8b5cf6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            <ZoomOut className="w-4 h-4 inline-block" /> 
-            <span className="align-middle"> Zoom Out</span>
-          </button>
-          
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white' }}>
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-            />
-            Auto-refresh prices only (30s)
-          </label>
-          
           {lastUpdated && (
             <span style={{ fontSize: '12px', opacity: 0.7, color: 'white' }}>
               Last updated: {lastUpdated.toLocaleTimeString()}
@@ -641,6 +553,91 @@ const StockGraph = () => {
       
       <div className={styles.contentGrid}>
         <div className={styles.graphContainer}>
+          {/* Graph controls */}
+          <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={handleRefresh}
+              disabled={loading}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#22c55e',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh Graph & Prices
+            </button>
+            
+            <button 
+              onClick={handleFitGraph}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <ZoomIn className="w-4 h-4" />
+              Fit Graph
+            </button>
+            
+            <button 
+              onClick={handleZoomIn}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <ZoomIn className="w-4 h-4" />
+              Zoom In
+            </button>
+            
+            <button 
+              onClick={handleZoomOut}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <ZoomOut className="w-4 h-4" />
+              Zoom Out
+            </button>
+          </div>
+          
           {/* Layout controls */}
           <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <label htmlFor="layout-select" style={{ color: 'white' }}>Graph Layout:</label>
@@ -710,7 +707,7 @@ const StockGraph = () => {
                   <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span>Price:</span>
-                      <span style={{ fontWeight: 'bold' }}>${selectedNode.price}</span>
+                      <span style={{ fontWeight: 'bold' }}>₹{selectedNode.price}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span>Change:</span>
@@ -718,7 +715,7 @@ const StockGraph = () => {
                         fontWeight: 'bold',
                         color: selectedNode.change >= 0 ? '#22c55e' : '#ef4444'
                       }}>
-                        {selectedNode.change >= 0 ? '+' : ''}${selectedNode.change} ({selectedNode.changePercent}%)
+                        {selectedNode.change >= 0 ? '+' : ''}₹{selectedNode.change} ({selectedNode.changePercent}%)
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -748,12 +745,8 @@ const StockGraph = () => {
                   <h4 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>Correlation</h4>
                   <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>From:</span>
-                      <span style={{ fontWeight: 'bold' }}>{selectedEdge.source}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>To:</span>
-                      <span style={{ fontWeight: 'bold' }}>{selectedEdge.target}</span>
+                      <span>Between:</span>
+                      <span style={{ fontWeight: 'bold' }}>{selectedEdge.source} ↔ {selectedEdge.target}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <span>Correlation:</span>
@@ -776,7 +769,7 @@ const StockGraph = () => {
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Direction:</span>
+                      <span>Type:</span>
                       <span style={{ 
                         fontWeight: 'bold',
                         color: selectedEdge.correlation > 0 ? '#22c55e' : '#ef4444'
