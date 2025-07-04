@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getSession } from '@/lib/sessionStore'
+import { getSession, getSessionByUserId } from '@/lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -81,20 +81,31 @@ export async function GET(request) {
           } else {
             // Try other methods
             // Get the session from the session store
-            const session = await getSession(callSid)
-            if (session && session.accessToken) {
-              accessToken = session.accessToken
-              userId = session.userId
+            // If the callSid is the PIN (701323), handle Gautam's account
+            if (callSid === "701323") {
+              // Use Gautam's hardcoded user ID
+              userId = "c772896b-521e-43a2-90f4-d942294b893e"
+              // Try to get the session for this user ID
+              const userSession = await getSessionByUserId(userId)
+              if (userSession && userSession.accessToken) {
+                accessToken = userSession.accessToken
+              }
             } else {
-              // Check if call_sid is actually a JWT token
-              try {
-                const { data, error } = await supabase.auth.getUser(callSid)
-                if (!error && data && data.user) {
-                  accessToken = callSid // The call_sid is the access token
-                  userId = data.user.id
+              const session = await getSession(callSid)
+              if (session && session.accessToken) {
+                accessToken = session.accessToken
+                userId = session.userId
+              } else {
+                // Check if call_sid is actually a JWT token
+                try {
+                  const { data, error } = await supabase.auth.getUser(callSid)
+                  if (!error && data && data.user) {
+                    accessToken = callSid // The call_sid is the access token
+                    userId = data.user.id
+                  }
+                } catch (err) {
+                  // Not a valid token, ignore
                 }
-              } catch (err) {
-                // Not a valid token, ignore
               }
             }
           }
@@ -461,39 +472,63 @@ export async function POST(request) {
     
     // Check for call_sid for OmniDimension voice commands
     const callSid = body.call_sid || body.callSid || body.session_id
-    let accessToken = null
+    let accessToken = body.access_token || body.accessToken || null
+    // Support both original and OmniDimension parameter names
+    let userId = body.userId || body.keyName
     
-    // If call_sid is provided, first try to use it directly as a token
-    // This handles the case where OmniDimension sends the token directly
-    if (callSid) {
-      console.log('🔑 Authenticating POST trade with call_sid:', callSid.substring(0, 20) + '...')
-      
-      // First try using it as a direct token
+    // If we have a direct access_token parameter, use it
+    if (accessToken) {
       try {
-        const { data, error } = await supabase.auth.getUser(callSid)
+        const { data, error } = await supabase.auth.getUser(accessToken)
         if (!error && data && data.user) {
-          console.log('✅ Using call_sid directly as access token')
-          accessToken = callSid
           userId = data.user.id
+        }
+      } catch (err) {
+        accessToken = null // Reset if error
+      }
+    }
+    
+    // If access_token not provided directly or invalid, try call_sid
+    if (!accessToken && callSid) {
+      // First check if call_sid is a user ID (OmniDimension sends user ID as call_sid)
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(callSid)) {
+        // Use call_sid as userId directly
+        userId = callSid
+      } else {
+        // Try other methods
+        // Get the session from the session store
+        // If the callSid is the PIN (701323), handle Gautam's account
+        if (callSid === "701323") {
+          // Use Gautam's hardcoded user ID
+          userId = "c772896b-521e-43a2-90f4-d942294b893e"
+          // Try to get the session for this user ID
+          const userSession = await getSessionByUserId(userId)
+          if (userSession && userSession.accessToken) {
+            accessToken = userSession.accessToken
+          }
         } else {
-          // If not a valid token, try to get it from session store
           const session = await getSession(callSid)
           if (session && session.accessToken) {
             accessToken = session.accessToken
             userId = session.userId
-            console.log('✅ Retrieved token from session store for call_sid')
+          } else {
+            // Check if call_sid is actually a JWT token
+            try {
+              const { data, error } = await supabase.auth.getUser(callSid)
+              if (!error && data && data.user) {
+                accessToken = callSid // The call_sid is the access token
+                userId = data.user.id
+              }
+            } catch (err) {
+              // Not a valid token, ignore
+            }
           }
         }
-      } catch (error) {
-        console.log('❌ Error validating call_sid as token:', error.message)
       }
     }
     
     // First, try to get authenticated user from header
     const authUser = await getAuthenticatedUser(request)
-    
-    // Support both original and OmniDimension parameter names
-    let userId = body.userId || body.keyName
     
     // If we have accessToken from call_sid, validate it and get the user
     if (!authUser && accessToken) {

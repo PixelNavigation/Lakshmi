@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getSession } from '@/lib/sessionStore'
+import { getSession, getSessionByUserId } from '@/lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -31,6 +31,23 @@ export async function GET(request) {
     let accessToken = searchParams.get('access_token') || searchParams.get('accessToken') || null
     let userId = searchParams.get('userId') || searchParams.get('keyName')
     
+    // Extract phone from parameters if available (but don't use numeric call_sid as phone)
+    const phoneParam = searchParams.get('phone')
+    if (phoneParam && /^\d{10,}$/.test(phoneParam)) {
+      console.log('Using provided phone number:', phoneParam)
+      
+      // Search for users with this phone number
+      const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('id, phone')
+        .eq('phone', phoneParam)
+      
+      if (!userError && users && users.length > 0) {
+        console.log(`✅ Found user with phone ${phoneParam}:`, users[0].id)
+        userId = users[0].id
+      }
+    }
+    
     // If we have a direct access_token parameter, use it
     if (accessToken) {
       try {
@@ -45,27 +62,60 @@ export async function GET(request) {
     
     // If access_token not provided directly or invalid, try call_sid
     if (!accessToken && callSid) {
-      // First check if call_sid is a user ID (OmniDimension sends user ID as call_sid)
+      // Only process call_sid if it looks like a UUID (OmniDimension sends user ID as call_sid)
+      // or if it might be a JWT token (starts with 'ey')
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(callSid)) {
-        // Use call_sid as userId directly
+        // Use call_sid as userId directly if it's a UUID
         userId = callSid
+        console.log('✅ Using call_sid as userId (UUID format):', userId)
+      } else if (callSid.startsWith('ey')) {
+        // Check if call_sid is a JWT token
+        try {
+          const { data, error } = await supabase.auth.getUser(callSid)
+          if (!error && data && data.user) {
+            accessToken = callSid // The call_sid is the access token
+            userId = data.user.id
+            console.log('✅ Using call_sid as access token:', callSid.substring(0, 20) + '...')
+          }
+        } catch (err) {
+          console.log('❌ call_sid is not a valid token:', callSid.substring(0, 20) + '...')
+        }
       } else {
-        // Try other methods
         // Get the session from the session store
-        const session = await getSession(callSid)
-        if (session && session.accessToken) {
-          accessToken = session.accessToken
-          userId = session.userId
+        
+        // If the callSid is the PIN (701323), use Gautam's account specifically
+        if (callSid === "701323") {
+          // Use Gautam's hardcoded user ID
+          userId = "c772896b-521e-43a2-90f4-d942294b893e"
+          
+          // Try to get a session for this user ID
+          const userSession = await getSessionByUserId(userId)
+          if (userSession && userSession.accessToken) {
+            accessToken = userSession.accessToken
+          }
         } else {
-          // Check if call_sid is actually a JWT token
-          try {
-            const { data, error } = await supabase.auth.getUser(callSid)
-            if (!error && data && data.user) {
-              accessToken = callSid // The call_sid is the access token
-              userId = data.user.id
+          // For other cases, try to get the session normally
+          const session = await getSession(callSid)
+          if (session && session.accessToken) {
+            accessToken = session.accessToken
+            userId = session.userId
+          } else {
+            // If PIN lookup failed, try searching for users with this PIN in their phone
+            
+            const { data: users, error: userError } = await supabase
+              .from('users')
+              .select('id, phone')
+              .ilike('phone', `%${callSid}%`)
+              
+            if (!userError && users && users.length > 0) {
+              userId = users[0].id
+              
+              // Try to get this user's session
+              const userSession = await getSessionByUserId(userId)
+              if (userSession && userSession.accessToken) {
+                accessToken = userSession.accessToken
+              }
             }
-          } catch (err) {
-            // Not a valid token, ignore
           }
         }
       }
@@ -77,6 +127,7 @@ export async function GET(request) {
     // Use authenticated user ID if available, otherwise fall back to parameter
     if (authUser) {
       userId = authUser.id
+      console.log('✅ Using authenticated user from header:', userId)
     } else if (!userId) {
       // REQUIRE authentication - no more default demo user
       return Response.json({ 
@@ -94,6 +145,8 @@ export async function GET(request) {
         headers: corsHeaders 
       })
     }
+    
+    console.log('👤 Final userId used for balance query:', userId)
 
     // Configure Supabase with the access token if provided
     let client = supabase
@@ -171,8 +224,20 @@ export async function GET(request) {
 
 // This function is used by the voice-command API to directly call this endpoint
 // with the stored token from the session store
-export async function getBalance(userId, accessToken) {
+export async function getBalance(userId, accessToken, phone) {
   try {
+    // If no userId but phone is provided, look up user by phone
+    if (!userId && phone && /^\d{10,}$/.test(phone)) {
+      const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('id, phone')
+        .eq('phone', phone)
+      
+      if (!userError && users && users.length > 0) {
+        userId = users[0].id
+      }
+    }
+
     if (!userId) {
       return { 
         success: false, 

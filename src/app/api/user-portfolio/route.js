@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getSession } from '@/lib/sessionStore'
+import { getSession, getSessionByUserId } from '@/lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -24,8 +24,28 @@ export async function OPTIONS(request) {
 
 // This function is used by the voice-command API to directly call this endpoint
 // with the stored token from the session store
-export async function getPortfolio(userId, accessToken) {
+export async function getPortfolio(userId, accessToken, callSid) {
   try {
+    // If userId not provided but callSid is provided (like the PIN case), handle it
+    if (!userId && callSid) {
+      // If the callSid is the PIN (701323), handle Gautam's account
+      if (callSid === "701323") {
+        // Use Gautam's hardcoded user ID
+        userId = "c772896b-521e-43a2-90f4-d942294b893e"
+        // Try to get the session for this user ID
+        const userSession = await getSessionByUserId(userId)
+        if (userSession && userSession.accessToken) {
+          accessToken = userSession.accessToken
+        }
+      } else {
+        const session = await getSession(callSid)
+        if (session && session.accessToken) {
+          accessToken = session.accessToken
+          userId = session.userId
+        }
+      }
+    }
+
     if (!userId) {
       return { 
         success: false, 
@@ -107,20 +127,31 @@ export async function GET(request) {
       } else {
         // Try other methods
         // Get the session from the session store
-        const session = await getSession(callSid)
-        if (session && session.accessToken) {
-          accessToken = session.accessToken
-          userId = session.userId
+        // If the callSid is the PIN, handle Gautam's account
+        if (callSid === "701323") {
+          // Use Gautam's hardcoded user ID
+          userId = "c772896b-521e-43a2-90f4-d942294b893e"
+          // Try to get the session for this user ID
+          const userSession = await getSessionByUserId(userId)
+          if (userSession && userSession.accessToken) {
+            accessToken = userSession.accessToken
+          }
         } else {
-          // Check if call_sid is actually a JWT token
-          try {
-            const { data, error } = await supabase.auth.getUser(callSid)
-            if (!error && data && data.user) {
-              accessToken = callSid // The call_sid is the access token
-              userId = data.user.id
+          const session = await getSession(callSid)
+          if (session && session.accessToken) {
+            accessToken = session.accessToken
+            userId = session.userId
+          } else {
+            // Check if call_sid is actually a JWT token
+            try {
+              const { data, error } = await supabase.auth.getUser(callSid)
+              if (!error && data && data.user) {
+                accessToken = callSid // The call_sid is the access token
+                userId = data.user.id
+              }
+            } catch (err) {
+              // Not a valid token, ignore
             }
-          } catch (err) {
-            // Not a valid token, ignore
           }
         }
       }
