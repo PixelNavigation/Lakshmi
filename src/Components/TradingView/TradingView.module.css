@@ -1,0 +1,135 @@
+/* TradingView.module.css */
+
+.enhancedTickerContainer {
+  margin-bottom: 1rem;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.tickerTabs {
+  display: flex;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tickerTab {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.activeTab {
+  color: #2962ff;
+  border-bottom-color: #2962ff;
+  background-color: rgba(41, 98, 255, 0.05);
+}
+
+.trendingContainer {
+  padding: 10px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+
+.trendingTape {
+  display: inline-block;
+  white-space: nowrap;
+  animation: tickerScroll 30s linear infinite;
+}
+
+.trendingItem {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 15px;
+  height: 40px;
+  border-right: 1px solid #e0e0e0;
+}
+
+.trendingRank {
+  background-color: #f0f0f0;
+  color: #555;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.trendingSymbol {
+  font-weight: 700;
+  margin-right: 8px;
+  color: #333;
+}
+
+.trendingName {
+  color: #777;
+  margin-right: 12px;
+  font-size: 13px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trendingPrice {
+  font-weight: 600;
+  color: #333;
+  margin-right: 8px;
+}
+
+.trendingChange {
+  font-weight: 600;
+}
+
+.positive {
+  color: #00c853;
+}
+
+.negative {
+  color: #ff5252;
+}
+
+.loadingIndicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  color: #777;
+  font-style: italic;
+}
+
+.noData {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40px;
+  color: #777;
+  font-style: italic;
+}
+
+@keyframes tickerScroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Pause animation on hover */
+.trendingTape:hover {
+  animation-play-state: paused;
+}
+
+/* Make sure TradingView attribution shows properly */
+.tradingviewContainer {
+  overflow: visible !important;
+}

@@ -17,12 +17,25 @@ export default function YahooStockChart({ symbol, timeframe = '1m', interval = '
         setLoading(true)
         setError(null)
         
+        // Format the symbol for Yahoo Finance if needed (add .NS for Indian stocks)
+        let formattedSymbol = symbol;
+        if (!/\.(NS|BO)$/.test(symbol) && !/^\^/.test(symbol)) {
+          // Common Indian stocks on NSE - this is just a backup in case the API doesn't handle it
+          formattedSymbol = symbol + '.NS';
+        }
+        
+        console.log(`Fetching chart data for ${formattedSymbol} with timeframe=${timeframe}, interval=${interval}`);
+        
         // Fetch data from our Yahoo Finance API endpoint
-        const response = await fetch(`/api/yahoo-finance?symbol=${symbol}&timeframe=${timeframe}&interval=${interval}`)
+        const response = await fetch(`/api/yahoo-finance?symbol=${formattedSymbol}&timeframe=${timeframe}&interval=${interval}`)
         const result = await response.json()
         
         if (!result.success) {
           throw new Error(result.error || 'Failed to fetch chart data')
+        }
+        
+        if (!result.data || result.data.length === 0) {
+          throw new Error('No chart data available')
         }
         
         setChartData(result.data)
@@ -168,16 +181,81 @@ export default function YahooStockChart({ symbol, timeframe = '1m', interval = '
     // when timeframe prop changes, so parent should update this prop
   }
 
+  // Function to retry chart data fetch
+  const handleRetry = () => {
+    if (symbol) {
+      setLoading(true);
+      setError(null);
+      // Re-fetch data with a slight delay
+      setTimeout(() => {
+        // This will trigger the useEffect to run again
+        const fetchChartData = async () => {
+          try {
+            // Format the symbol for Yahoo Finance if needed (add .NS for Indian stocks)
+            let formattedSymbol = symbol;
+            if (!/\.(NS|BO)$/.test(symbol) && !/^\^/.test(symbol)) {
+              // Try BSE if NSE failed previously
+              const useBSE = error && error.includes('Failed');
+              formattedSymbol = symbol + (useBSE ? '.BO' : '.NS');
+            }
+            
+            console.log(`Retrying chart data for ${formattedSymbol}`);
+            
+            // Fetch data from our Yahoo Finance API endpoint
+            const response = await fetch(`/api/yahoo-finance?symbol=${formattedSymbol}&timeframe=${timeframe}&interval=${interval}`)
+            const result = await response.json()
+            
+            if (!result.success) {
+              throw new Error(result.error || 'Failed to fetch chart data')
+            }
+            
+            if (!result.data || result.data.length === 0) {
+              throw new Error('No chart data available')
+            }
+            
+            setChartData(result.data)
+            setError(null)
+          } catch (err) {
+            console.error(`Error fetching chart data for ${symbol}:`, err)
+            setError(err.message || 'Failed to load chart data')
+          } finally {
+            setLoading(false)
+          }
+        };
+        
+        fetchChartData();
+      }, 500);
+    }
+  };
+
   return (
     <div className={styles.chartWrapper}>
       <div className={styles.chartHeader}>
         <h3>{symbol} Stock Chart</h3>
       </div>
       
-      {error && <div className={styles.error}>{error}</div>}
+      {error && (
+        <div className={styles.errorContainer}>
+          <div className={styles.error}>
+            {error.includes('Failed to fetch') ? 
+              `Unable to load chart for ${symbol}. The stock symbol may be incorrect.` : 
+              error}
+          </div>
+          <button 
+            className={styles.retryButton} 
+            onClick={handleRetry} 
+            disabled={loading}
+          >
+            {loading ? 'Retrying...' : 'Try Again'}
+          </button>
+          <div className={styles.errorHelp}>
+            Note: For Indian stocks, we'll try both NSE (.NS) and BSE (.BO) exchanges.
+          </div>
+        </div>
+      )}
       
       {loading && !error ? (
-        <div className={styles.loading}>Loading chart data...</div>
+        <div className={styles.loading}>Loading chart data for {symbol}...</div>
       ) : (
         <>
           <div ref={chartContainer} className={styles.chartContainer} />

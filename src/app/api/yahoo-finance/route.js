@@ -153,7 +153,26 @@ function formatYahooSymbol(symbol) {
     return symbol // Already formatted for Yahoo
   }
   
-  // Default case - assume NSE
+  // Common Indian stocks - add NSE suffix by default
+  // This list includes the most common Indian stocks that should get .NS suffix
+  const commonIndianStocks = [
+    'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HDFC', 'ICICIBANK', 'KOTAKBANK', 'SBIN', 'LT',
+    'AXISBANK', 'BHARTIARTL', 'ITC', 'ASIANPAINT', 'MARUTI', 'BAJFINANCE', 'HCLTECH', 'WIPRO',
+    'ULTRACEMCO', 'TITAN', 'SUNPHARMA', 'POWERGRID', 'NTPC', 'ONGC', 'TATASTEEL', 'TECHM',
+    'NESTLEIND', 'COALINDIA', 'HINDALCO', 'GRASIM', 'BPCL', 'DRREDDY', 'EICHERMOT', 'CIPLA',
+    'HEROMOTOCO', 'BAJAJFINSV', 'BRITANNIA', 'SHREECEM', 'DIVISLAB', 'TATACONSUM', 'JSWSTEEL',
+    'APOLLOHOSP', 'INDUSINDBK', 'ADANIENT', 'TATAMOTORS', 'NCC', 'ZOMATO', 'NYKAA', 'PAYTM',
+    'POLICYBZR', 'DMART'
+  ]
+  
+  // If the symbol looks like an Indian stock (all caps, 2-10 characters)
+  // or is in our common list, append .NS
+  if (commonIndianStocks.includes(symbol) || 
+      (/^[A-Z]{2,10}$/.test(symbol) && !symbol.startsWith('^'))) {
+    return symbol + '.NS'
+  }
+  
+  // Default case - return as is
   return symbol
 }
 

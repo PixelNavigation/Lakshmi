@@ -4,16 +4,21 @@ import { useState, useRef, useEffect } from 'react'
 import { nanoid } from '@/lib/utils'
 import styles from './LakshmiAi.module.css'
 
+// Import Yahoo Finance components
+import {
+  YahooStockChart,
+  YahooStockPrice,
+  YahooStockFinancials,
+  YahooStockNews,
+  YahooStockScreener,
+  YahooMarketOverview,
+  YahooTickerTape
+} from '@/Components/YahooFinance'
+
 // Import TradingView components
-import { StockChart } from '@/Components/TradingView/StockChart'
-import { PriceWidget } from '@/Components/TradingView/PriceWidget'
-import { StockFinancials } from '@/Components/TradingView/StockFinancials'
-import { StockNews } from '@/Components/TradingView/StockNews'
-import { StockScreener } from '@/Components/TradingView/StockScreener'
-import { MarketOverview } from '@/Components/TradingView/MarketOverview'
-import { MarketHeatmap } from '@/Components/TradingView/MarketHeatmap'
-import { MarketTrending } from '@/Components/TradingView/MarketTrending'
-import { YahooTickerTape } from '@/Components/YahooFinance'
+import { TickerTape } from '@/Components/TradingView/TickerTape'
+import { EnhancedTickerTape } from '@/Components/TradingView/EnhancedTickerTape'
+
 // Message components
 function UserMessage({ children }) {
   return (
@@ -273,6 +278,8 @@ function parseAIResponse(message, content) {
   if ((lowercaseMessage.includes('chart') || lowercaseMessage.includes('show chart') || 
        lowercaseMessage.includes('display chart') || lowercaseMessage.includes('view chart')) && mentionedStock) {
     console.log('Chart requested for stock:', mentionedStock);
+    // Log the detected stock symbol for debugging
+    console.log(`Processing chart request for stock: ${mentionedStock}`);
     return {
       type: 'chart',
       symbol: mentionedStock,
@@ -627,27 +634,33 @@ export default function LakshmiAi() {
     console.log('Rendering widget:', widget);
     
     // Use stock symbols as-is without appending exchange suffixes
-    // TradingView components will handle the symbol formatting internally
+    // Yahoo Finance components will handle the symbol formatting internally
     
     switch (widget.type) {
       case 'chart':
         console.log('Rendering chart with symbol:', widget.symbol);
-        return <StockChart symbol={widget.symbol} />;
+        // Adding extra checks for Indian stock symbols
+        if (!widget.symbol.includes('.NS') && !widget.symbol.includes('.BO') && !/^\^/.test(widget.symbol)) {
+          console.log('Using standard Indian stock symbol without exchange suffix:', widget.symbol);
+        }
+        return <YahooStockChart symbol={widget.symbol} />;
       case 'price':
-        // Use TradingView's PriceWidget component for all price requests
-        return <PriceWidget symbol={widget.symbol} width={200} height={80} />
+        // Use Yahoo Finance's PriceWidget component for all price requests
+        return <YahooStockPrice symbol={widget.symbol} width={200} height={80} />
       case 'financials':
-        return <StockFinancials symbol={widget.symbol} />
+        return <YahooStockFinancials symbol={widget.symbol} />
       case 'news':
-        return <StockNews symbol={widget.symbol} />
+        return <YahooStockNews symbol={widget.symbol} />
       case 'screener':
-        return <StockScreener />
+        return <YahooStockScreener />
       case 'market':
-        return <MarketOverview />
+        return <YahooMarketOverview />
       case 'heatmap':
-        return <MarketHeatmap />
+        // Use Yahoo MarketOverview as a substitute for heatmap
+        return <YahooMarketOverview viewType="heatmap" />
       case 'trending':
-        return <MarketTrending />
+        // Use our enhanced TradingView TickerTape with trending support
+        return <EnhancedTickerTape showTrending={true} />
       default:
         return null
     }
@@ -663,7 +676,7 @@ export default function LakshmiAi() {
             <div className={styles.welcomeContent}>
               {/* Market Ticker integrated within welcome screen */}
               <div className={styles.tickerSection}>
-                <YahooTickerTape />
+                <TickerTape />
               </div>
               <div className={styles.welcomeHeader}>
                 <h1 className={styles.welcomeTitle}>

@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import styles from './YahooComponents.module.css'
 
-export default function YahooTickerTape({ onLoadComplete = null }) {
+export default function YahooTickerTape({ onLoadComplete = null, showTrending = false }) {
   const [tickerData, setTickerData] = useState([])
+  const [trendingData, setTrendingData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState(showTrending ? 'trending' : 'ticker')
   
   // Add warning if onLoadComplete prop is passed
   useEffect(() => {
@@ -145,6 +147,29 @@ export default function YahooTickerTape({ onLoadComplete = null }) {
     }
   }, [])
 
+  // Fetch trending stocks data
+  useEffect(() => {
+    const fetchTrendingStocks = async () => {
+      try {
+        const response = await fetch('/api/crypto-trending');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch trending data: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.success && data.trending) {
+          setTrendingData(data.trending);
+        }
+      } catch (error) {
+        console.error('Error fetching trending stocks:', error);
+      }
+    };
+    
+    if (activeView === 'trending') {
+      fetchTrendingStocks();
+    }
+  }, [activeView]);
+
   // Format price with commas and decimal places
   const formatPrice = (price) => {
     if (price === null || price === undefined) return '-'
@@ -162,48 +187,65 @@ export default function YahooTickerTape({ onLoadComplete = null }) {
   }
 
   return (
-    <div 
-      className={styles.tickerTapeContainer} 
-      style={{ 
-        position: 'relative', 
-        zIndex: 1000, 
-        height: '38px', 
-        overflow: 'hidden',
-        isolation: 'isolate' // Create a stacking context
-      }}
-      data-ticker-state={loading ? 'loading' : 'loaded'}
-    >
-      {loading && tickerData.length === 0 ? (
-        <div className={styles.tickerLoading}>
-          <div className={styles.tickerLoadingText}>Loading market data...</div>
-        </div>
-      ) : (
-        <div className={styles.tickerTape} style={{ position: 'relative' }}>
-          <div className={styles.tickerTrack} style={{ position: 'relative' }}>
-            {tickerData.map((item, index) => (
-              <div key={`${item.symbol}-${index}`} className={styles.tickerItem}>
-                <span className={styles.tickerSymbol}>{item.name}</span>
-                <span className={styles.tickerPrice}>₹{formatPrice(item.price)}</span>
-                <span className={`${styles.tickerChange} ${getChangeColor(item.change)}`}>
-                  {item.change > 0 ? '+' : ''}{formatPrice(item.change)} 
-                  ({item.changePercent > 0 ? '+' : ''}{item.changePercent.toFixed(2)}%)
-                </span>
-              </div>
-            ))}
-            {/* Duplicate items for continuous animation */}
-            {tickerData.map((item, index) => (
-              <div key={`${item.symbol}-dup-${index}`} className={styles.tickerItem}>
-                <span className={styles.tickerSymbol}>{item.name}</span>
-                <span className={styles.tickerPrice}>₹{formatPrice(item.price)}</span>
-                <span className={`${styles.tickerChange} ${getChangeColor(item.change)}`}>
-                  {item.change > 0 ? '+' : ''}{formatPrice(item.change)} 
-                  ({item.changePercent > 0 ? '+' : ''}{item.changePercent.toFixed(2)}%)
-                </span>
-              </div>
-            ))}
+    <div className={styles.tickerModule}>
+      <div className={styles.tickerTabs}>
+        <button
+          className={`${styles.tickerTab} ${activeView === 'ticker' ? styles.activeTickerTab : ''}`}
+          onClick={() => setActiveView('ticker')}
+        >
+          Market Indices
+        </button>
+        <button
+          className={`${styles.tickerTab} ${activeView === 'trending' ? styles.activeTickerTab : ''}`}
+          onClick={() => setActiveView('trending')}
+        >
+          Trending
+        </button>
+      </div>
+      
+      <div 
+        className={styles.tickerTapeContainer} 
+        style={{ 
+          position: 'relative', 
+          zIndex: 1000, 
+          height: '38px', 
+          overflow: 'hidden',
+          isolation: 'isolate' // Create a stacking context
+        }}
+        data-ticker-state={loading ? 'loading' : 'loaded'}
+      >
+        {loading && tickerData.length === 0 && trendingData.length === 0 ? (
+          <div className={styles.tickerLoading}>
+            <div className={styles.tickerLoadingText}>Loading market data...</div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className={styles.tickerTape} style={{ position: 'relative' }}>
+            <div className={styles.tickerTrack} style={{ position: 'relative' }}>
+              {activeView === 'ticker' && tickerData.map((item, index) => (
+                <div key={`${item.symbol}-${index}`} className={styles.tickerItem}>
+                  <span className={styles.tickerSymbol}>{item.name}</span>
+                  <span className={styles.tickerPrice}>{formatPrice(item.price)}</span>
+                  <span className={`${styles.tickerChange} ${getChangeColor(item.change)}`}>
+                    {item.change > 0 ? '+' : ''}{formatPrice(item.change)} ({item.changePercent > 0 ? '+' : ''}{item.changePercent?.toFixed(2)}%)
+                  </span>
+                </div>
+              ))}
+              
+              {activeView === 'trending' && trendingData.map((item, index) => (
+                <div key={`trending-${index}`} className={styles.tickerItem}>
+                  <span className={styles.tickerSymbol}>{item.symbol}</span>
+                  <span className={styles.tickerRank}>#{item.rank}</span>
+                  <span className={styles.tickerName}>{item.name}</span>
+                  <span className={styles.tickerPrice}>${formatPrice(item.price)}</span>
+                  <span className={`${styles.tickerChange} ${getChangeColor(item.change24h)}`}>
+                    {item.change24h > 0 ? '+' : ''}{item.change24h?.toFixed(2)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
