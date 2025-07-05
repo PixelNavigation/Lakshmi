@@ -54,6 +54,11 @@ function BotCard({ children, title }) {
 }
 
 function parseUserMessage(message) {
+  // Ensure message is a string and handle edge cases
+  if (!message || typeof message !== 'string') {
+    return { type: 'text', symbol: null }
+  }
+  
   const lowercaseMessage = message.toLowerCase()
   
   // Enhanced company name to stock symbol mapping
@@ -354,7 +359,7 @@ export default function LakshmiAi() {
   }, [messages])
 
   const handleSendMessage = async (messageOverride = null, isAutoSend = false) => {
-    const messageToSend = messageOverride || inputValue.trim()
+    const messageToSend = String(messageOverride || inputValue.trim())
     
     if (messageToSend && !isLoading) {
       setIsLoading(true)
@@ -467,13 +472,15 @@ export default function LakshmiAi() {
   }
 
   const handleExampleClick = (message) => {
-    setInputValue(message)
+    // Ensure message is a string
+    const messageStr = String(message || '')
+    setInputValue(messageStr)
     // Focus the input after setting the value
     if (chatInputRef.current) {
       chatInputRef.current.focus()
     }
     // Auto-send after a short delay
-    setTimeout(() => handleSendMessage(), 150)
+    setTimeout(() => handleSendMessage(messageStr), 150)
   }
 
   const exampleQuestions = [
