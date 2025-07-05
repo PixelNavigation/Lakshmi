@@ -45,6 +45,9 @@ const StockGraph = () => {
   const [showDetails, setShowDetails] = useState(false)
   const [selectedNode, setSelectedNode] = useState(null)
   const [selectedEdge, setSelectedEdge] = useState(null)
+  const [aiAnalysis, setAiAnalysis] = useState(null)
+  const [loadingAiAnalysis, setLoadingAiAnalysis] = useState(false)
+  const [showAiAnalysis, setShowAiAnalysis] = useState(false)
 
   // Add refs to track if we should regenerate the graph
   const graphGeneratedRef = useRef(false)
@@ -181,7 +184,7 @@ const StockGraph = () => {
       circle: {
         name: 'circle',
         radius: 200,
-        padding: 50,
+        padding: 80,
         animate: true,
         animationDuration: 1000
       },
@@ -189,13 +192,13 @@ const StockGraph = () => {
         name: 'grid',
         rows: Math.ceil(Math.sqrt(nodes.length)),
         cols: Math.ceil(Math.sqrt(nodes.length)),
-        padding: 50,
+        padding: 80,
         animate: true,
         animationDuration: 1000
       },
       cose: {
         name: 'cose',
-        padding: 50,
+        padding: 80,
         animate: true,
         animationDuration: 1000,
         idealEdgeLength: 100,
@@ -215,7 +218,7 @@ const StockGraph = () => {
       },
       concentric: {
         name: 'concentric',
-        padding: 50,
+        padding: 80,
         animate: true,
         animationDuration: 1000,
         concentric: (node) => node.data('changePercent') || 0,
@@ -244,6 +247,8 @@ const StockGraph = () => {
     setSelectedEdge(edgeData)
     setSelectedNode(null)
     setShowDetails(true)
+    setShowAiAnalysis(false)
+    setAiAnalysis(null)
   }
 
   const initializeCytoscapeGraph = useCallback(async () => {
@@ -276,21 +281,27 @@ const StockGraph = () => {
           dataSource: node.source || 'API'
         }
       }))
-      const cytoscapeEdges = edges.map((edge, index) => ({
-        data: {
-          id: `edge-${index}`,
-          source: edge.source,
-          target: edge.target,
-          weight: Math.abs(edge.correlation || edge.value || 0),
-          correlation: Number(edge.correlation || edge.value || 0).toFixed(3),
-          method: edge.method || 'unknown',
-          edgeColor: determineEdgeColor(edge.correlation || edge.value || 0, edge.method),
-          edgeWidth: Math.max(2, Math.abs(edge.correlation || edge.value || 0) * 10),
-          opacity: Math.max(0.9, Math.abs(edge.correlation || edge.value || 0)), // Increased from 0.7 to 0.9 for better visibility
-          pValue: edge.p_value || null,
-          importance: edge.importance || null
+      const cytoscapeEdges = edges.map((edge, index) => {
+        const correlationValue = edge.correlation || edge.value || 0
+        const isStrongCorrelation = Math.abs(correlationValue) > 0.4
+        return {
+          data: {
+            id: `edge-${index}`,
+            source: edge.source,
+            target: edge.target,
+            weight: Math.abs(correlationValue),
+            correlation: Number(correlationValue).toFixed(3),
+            method: edge.method || 'unknown',
+            edgeColor: determineEdgeColor(correlationValue, edge.method),
+            edgeWidth: Math.max(2, Math.abs(correlationValue) * 10),
+            opacity: Math.max(0.9, Math.abs(correlationValue)),
+            pValue: edge.p_value || null,
+            importance: edge.importance || null,
+            hasAiAnalysis: isStrongCorrelation,
+            lineStyle: isStrongCorrelation ? 'solid' : 'solid'
+          }
         }
-      }))
+      })
       cyRef.current = cytoscape({
         container: cytoscapeRef.current,
         elements: [...cytoscapeNodes, ...cytoscapeEdges],
@@ -331,6 +342,15 @@ const StockGraph = () => {
               'text-background-padding': '2px',
               'text-background-shape': 'roundrectangle'
             }
+          },
+          {
+            selector: 'edge[hasAiAnalysis = true]',
+            style: {
+              'line-style': 'solid',
+              'source-arrow-shape': 'circle',
+              'source-arrow-color': '#8b5cf6',
+              'source-arrow-fill': 'filled'
+            }
           }
         ],
         layout: getLayoutConfig(selectedLayout),
@@ -339,11 +359,45 @@ const StockGraph = () => {
         panningEnabled: true,
         userPanningEnabled: true,
         minZoom: 0.3,
-        maxZoom: 4
+        maxZoom: 4,
+        // Set viewport bounds to avoid UI overlays
+        fit: true,
+        padding: 30
       })
       cyRef.current?.on('zoom', () => {
         setCurrentZoom(cyRef.current?.zoom() || 1)
       })
+      cyRef.current?.on('tap', 'node', (evt) => {
+        const node = evt.target
+        const data = node.data()
+        showNodeDetails(data)
+      })
+      cyRef.current?.on('tap', 'edge', (evt) => {
+        const edge = evt.target
+        const data = edge.data()
+        showEdgeDetails(data)
+      })
+      
+      // Add hover events for AI analysis hint
+      cyRef.current?.on('mouseover', 'edge[hasAiAnalysis = true]', (evt) => {
+        const edge = evt.target
+        const position = evt.renderedPosition || evt.position
+        const tooltip = document.getElementById('edge-tooltip')
+        if (tooltip) {
+          tooltip.style.display = 'block'
+          tooltip.style.left = `${position.x + 10}px`
+          tooltip.style.top = `${position.y - 10}px`
+          tooltip.innerHTML = `🤖 Click for AI Analysis<br><small>Strong correlation detected</small>`
+        }
+      })
+      
+      cyRef.current?.on('mouseout', 'edge[hasAiAnalysis = true]', () => {
+        const tooltip = document.getElementById('edge-tooltip')
+        if (tooltip) {
+          tooltip.style.display = 'none'
+        }
+      })
+      
       cyRef.current?.on('tap', 'node', (evt) => {
         const node = evt.target
         const data = node.data()
@@ -380,7 +434,7 @@ const StockGraph = () => {
 
   const handleFitGraph = () => {
     if (cyRef.current) {
-      cyRef.current.fit()
+      cyRef.current.fit(null, 80) // Add padding to fit function
     }
   }
 
@@ -400,13 +454,80 @@ const StockGraph = () => {
 
   const cytoscapeStyles = {
     width: '100%',
-    height: '600px',
+    height: '100%',
     borderRadius: '8px',
     border: '1px solid #e5e7eb',
     backgroundColor: '#ffffff',
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
     position: 'relative',
     overflow: 'hidden'
+  }
+
+  // AI Analysis function for strong correlations
+  const performAiAnalysis = async (edgeData) => {
+    try {
+      setLoadingAiAnalysis(true)
+      setShowAiAnalysis(true)
+      
+      // Prepare data for AI analysis
+      const analysisData = {
+        source: edgeData.source,
+        target: edgeData.target,
+        correlation: edgeData.correlation,
+        method: edgeData.method,
+        strength: Math.abs(edgeData.correlation) > 0.7 ? 'Strong' : 
+                 Math.abs(edgeData.correlation) > 0.4 ? 'Moderate' : 'Weak',
+        type: edgeData.correlation > 0 ? 'Positive' : 'Negative'
+      }
+      
+      // Call AI analysis API
+      const response = await fetch('/api/gemini-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Analyze the ${analysisData.strength.toLowerCase()} ${analysisData.type.toLowerCase()} correlation (${analysisData.correlation}) between ${analysisData.source} and ${analysisData.target} stocks. 
+          
+          Please provide:
+          1. Possible reasons for this correlation
+          2. Business relationship analysis
+          3. Sector/industry connections
+          4. Recent news or events that might explain this relationship
+          5. Market factors influencing both stocks
+          
+          Correlation method: ${analysisData.method}
+          Correlation value: ${analysisData.correlation}
+          
+          Keep the analysis concise but comprehensive.`,
+          conversationId: `correlation_analysis_${Date.now()}`
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to get AI analysis')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setAiAnalysis({
+          analysis: data.response,
+          edgeData: analysisData,
+          timestamp: new Date()
+        })
+      } else {
+        throw new Error(data.error || 'AI analysis failed')
+      }
+    } catch (error) {
+      console.error('AI Analysis error:', error)
+      setAiAnalysis({
+        analysis: `Sorry, I couldn't perform the analysis at this time. Error: ${error.message}`,
+        edgeData: analysisData,
+        timestamp: new Date(),
+        error: true
+      })
+    } finally {
+      setLoadingAiAnalysis(false)
+    }
   }
 
   if (loading) {
@@ -527,34 +648,26 @@ const StockGraph = () => {
               Last updated: {lastUpdated.toLocaleTimeString()}
             </span>
           )}
-          
-          <span style={{ fontSize: '12px', opacity: 0.7, color: 'white' }}>
-            Zoom: {(currentZoom * 100).toFixed(0)}%
-          </span>
-        </div>          {/* Debug info */}
-        <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '10px', color: 'white' }}>
-          Debug: User ID: {userId} | Watchlist: {watchlistData.length} stocks, Prices: {Object.keys(stockPrices).length} loaded, Nodes: {nodes.length}, Edges: {edges.length}
-          <br />
-          Backend Status: <span style={{ color: backendConnected ? '#22c55e' : '#ef4444' }}>
-            {backendConnected ? '🟢 Connected' : '🔴 Disconnected (no correlation data available)'}
-          </span>
-          <br />
-          {analysisStats && (
-            <>
-              Analysis: {analysisStats.granger_edges || 0} Granger + {analysisStats.naive_bayes_edges || 0} Naive Bayes = {analysisStats.total_edges || 0} total edges
-              <br />
-              Data Sources: {analysisStats.real_data_stocks || 0} real / {analysisStats.total_stocks || 0} total stocks ({analysisStats.real_data_percentage || 0}% real data)
-            </>
-          )}
-          <br />
-          Real-time Data: {Object.values(stockPrices).filter(stock => stock.isRealData).length} real, {Object.values(stockPrices).filter(stock => stock.isHistoricalData).length} historical, {Object.values(stockPrices).filter(stock => stock.isStaticData).length} static, {Object.values(stockPrices).filter(stock => stock.hasIncompleteData).length} incomplete
         </div>
       </div>
       
       <div className={styles.contentGrid}>
         <div className={styles.graphContainer}>
           {/* Graph controls */}
-          <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ 
+            position: 'absolute',
+            top: '1rem',
+            left: '1rem',
+            zIndex: 100,
+            display: 'flex', 
+            gap: '1rem', 
+            alignItems: 'center', 
+            flexWrap: 'wrap',
+            backgroundColor: 'rgba(31, 41, 55, 0.9)',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            backdropFilter: 'blur(10px)'
+          }}>
             <button 
               onClick={handleRefresh}
               disabled={loading}
@@ -636,29 +749,37 @@ const StockGraph = () => {
               <ZoomOut className="w-4 h-4" />
               Zoom Out
             </button>
-          </div>
-          
-          {/* Layout controls */}
-          <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <label htmlFor="layout-select" style={{ color: 'white' }}>Graph Layout:</label>
-            <select
-              id="layout-select"
-              value={selectedLayout}
-              onChange={(e) => handleLayoutChange(e.target.value)}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                backgroundColor: '#f8fafc',
-                color: '#1f2937'
-              }}
-            >
-              {layoutOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            
+            {/* Layout selector inline with zoom controls */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginLeft: '1rem',
+              paddingLeft: '1rem',
+              borderLeft: '1px solid rgba(255, 255, 255, 0.2)'
+            }}>
+              <label htmlFor="layout-select" style={{ color: 'white', fontSize: '14px' }}>Layout:</label>
+              <select
+                id="layout-select"
+                value={selectedLayout}
+                onChange={(e) => handleLayoutChange(e.target.value)}
+                style={{
+                  padding: '0.4rem',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  backgroundColor: '#f8fafc',
+                  color: '#1f2937',
+                  fontSize: '14px'
+                }}
+              >
+                {layoutOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           
           {/* Cytoscape container */}
@@ -668,7 +789,61 @@ const StockGraph = () => {
             data-testid="cytoscape-container"
           />
           
-          {/* Tooltip for node details (future enhancement) */}
+          {/* Status bar at bottom */}
+          <div style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '20px',
+            zIndex: 100,
+            backgroundColor: 'rgba(31, 41, 55, 0.9)',
+            padding: '0.5rem 1rem',
+            borderRadius: '6px',
+            backdropFilter: 'blur(10px)',
+            color: 'white',
+            fontSize: '12px',
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'center'
+          }}>
+            <span>Zoom: {(currentZoom * 100).toFixed(0)}%</span>
+            <span>Nodes: {nodes.length}</span>
+            <span>Edges: {edges.length}</span>
+            <span style={{ color: backendConnected ? '#22c55e' : '#ef4444' }}>
+              Backend: {backendConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+          
+          {/* Internal Legend - Always visible at top right */}
+          <div className={styles.internalLegend}>
+            <h4>Legend</h4>
+            <div className={styles.legendItems}>
+              <div className={styles.legendItem}>
+                <div className={`${styles.legendDot} ${styles.positiveDot}`}></div>
+                <span>Positive correlation</span>
+              </div>
+              <div className={styles.legendItem}>
+                <div className={`${styles.legendDot} ${styles.negativeDot}`}></div>
+                <span>Negative correlation</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Enhanced Tooltip for edges and nodes */}
+          <div id="edge-tooltip" style={{ 
+            position: 'absolute', 
+            display: 'none', 
+            backgroundColor: 'rgba(31, 41, 55, 0.95)',
+            color: 'white',
+            padding: '8px 12px', 
+            borderRadius: '6px', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            zIndex: 150,
+            fontSize: '12px',
+            border: '1px solid rgba(139, 92, 246, 0.5)',
+            backdropFilter: 'blur(10px)',
+            pointerEvents: 'none'
+          }}></div>
+          
           <div id="node-tooltip" style={{ 
             position: 'absolute', 
             display: 'none', 
@@ -680,163 +855,147 @@ const StockGraph = () => {
           }}></div>
         </div>
         
-        {/* Details panel */}
-        {showDetails && (
-          <div className={styles.sidebar}>
-            <div style={{ padding: '1rem', backgroundColor: '#1f2937', borderRadius: '8px', margin: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ color: 'white', margin: 0 }}>Details</h3>
-                <button
-                  onClick={() => setShowDetails(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: '20px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ×
-                </button>
+        {/* Edge Details Modal with AI Analysis */}
+        {showDetails && selectedEdge && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(31, 41, 55, 0.98)',
+            color: 'white',
+            padding: '2rem',
+            borderRadius: '12px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            zIndex: 200,
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ color: '#3b82f6', margin: 0 }}>Edge Analysis</h3>
+              <button
+                onClick={() => {
+                  setShowDetails(false)
+                  setShowAiAnalysis(false)
+                  setAiAnalysis(null)
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '20px',
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ fontSize: '14px', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Between:</span>
+                <span style={{ fontWeight: 'bold' }}>{selectedEdge.source} ↔ {selectedEdge.target}</span>
               </div>
-
-              {/* Node details */}
-              {selectedNode && (
-                <div style={{ color: 'white' }}>
-                  <h4 style={{ color: '#22c55e', marginBottom: '0.5rem' }}>Stock: {selectedNode.name}</h4>
-                  <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Price:</span>
-                      <span style={{ fontWeight: 'bold' }}>₹{selectedNode.price}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Change:</span>
-                      <span style={{ 
-                        fontWeight: 'bold',
-                        color: selectedNode.change >= 0 ? '#22c55e' : '#ef4444'
-                      }}>
-                        {selectedNode.change >= 0 ? '+' : ''}₹{selectedNode.change} ({selectedNode.changePercent}%)
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Volume:</span>
-                      <span style={{ fontWeight: 'bold' }}>{selectedNode.volume?.toLocaleString()}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Data Source:</span>
-                      <span style={{ fontWeight: 'bold' }}>{selectedNode.dataSource}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Real Data:</span>
-                      <span style={{ 
-                        fontWeight: 'bold',
-                        color: selectedNode.isRealData ? '#22c55e' : '#f59e0b'
-                      }}>
-                        {selectedNode.isRealData ? 'Yes' : 'No'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Edge details */}
-              {selectedEdge && (
-                <div style={{ color: 'white' }}>
-                  <h4 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>Correlation</h4>
-                  <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Between:</span>
-                      <span style={{ fontWeight: 'bold' }}>{selectedEdge.source} ↔ {selectedEdge.target}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Correlation:</span>
-                      <span style={{ 
-                        fontWeight: 'bold',
-                        color: selectedEdge.correlation >= 0 ? '#22c55e' : '#ef4444'
-                      }}>
-                        {selectedEdge.correlation}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Method:</span>
-                      <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{selectedEdge.method}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Strength:</span>
-                      <span style={{ fontWeight: 'bold' }}>
-                        {Math.abs(selectedEdge.correlation) > 0.7 ? 'Strong' : 
-                         Math.abs(selectedEdge.correlation) > 0.4 ? 'Moderate' : 'Weak'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Type:</span>
-                      <span style={{ 
-                        fontWeight: 'bold',
-                        color: selectedEdge.correlation > 0 ? '#22c55e' : '#ef4444'
-                      }}>
-                        {selectedEdge.correlation > 0 ? 'Positive' : 'Negative'}
-                      </span>
-                    </div>
-                    {selectedEdge.pValue && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span>P-value:</span>
-                        <span style={{ fontWeight: 'bold' }}>{selectedEdge.pValue}</span>
-                      </div>
-                    )}
-                    {selectedEdge.importance && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Importance:</span>
-                        <span style={{ fontWeight: 'bold' }}>{selectedEdge.importance}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Analysis stats */}
-              {analysisStats && !selectedNode && !selectedEdge && (
-                <div style={{ color: 'white' }}>
-                  <h4 style={{ color: '#8b5cf6', marginBottom: '0.5rem' }}>Analysis Summary</h4>
-                  <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Total Edges:</span>
-                      <span style={{ fontWeight: 'bold' }}>{analysisStats.total_edges}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span>Granger Causality:</span>
-                      <span style={{ fontWeight: 'bold' }}>{analysisStats.granger_edges}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Naive Bayes:</span>
-                      <span style={{ fontWeight: 'bold' }}>{analysisStats.naive_bayes_edges}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Legend */}
-              <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #374151' }}>
-                <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>Legend</h4>
-                <div style={{ fontSize: '12px', color: '#d1d5db' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#22c55e', borderRadius: '50%' }}></div>
-                    <span>Positive correlation</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#ef4444', borderRadius: '50%' }}></div>
-                    <span>Negative correlation</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <div style={{ width: '12px', height: '3px', backgroundColor: '#3b82f6' }}></div>
-                    <span>Granger causality</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '12px', height: '3px', backgroundColor: '#10b981' }}></div>
-                    <span>Naive Bayes</span>
-                  </div>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Correlation:</span>
+                <span style={{ 
+                  fontWeight: 'bold',
+                  color: selectedEdge.correlation >= 0 ? '#22c55e' : '#ef4444'
+                }}>
+                  {selectedEdge.correlation}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Method:</span>
+                <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{selectedEdge.method}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Strength:</span>
+                <span style={{ fontWeight: 'bold' }}>
+                  {Math.abs(selectedEdge.correlation) > 0.7 ? 'Strong' : 
+                   Math.abs(selectedEdge.correlation) > 0.4 ? 'Moderate' : 'Weak'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span>Type:</span>
+                <span style={{ 
+                  fontWeight: 'bold',
+                  color: selectedEdge.correlation > 0 ? '#22c55e' : '#ef4444'
+                }}>
+                  {selectedEdge.correlation > 0 ? 'Positive' : 'Negative'}
+                </span>
               </div>
             </div>
+
+            {/* AI Analysis Button for Strong Correlations */}
+            {Math.abs(selectedEdge.correlation) > 0.4 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <button
+                  onClick={() => performAiAnalysis(selectedEdge)}
+                  disabled={loadingAiAnalysis}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: loadingAiAnalysis ? '#6b7280' : '#8b5cf6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: loadingAiAnalysis ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  🤖 {loadingAiAnalysis ? 'Analyzing...' : 'Get AI Analysis'}
+                </button>
+              </div>
+            )}
+
+            {/* AI Analysis Results */}
+            {showAiAnalysis && aiAnalysis && (
+              <div style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '1rem'
+              }}>
+                <h4 style={{ 
+                  color: '#60a5fa', 
+                  marginBottom: '0.75rem',
+                  fontSize: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🤖 AI Analysis Results
+                </h4>
+                <div style={{ 
+                  fontSize: '13px', 
+                  lineHeight: '1.6',
+                  color: aiAnalysis.error ? '#fca5a5' : '#e5e7eb',
+                  whiteSpace: 'pre-line'
+                }}>
+                  {aiAnalysis.analysis}
+                </div>
+                <div style={{ 
+                  fontSize: '11px', 
+                  color: '#9ca3af', 
+                  marginTop: '0.75rem',
+                  textAlign: 'right'
+                }}>
+                  Generated: {aiAnalysis.timestamp.toLocaleString()}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
