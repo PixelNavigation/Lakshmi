@@ -48,7 +48,7 @@ const StockGraph = () => {
   const [aiAnalysis, setAiAnalysis] = useState(null)
   const [loadingAiAnalysis, setLoadingAiAnalysis] = useState(false)
   const [showAiAnalysis, setShowAiAnalysis] = useState(false)
-
+  
   // Add refs to track if we should regenerate the graph
   const graphGeneratedRef = useRef(false)
   const cytoscapeRef = useRef(null) // Ref for the Cytoscape container
@@ -285,10 +285,10 @@ const StockGraph = () => {
         const correlationValue = edge.correlation || edge.value || 0
         const isStrongCorrelation = Math.abs(correlationValue) > 0.4
         return {
-          data: {
-            id: `edge-${index}`,
-            source: edge.source,
-            target: edge.target,
+        data: {
+          id: `edge-${index}`,
+          source: edge.source,
+          target: edge.target,
             weight: Math.abs(correlationValue),
             correlation: Number(correlationValue).toFixed(3),
             method: edge.method || 'unknown',
@@ -536,9 +536,9 @@ const StockGraph = () => {
         <div className="flex items-center space-x-2">
           <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
           <span className="text-gray-600">Loading stock correlations...</span>
-        </div>
       </div>
-    )
+    </div>
+  )
   }
 
   if (error) {
@@ -549,10 +549,10 @@ const StockGraph = () => {
     } else {
       // For other errors, show full error screen
       return (
-        <div className={styles.errorContainer}>
-          <div className={styles.errorContent}>
-            <div className={styles.errorIcon}>⚠️</div>
-            <p className={styles.errorText}>Error: {error}</p>
+    <div className={styles.errorContainer}>
+      <div className={styles.errorContent}>
+        <div className={styles.errorIcon}>⚠️</div>
+        <p className={styles.errorText}>Error: {error}</p>
             {error && error.includes("correlation") && (
               <div style={{ marginTop: '1rem' }}>
                 <p>To fix this issue:</p>
@@ -576,9 +576,9 @@ const StockGraph = () => {
                 >
                   View Graph Without Correlations
                 </button>
-              </div>
+      </div>
             )}
-          </div>
+    </div>
         </div>
       );
     }
@@ -668,16 +668,16 @@ const StockGraph = () => {
             borderRadius: '8px',
             backdropFilter: 'blur(10px)'
           }}>
-            <button 
+          <button 
               onClick={handleRefresh}
-              disabled={loading}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#22c55e',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
+            disabled={loading}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#22c55e',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.6 : 1,
                 fontSize: '14px',
                 fontWeight: '500',
@@ -688,16 +688,16 @@ const StockGraph = () => {
             >
               <RefreshCw className="w-4 h-4" />
               Refresh Graph & Prices
-            </button>
-            
-            <button 
+          </button>
+          
+          <button 
               onClick={handleFitGraph}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '500',
@@ -708,16 +708,16 @@ const StockGraph = () => {
             >
               <ZoomIn className="w-4 h-4" />
               Fit Graph
-            </button>
-            
-            <button 
-              onClick={handleZoomIn}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#8b5cf6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
+          </button>
+          
+          <button 
+            onClick={handleZoomIn}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '500',
@@ -728,16 +728,16 @@ const StockGraph = () => {
             >
               <ZoomIn className="w-4 h-4" />
               Zoom In
-            </button>
-            
-            <button 
-              onClick={handleZoomOut}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#8b5cf6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
+          </button>
+          
+          <button 
+            onClick={handleZoomOut}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '500',
@@ -748,8 +748,8 @@ const StockGraph = () => {
             >
               <ZoomOut className="w-4 h-4" />
               Zoom Out
-            </button>
-            
+          </button>
+          
             {/* Layout selector inline with zoom controls */}
             <div style={{ 
               display: 'flex', 
@@ -760,25 +760,25 @@ const StockGraph = () => {
               borderLeft: '1px solid rgba(255, 255, 255, 0.2)'
             }}>
               <label htmlFor="layout-select" style={{ color: 'white', fontSize: '14px' }}>Layout:</label>
-              <select
-                id="layout-select"
-                value={selectedLayout}
-                onChange={(e) => handleLayoutChange(e.target.value)}
-                style={{
+            <select
+              id="layout-select"
+              value={selectedLayout}
+              onChange={(e) => handleLayoutChange(e.target.value)}
+              style={{
                   padding: '0.4rem',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  backgroundColor: '#f8fafc',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                backgroundColor: '#f8fafc',
                   color: '#1f2937',
                   fontSize: '14px'
-                }}
-              >
-                {layoutOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              }}
+            >
+              {layoutOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             </div>
           </div>
           
@@ -902,24 +902,24 @@ const StockGraph = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Correlation:</span>
-                <span style={{ 
+                    <span style={{ 
                   fontWeight: 'bold',
                   color: selectedEdge.correlation >= 0 ? '#22c55e' : '#ef4444'
-                }}>
+                    }}>
                   {selectedEdge.correlation}
-                </span>
-              </div>
+                    </span>
+                  </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Method:</span>
                 <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{selectedEdge.method}</span>
-              </div>
+                  </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Strength:</span>
                 <span style={{ fontWeight: 'bold' }}>
                   {Math.abs(selectedEdge.correlation) > 0.7 ? 'Strong' : 
                    Math.abs(selectedEdge.correlation) > 0.4 ? 'Moderate' : 'Weak'}
                 </span>
-              </div>
+                  </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span>Type:</span>
                 <span style={{ 
@@ -928,7 +928,7 @@ const StockGraph = () => {
                 }}>
                   {selectedEdge.correlation > 0 ? 'Positive' : 'Negative'}
                 </span>
-              </div>
+                </div>
             </div>
 
             {/* AI Analysis Button for Strong Correlations */}
@@ -956,7 +956,7 @@ const StockGraph = () => {
                 >
                   🤖 {loadingAiAnalysis ? 'Analyzing...' : 'Get AI Analysis'}
                 </button>
-              </div>
+          </div>
             )}
 
             {/* AI Analysis Results */}
@@ -985,7 +985,7 @@ const StockGraph = () => {
                   whiteSpace: 'pre-line'
                 }}>
                   {aiAnalysis.analysis}
-                </div>
+            </div>
                 <div style={{ 
                   fontSize: '11px', 
                   color: '#9ca3af', 
@@ -993,10 +993,10 @@ const StockGraph = () => {
                   textAlign: 'right'
                 }}>
                   Generated: {aiAnalysis.timestamp.toLocaleString()}
-                </div>
-              </div>
+            </div>
+            </div>
             )}
-          </div>
+            </div>
         )}
       </div>
     </div>

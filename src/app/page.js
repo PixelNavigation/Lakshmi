@@ -18,7 +18,6 @@ import StockGraph from '../Pages/StockGraph'
 import News from '../Pages/News'
 import LakshmiAi from '../Pages/LakshmiAi'
 
-
 export default function Home() {
   const { user, loading } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -35,99 +34,45 @@ export default function Home() {
   const coinAnimRef = useRef({ top: 120, left: 0, scale: 1, rotation: 0 });
   const coinTargetRef = useRef({ top: 120, left: 0, scale: 1, rotation: 0 });
   const [coinAnimState, setCoinAnimState] = useState({ top: 120, left: 0, scale: 1, rotation: 0 });
+  const [showTooltip, setShowTooltip] = useState(null);
 
-  // Define all application routes/paths in this file
   const APP_ROUTES = useMemo(() => ({
-    dashboard: {
-      path: 'dashboard',
-      component: Dashboard,
-      label: 'Dashboard',
-      icon: '📊'
-    },
-    balance: {
-      path: 'balance',
-      component: Balance,
-      label: 'Balance',
-      icon: '💰'
-    },
-    stockScreener: {
-      path: 'stockScreener',
-      component: StockScreener,
-      label: 'Stock Screener',
-      icon: '🔍'
-    },
-    watchList: {
-      path: 'watchList',
-      component: WatchList,
-      label: 'Watch List',
-      icon: '👁️'
-    },
-    portfolio: {
-      path: 'portfolio',
-      component: Portfolio,
-      label: 'Portfolio',
-      icon: '💼'
-    },
-    stockGraph: {
-      path: 'stockGraph',
-      component: StockGraph,
-      label: 'Stock Graph',
-      icon: '📈'
-    },
-    news: {
-      path: 'news',
-      component: News,
-      label: 'News',
-      icon: '📰'
-    },
-    lakshmiAi: {
-      path: 'lakshmiAi',
-      component: LakshmiAi,
-      label: 'Lakshmi AI',
-      icon: '🤖'
-    }
+    dashboard: { path: 'dashboard', component: Dashboard, label: 'Dashboard', icon: '📊' },
+    balance: { path: 'balance', component: Balance, label: 'Balance', icon: '💰' },
+    stockScreener: { path: 'stockScreener', component: StockScreener, label: 'Stock Screener', icon: '🔍' },
+    watchList: { path: 'watchList', component: WatchList, label: 'Watch List', icon: '👁️' },
+    portfolio: { path: 'portfolio', component: Portfolio, label: 'Portfolio', icon: '💼' },
+    stockGraph: { path: 'stockGraph', component: StockGraph, label: 'Stock Graph', icon: '📈' },
+    news: { path: 'news', component: News, label: 'News', icon: '📰' },
+    lakshmiAi: { path: 'lakshmiAi', component: LakshmiAi, label: 'Lakshmi AI', icon: '🤖' }
   }), [])
 
-  // Mouse tracking effect with enhanced interactions
   useEffect(() => {
-    if (user) return; // Only run on homepage (unauthenticated)
+    if (user) return;
 
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY })
       setIsMouseMoving(true)
-      if (mouseTimeoutRef.current) {
-        clearTimeout(mouseTimeoutRef.current)
-      }
-      mouseTimeoutRef.current = setTimeout(() => {
-        setIsMouseMoving(false)
-      }, 100)
-      createRipple(e.clientX, e.clientY)
+      if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current)
+      mouseTimeoutRef.current = setTimeout(() => setIsMouseMoving(false), 100)
+      createSparkle(e.clientX, e.clientY)
     }
 
-    const createRipple = (x, y) => {
-      const ripple = document.createElement('div')
-      ripple.className = styles.mouseRipple
-      ripple.style.left = `${x}px`
-      ripple.style.top = `${y}px`
-      document.body.appendChild(ripple)
-      setTimeout(() => {
-        ripple.remove()
-      }, 1000)
+    const createSparkle = (x, y) => {
+      const sparkle = document.createElement('div')
+      sparkle.className = styles.sparkleEffect
+      sparkle.style.left = `${x}px`
+      sparkle.style.top = `${y}px`
+      document.body.appendChild(sparkle)
+      setTimeout(() => sparkle.remove(), 800)
     }
 
     window.addEventListener('mousemove', handleMouseMove)
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      if (mouseTimeoutRef.current) {
-        clearTimeout(mouseTimeoutRef.current)
-      }
-    }
+    return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [user])
 
-  // Scroll tracking for parallax with smooth interpolation
   useEffect(() => {
     let ticking = false
-    
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
@@ -137,482 +82,375 @@ export default function Home() {
         ticking = true
       }
     }
-
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Add tilt effect to feature cards
   useEffect(() => {
     const cards = document.querySelectorAll(`.${styles.featureCard}`)
-    
     const handleCardMouseMove = (e, card) => {
       const rect = card.getBoundingClientRect()
       const x = e.clientX - rect.left
       const y = e.clientY - rect.top
-      
       const centerX = rect.width / 2
       const centerY = rect.height / 2
-      
-      const rotateX = (y - centerY) / 10
-      const rotateY = (centerX - x) / 10
-      
-      card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`
+      const rotateX = (y - centerY) / 8
+      const rotateY = (centerX - x) / 8
+      card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`
     }
-    
     const handleCardMouseLeave = (card) => {
-      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px)'
+      card.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale(1)'
     }
-    
     cards.forEach(card => {
       card.addEventListener('mousemove', (e) => handleCardMouseMove(e, card))
       card.addEventListener('mouseleave', () => handleCardMouseLeave(card))
     })
-    
-    return () => {
-      cards.forEach(card => {
-        card.removeEventListener('mousemove', (e) => handleCardMouseMove(e, card))
-        card.removeEventListener('mouseleave', () => handleCardMouseLeave(card))
-      })
-    }
+    return () => cards.forEach(card => {
+      card.removeEventListener('mousemove', handleCardMouseMove)
+      card.removeEventListener('mouseleave', handleCardMouseLeave)
+    })
   }, [user])
 
-  // Custom hook for route validation
-  const useRouteValidator = useCallback((route) => {
-    return Object.keys(APP_ROUTES).includes(route)
-  }, [APP_ROUTES])
-
-  // Custom hook for getting initial route
+  const useRouteValidator = useCallback((route) => Object.keys(APP_ROUTES).includes(route), [APP_ROUTES])
   const useInitialRoute = useCallback(() => {
     if (!user) return 'dashboard'
-    
-    // Check URL parameter first
     const urlParams = new URLSearchParams(window.location.search)
     const pageParam = urlParams.get('page')
-    
-    if (pageParam && useRouteValidator(pageParam)) {
-      return pageParam
-    }
-    
-    // Check localStorage for last visited page
+    if (pageParam && useRouteValidator(pageParam)) return pageParam
     if (typeof window !== 'undefined') {
       const lastVisited = localStorage.getItem('lastVisitedPage')
-      if (lastVisited && useRouteValidator(lastVisited)) {
-        return lastVisited
-      }
+      if (lastVisited && useRouteValidator(lastVisited)) return lastVisited
     }
-    
-    // Default to dashboard
     return 'dashboard'
   }, [user, useRouteValidator])
-
-  // Custom hook for navigation
   const useNavigation = useCallback(() => {
     const navigate = (route) => {
-      if (!useRouteValidator(route)) {
-        console.warn(`Invalid route: ${route}`)
-        return
-      }
-      
+      if (!useRouteValidator(route)) return
       setCurrentPage(route)
-      
       if (user && typeof window !== 'undefined') {
-        // Store in localStorage
         localStorage.setItem('lastVisitedPage', route)
-        
-        // Update URL without page reload
         const url = new URL(window.location)
         url.searchParams.set('page', route)
         window.history.pushState({ page: route }, '', url)
-        
-        // Dispatch event to notify navbar and other components
-        const event = new CustomEvent('pageChanged', { 
-          detail: { page: route } 
-        })
+        const event = new CustomEvent('pageChanged', { detail: { page: route } })
         window.dispatchEvent(event)
       }
     }
-    
     return navigate
   }, [useRouteValidator, user])
-
-  // Custom hook for handling browser navigation (back/forward)
   const useBrowserNavigation = useCallback(() => {
     const handlePopState = (event) => {
       const route = event.state?.page || 'dashboard'
-      if (useRouteValidator(route)) {
-        setCurrentPage(route)
-      }
+      if (useRouteValidator(route)) setCurrentPage(route)
     }
-    
     return handlePopState
   }, [useRouteValidator])
-
-  // Custom hook for handling external navigation events
   const useExternalNavigation = useCallback(() => {
     const navigate = useNavigation()
-    
-    const handleNavigationEvent = (event) => {
-      const { page } = event.detail
-      navigate(page)
-    }
-    
+    const handleNavigationEvent = (event) => navigate(event.detail.page)
     return handleNavigationEvent
   }, [useNavigation])
 
-  // Initialize the application route
   useEffect(() => {
     if (user && !isInitialized) {
       const initialRoute = useInitialRoute()
       setCurrentPage(initialRoute)
       setIsInitialized(true)
-      
       if (typeof window !== 'undefined') {
-        // Set initial URL
         const url = new URL(window.location)
         url.searchParams.set('page', initialRoute)
         window.history.replaceState({ page: initialRoute }, '', url)
-        
-        // Notify navbar of initial page
-        const event = new CustomEvent('pageChanged', { 
-          detail: { page: initialRoute } 
-        })
+        const event = new CustomEvent('pageChanged', { detail: { page: initialRoute } })
         window.dispatchEvent(event)
       }
     }
   }, [user, isInitialized, useInitialRoute])
 
-  // Set up browser navigation listener
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const handlePopState = useBrowserNavigation()
       window.addEventListener('popstate', handlePopState)
-      
-      return () => {
-        window.removeEventListener('popstate', handlePopState)
-      }
+      return () => window.removeEventListener('popstate', handlePopState)
     }
   }, [useBrowserNavigation])
 
-  // Set up external navigation event listener (for navbar)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const handleNavigationEvent = useExternalNavigation()
       window.addEventListener('navigate', handleNavigationEvent)
-      
-      return () => {
-        window.removeEventListener('navigate', handleNavigationEvent)
-      }
+      return () => window.removeEventListener('navigate', handleNavigationEvent)
     }
   }, [useExternalNavigation])
 
-  // Custom hook for rendering current page component
   const usePageRenderer = useCallback(() => {
     const route = APP_ROUTES[currentPage]
-    if (route && route.component) {
-      const PageComponent = route.component
-      return <PageComponent />
-    }
-    
-    // Fallback to dashboard
-    const DashboardComponent = APP_ROUTES.dashboard.component
-    return <DashboardComponent />
+    return route && route.component ? <route.component /> : <APP_ROUTES.dashboard.component />
   }, [currentPage, APP_ROUTES])
 
-  // Expose navigation function globally for navbar
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const navigate = useNavigation()
       window.navigateApp = navigate
-      
-      return () => {
-        delete window.navigateApp
-      }
+      return () => delete window.navigateApp
     }
   }, [useNavigation])
 
-  // Fetch ticker tape data
   useEffect(() => {
     async function fetchTicker() {
-      setTickerLoading(true);
+      setTickerLoading(true)
       try {
-        const res = await fetch('/api/stock-prices?symbols=TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS,RELIANCE.NS,ITC.NS,BTCINR,ETHINR');
-        const json = await res.json();
-        if (json.success) setTickerData(json.data);
-        else setTickerData([]);
+        const res = await fetch('/api/stock-prices?symbols=TCS.NS,INFY.NS,HDFCBANK.NS,ICICIBANK.NS,RELIANCE.NS,ITC.NS,BTCINR,ETHINR')
+        const json = await res.json()
+        if (json.success) setTickerData(json.data)
+        else setTickerData([])
       } catch {
-        setTickerData([]);
+        setTickerData([])
       }
-      setTickerLoading(false);
+      setTickerLoading(false)
     }
-    fetchTicker();
-    const interval = setInterval(fetchTicker, 20000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchTicker()
+    const interval = setInterval(fetchTicker, 20000)
+    return () => clearInterval(interval)
+  }, [])
 
-  // Confetti/Coin burst on button click
   const handleButtonBurst = (e) => {
-    const confettiArr = [];
-    for (let i = 0; i < 18; i++) {
+    const confettiArr = []
+    for (let i = 0; i < 20; i++) {
       confettiArr.push({
         id: Math.random(),
-        dx: Math.random() * 200 - 100,
-        dy: Math.random() * 120 - 60,
-        type: i % 3
-      });
+        dx: Math.random() * 250 - 125,
+        dy: Math.random() * 150 - 75,
+        type: i % 4
+      })
     }
-    setConfetti(confettiArr);
-    setTimeout(() => setConfetti([]), 1200);
-  };
+    setConfetti(confettiArr)
+    setTimeout(() => setConfetti([]), 1500)
+  }
 
-  // Update the coin's target position/scale/rotation on scroll
   useEffect(() => {
     function handleCoinScroll() {
-      const pageHeight = document.body.scrollHeight - window.innerHeight;
-      const scrollY = window.scrollY;
-      const progress = Math.max(0, Math.min(1, scrollY / pageHeight));
-      const minLeft = 60;
-      const maxLeft = window.innerWidth - 280;
-      const left = maxLeft - (maxLeft - minLeft) * progress;
-      const minTop = 120;
-      const maxTop = pageHeight + 120;
-      const easedProgress = Math.pow(progress, 0.7);
-      const top = minTop + (maxTop - minTop) * easedProgress;
-      const scale = 1 + 2 * progress;
-      const rotation = Math.PI * 8 * progress;
-      coinTargetRef.current = { top, left, scale, rotation };
+      const pageHeight = document.body.scrollHeight - window.innerHeight
+      const scrollY = window.scrollY
+      const progress = Math.max(0, Math.min(1, scrollY / pageHeight))
+      const minLeft = 50
+      const maxLeft = window.innerWidth - 300
+      const left = maxLeft - (maxLeft - minLeft) * progress
+      const minTop = 100
+      const maxTop = pageHeight + 100
+      const easedProgress = Math.pow(progress, 0.6)
+      const top = minTop + (maxTop - minTop) * easedProgress
+      const scale = 1 + 2.5 * progress
+      const rotation = Math.PI * 10 * progress
+      coinTargetRef.current = { top, left, scale, rotation }
     }
-    window.addEventListener('scroll', handleCoinScroll);
-    handleCoinScroll();
-    return () => window.removeEventListener('scroll', handleCoinScroll);
-  }, []);
+    window.addEventListener('scroll', handleCoinScroll)
+    handleCoinScroll()
+    return () => window.removeEventListener('scroll', handleCoinScroll)
+  }, [])
 
-  // --- Three.js scene initialization (top-level useEffect) ---
   useEffect(() => {
-    if (!threeCanvasRef.current) return;
-    let renderer, scene, camera, coin, glowMesh, rimMesh, shineMesh, symbolMesh;
-    const width = 220, height = 220;
-    // Scene setup
-    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas: threeCanvasRef.current });
-    renderer.setSize(width, height);
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.z = 5;
-    // Coin geometry (cylinder with bevel)
-    const geometry = new THREE.CylinderGeometry(1, 1, 0.25, 96, 1, false);
+    if (!threeCanvasRef.current) return
+    let renderer, scene, camera, coin, glowMesh, rimMesh, shineMesh, symbolMesh
+    const width = 250, height = 250
+    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, canvas: threeCanvasRef.current })
+    renderer.setSize(width, height)
+    scene = new THREE.Scene()
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
+    camera.position.z = 6
+    const geometry = new THREE.CylinderGeometry(1, 1, 0.3, 120, 1, false)
     const material = new THREE.MeshPhysicalMaterial({
-      color: 0xFFD700,
-      metalness: 1,
-      roughness: 0.09,
+      color: 0xFFAA00,
+      metalness: 0.9,
+      roughness: 0.07,
       clearcoat: 1,
-      clearcoatRoughness: 0.05,
-      reflectivity: 1,
-      transmission: 0.1,
-      ior: 1.45,
+      clearcoatRoughness: 0.03,
+      reflectivity: 1.2,
+      transmission: 0.15,
+      ior: 1.5,
       sheen: 1,
-      sheenColor: new THREE.Color(0xFFFACD),
-      sheenRoughness: 0.1,
-      thickness: 0.1,
-      envMapIntensity: 1.5
-    });
-    coin = new THREE.Mesh(geometry, material);
-    scene.add(coin);
-    // Rim mesh (thin, bright edge)
-    const rimGeometry = new THREE.CylinderGeometry(1.01, 1.01, 0.27, 96, 1, true);
-    const rimMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFACD, side: THREE.DoubleSide });
-    rimMesh = new THREE.Mesh(rimGeometry, rimMaterial);
-    scene.add(rimMesh);
-    // Glow mesh (soft, bright outer glow)
-    const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.13 });
-    const glowGeometry = new THREE.CylinderGeometry(1.22, 1.22, 0.35, 96, 1, true);
-    glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-    scene.add(glowMesh);
-    // Shine mesh (fake white shine overlay)
-    const shineMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
-    const shineGeometry = new THREE.CylinderGeometry(0.7, 0.7, 0.251, 32, 1, true, Math.PI / 2, Math.PI / 1.2);
-    shineMesh = new THREE.Mesh(shineGeometry, shineMaterial);
-    shineMesh.position.set(0.3, 0.3, 0.13);
-    scene.add(shineMesh);
-    // Raised symbol ($) on the coin face
-    const loader = new FontLoader();
+      sheenColor: new THREE.Color(0xFFD700),
+      sheenRoughness: 0.08,
+      thickness: 0.12,
+      envMapIntensity: 1.8
+    })
+    coin = new THREE.Mesh(geometry, material)
+    scene.add(coin)
+    const rimGeometry = new THREE.CylinderGeometry(1.03, 1.03, 0.32, 120, 1, true)
+    const rimMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700, side: THREE.DoubleSide })
+    rimMesh = new THREE.Mesh(rimGeometry, rimMaterial)
+    scene.add(rimMesh)
+    const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFAA00, transparent: true, opacity: 0.18 })
+    const glowGeometry = new THREE.CylinderGeometry(1.25, 1.25, 0.4, 120, 1, true)
+    glowMesh = new THREE.Mesh(glowGeometry, glowMaterial)
+    scene.add(glowMesh)
+    const shineMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.22 })
+    const shineGeometry = new THREE.CylinderGeometry(0.75, 0.75, 0.28, 36, 1, true, Math.PI / 2, Math.PI / 1.2)
+    shineMesh = new THREE.Mesh(shineGeometry, shineMaterial)
+    shineMesh.position.set(0.35, 0.35, 0.15)
+    scene.add(shineMesh)
+    const loader = new FontLoader()
     loader.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', function (font) {
-      const textGeometry = new TextGeometry('$', {
+      const textGeometry = new TextGeometry('💰', {
         font: font,
-        size: 0.55,
-        height: 0.09,
-        curveSegments: 8,
+        size: 0.6,
+        height: 0.1,
+        curveSegments: 10,
         bevelEnabled: true,
-        bevelThickness: 0.03,
-        bevelSize: 0.02,
+        bevelThickness: 0.04,
+        bevelSize: 0.025,
         bevelOffset: 0,
-        bevelSegments: 3
-      });
-      const textMaterial = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0.7, roughness: 0.2 });
-      symbolMesh = new THREE.Mesh(textGeometry, textMaterial);
-      symbolMesh.position.set(-0.23, -0.23, 0.13);
-      symbolMesh.rotation.x = Math.PI / 2;
-      scene.add(symbolMesh);
-    });
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-    scene.add(ambientLight);
-    const pointLight = new THREE.PointLight(0xFFFACD, 1.5, 10);
-    pointLight.position.set(3, 5, 5);
-    scene.add(pointLight);
-    const rimLight = new THREE.PointLight(0xFFFFFF, 1.1, 10);
-    rimLight.position.set(-3, -5, 5);
-    scene.add(rimLight);
-    // Store refs for animation loop
-    window.__lakshmiCoinScene = { renderer, scene, camera, coin, rimMesh, glowMesh, shineMesh, symbolMesh };
+        bevelSegments: 4
+      })
+      const textMaterial = new THREE.MeshPhysicalMaterial({ color: 0xFFFFFF, metalness: 0.8, roughness: 0.15 })
+      symbolMesh = new THREE.Mesh(textGeometry, textMaterial)
+      symbolMesh.position.set(-0.25, -0.25, 0.15)
+      symbolMesh.rotation.x = Math.PI / 2
+      scene.add(symbolMesh)
+    })
+    const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.2)
+    scene.add(ambientLight)
+    const pointLight = new THREE.PointLight(0xFFD700, 1.8, 12)
+    pointLight.position.set(4, 6, 6)
+    scene.add(pointLight)
+    const rimLight = new THREE.PointLight(0xFFFFFF, 1.3, 12)
+    rimLight.position.set(-4, -6, 6)
+    scene.add(rimLight)
+    window.__lakshmiCoinScene = { renderer, scene, camera, coin, rimMesh, glowMesh, shineMesh, symbolMesh }
     return () => {
-      renderer.dispose();
-      geometry.dispose();
-      material.dispose();
-      rimGeometry.dispose();
-      rimMaterial.dispose();
-      glowGeometry.dispose();
-      glowMaterial.dispose();
-      shineGeometry.dispose();
-      shineMaterial.dispose();
-      if (symbolMesh && symbolMesh.geometry) symbolMesh.geometry.dispose();
-      if (symbolMesh && symbolMesh.material) symbolMesh.material.dispose();
-      window.__lakshmiCoinScene = null;
-    };
-  }, []);
+      renderer.dispose()
+      geometry.dispose()
+      material.dispose()
+      rimGeometry.dispose()
+      rimMaterial.dispose()
+      glowGeometry.dispose()
+      glowMaterial.dispose()
+      shineGeometry.dispose()
+      shineMaterial.dispose()
+      if (symbolMesh && symbolMesh.geometry) symbolMesh.geometry.dispose()
+      if (symbolMesh && symbolMesh.material) symbolMesh.material.dispose()
+      window.__lakshmiCoinScene = null
+    }
+  }, [])
 
-  // --- Animation loop (top-level useEffect) ---
   useEffect(() => {
-    let animationId;
-    function lerp(a, b, t) { return a + (b - a) * t; }
+    let animationId
+    function lerp(a, b, t) { return a + (b - a) * t }
     function animate() {
-      // Lerp coinAnim towards coinTarget
-      const prev = coinAnimRef.current;
-      const target = coinTargetRef.current;
-      const t = 0.10;
+      const prev = coinAnimRef.current
+      const target = coinTargetRef.current
+      const t = 0.12
       const next = {
         top: lerp(prev.top, target.top, t),
         left: lerp(prev.left, target.left, t),
         scale: lerp(prev.scale, target.scale, t),
         rotation: lerp(prev.rotation, target.rotation, t),
-      };
-      coinAnimRef.current = next;
-      // Only update React state if position/scale/rotation changed enough (for CSS)
+      }
+      coinAnimRef.current = next
       if (
         Math.abs(next.top - coinAnimState.top) > 0.5 ||
         Math.abs(next.left - coinAnimState.left) > 0.5 ||
         Math.abs(next.scale - coinAnimState.scale) > 0.01 ||
         Math.abs(next.rotation - coinAnimState.rotation) > 0.01
       ) {
-        setCoinAnimState(next);
+        setCoinAnimState(next)
       }
-      // Render three.js scene if initialized
-      const coinScene = window.__lakshmiCoinScene;
-      if (coinScene && coinScene.coin && coinScene.rimMesh && coinScene.glowMesh && coinScene.shineMesh) {
-        const { renderer, scene, camera, coin, rimMesh, glowMesh, shineMesh, symbolMesh } = coinScene;
-        const pulse = 1 + Math.sin(Date.now() * 0.002) * 0.04;
-        const scale = next.scale * pulse;
-        coin.scale.set(scale, scale, scale);
-        coin.rotation.x = next.rotation;
-        coin.rotation.y = Math.sin(next.rotation) * 0.2 + Date.now() * 0.0002;
-        rimMesh.scale.set(scale * 1.01, scale * 1.01, scale * 1.01);
-        rimMesh.rotation.x = coin.rotation.x;
-        rimMesh.rotation.y = coin.rotation.y;
-        glowMesh.scale.set(scale * 1.18, scale * 1.18, scale * 1.18);
-        glowMesh.rotation.x = coin.rotation.x;
-        glowMesh.rotation.y = coin.rotation.y;
-        shineMesh.scale.set(scale, scale, scale);
-        shineMesh.rotation.x = coin.rotation.x;
-        shineMesh.rotation.y = coin.rotation.y;
+      const coinScene = window.__lakshmiCoinScene
+      if (coinScene && coinScene.coin) {
+        const { renderer, scene, camera, coin, rimMesh, glowMesh, shineMesh, symbolMesh } = coinScene
+        const pulse = 1 + Math.sin(Date.now() * 0.0025) * 0.06
+        const scale = next.scale * pulse
+        coin.scale.set(scale, scale, scale)
+        coin.rotation.x = next.rotation
+        coin.rotation.y = Math.sin(next.rotation) * 0.3 + Date.now() * 0.00025
+        rimMesh.scale.set(scale * 1.03, scale * 1.03, scale * 1.03)
+        rimMesh.rotation.x = coin.rotation.x
+        rimMesh.rotation.y = coin.rotation.y
+        glowMesh.scale.set(scale * 1.25, scale * 1.25, scale * 1.25)
+        glowMesh.rotation.x = coin.rotation.x
+        glowMesh.rotation.y = coin.rotation.y
+        shineMesh.scale.set(scale, scale, scale)
+        shineMesh.rotation.x = coin.rotation.x
+        shineMesh.rotation.y = coin.rotation.y
         if (symbolMesh) {
-          symbolMesh.scale.set(scale, scale, scale);
-          symbolMesh.rotation.x = coin.rotation.x + Math.PI / 2;
-          symbolMesh.rotation.y = coin.rotation.y;
+          symbolMesh.scale.set(scale, scale, scale)
+          symbolMesh.rotation.x = coin.rotation.x + Math.PI / 2
+          symbolMesh.rotation.y = coin.rotation.y
         }
-        renderer.render(scene, camera);
+        renderer.render(scene, camera)
       }
-      animationId = requestAnimationFrame(animate);
+      animationId = requestAnimationFrame(animate)
     }
-    animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
-  }, []);
+    animationId = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(animationId)
+  }, [])
 
-  // Remove any remaining mouseRipple elements when user logs in
   useEffect(() => {
-    if (user) {
-      // Remove all ripple elements
-      document.querySelectorAll(`.${styles.mouseRipple}`).forEach(el => el.remove());
-    }
+    if (user) document.querySelectorAll(`.${styles.sparkleEffect}`).forEach(el => el.remove())
   }, [user])
 
-  // Only show the animated homepage (hero, SVGs, 3D coin) to unauthenticated users
-    return (
+  return (
     <>
       {loading ? (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}>
-          <div className={styles.goldenSpinner}></div>
-          <span>Loading...</span>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}>
+            <div className={styles.goldenSpinner}></div>
+            <span>Preparing Your Wealth Journey...</span>
+          </div>
         </div>
-      </div>
       ) : user ? (
         usePageRenderer()
       ) : (
         <>
-          {/* 3D Coin Canvas - zig-zag path, always visible above content */}
-          <div style={{ position: 'fixed', pointerEvents: 'none', zIndex: 9999, left: `${coinAnimState.left}px`, top: `${coinAnimState.top}px`, width: 220 * coinAnimState.scale, height: 220 * coinAnimState.scale }}>
-            <canvas ref={threeCanvasRef} width={220} height={220} style={{ width: 220 * coinAnimState.scale, height: 220 * coinAnimState.scale }} />
+          <div style={{ position: 'fixed', pointerEvents: 'none', zIndex: 9999, left: `${coinAnimState.left}px`, top: `${coinAnimState.top}px`, width: 250 * coinAnimState.scale, height: 250 * coinAnimState.scale }}>
+            <canvas ref={threeCanvasRef} width={250} height={250} style={{ width: 250 * coinAnimState.scale, height: 250 * coinAnimState.scale }} />
           </div>
 
-          {/* Banner Section with SVGs */}
-          <section className={styles.bannerSection + ' ' + styles.sectionFadeIn} style={{ position: 'relative', zIndex: 2 }}>
-            {/* SVGs - visually prominent in hero */}
+          <section className={styles.heroSection} style={{ position: 'relative', zIndex: 2 }}>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}>
-              <Image src="/globe.svg" alt="globe" className={styles.parallaxSvg + ' ' + styles.floatUpDown} style={{ position: 'absolute', top: 40, left: '8vw', width: 120, zIndex: 2 }} width={120} height={120} />
-              <Image src="/bitcoin-svgrepo-com.svg" alt="bitcoin" className={styles.parallaxSvg + ' ' + styles.floatLeftRight} style={{ position: 'absolute', top: 120, right: '10vw', width: 90, zIndex: 2 }} width={90} height={90} />
-              <Image src="/money-bag-svgrepo-com.svg" alt="money bag" className={styles.parallaxSvg + ' ' + styles.spinSlow} style={{ position: 'absolute', top: 200, left: '18vw', width: 80, zIndex: 2 }} width={80} height={80} />
-              <Image src="/dollar-coin-svgrepo-com.svg" alt="dollar coin" className={styles.parallaxSvg + ' ' + styles.floatUpDown} style={{ position: 'absolute', top: 260, right: '18vw', width: 70, zIndex: 2 }} width={70} height={70} />
-              <Image src="/trend-upward-svgrepo-com.svg" alt="trend up" className={styles.parallaxSvg + ' ' + styles.floatLeftRight} style={{ position: 'absolute', top: 80, left: '40vw', width: 60, zIndex: 2 }} width={60} height={60} />
-              <Image src="/trend-down-thin-svgrepo-com.svg" alt="trend down" className={styles.parallaxSvg + ' ' + styles.spinSlow} style={{ position: 'absolute', top: 320, left: '60vw', width: 60, zIndex: 2 }} width={60} height={60} />
-        </div>
-            {/* Hero Content */}
-            <div className={styles.bannerContainer} style={{ position: 'relative', transform: 'translateX(-8px)' }}>
-              <h1 className={styles.bannerTitle + ' ' + styles.gradientText}>Lakshmi AI <span className={styles.gradientTextAlt}>Trade. Grow. Win.</span></h1>
-              <p className={styles.bannerSubtitle}>The wildest, most animated stock & crypto dashboard. Track, trade, and win with style!</p>
-              <div className={styles.bannerActions}>
-                <button className={styles.animatedButton} onClick={handleButtonBurst}>Start Trading
+              <Image src="/globe.svg" alt="Global Market" className={styles.parallaxSvg + ' ' + styles.floatUpDown} style={{ top: 50, left: '5vw', width: 140 }} width={140} height={140} onMouseEnter={() => setShowTooltip('global')} onMouseLeave={() => setShowTooltip(null)} />
+              <Image src="/bitcoin-svgrepo-com.svg" alt="Crypto" className={styles.parallaxSvg + ' ' + styles.floatLeftRight} style={{ top: 150, right: '8vw', width: 110 }} width={110} height={110} onMouseEnter={() => setShowTooltip('crypto')} onMouseLeave={() => setShowTooltip(null)} />
+              <Image src="/money-bag-svgrepo-com.svg" alt="Portfolio" className={styles.parallaxSvg + ' ' + styles.spinSlow} style={{ top: 250, left: '15vw', width: 100 }} width={100} height={100} onMouseEnter={() => setShowTooltip('portfolio')} onMouseLeave={() => setShowTooltip(null)} />
+              <Image src="/dollar-coin-svgrepo-com.svg" alt="Stock Prices" className={styles.parallaxSvg + ' ' + styles.floatUpDown} style={{ top: 300, right: '15vw', width: 90 }} width={90} height={90} onMouseEnter={() => setShowTooltip('stocks')} onMouseLeave={() => setShowTooltip(null)} />
+            </div>
+            {showTooltip && (
+              <div className={styles.tooltip} style={{ top: mousePosition.y + 20, left: mousePosition.x + 20 }}>
+                {showTooltip === 'global' && 'Explore global markets with real-time insights!'}
+                {showTooltip === 'crypto' && 'Dive into cryptocurrency trading with live updates!'}
+                {showTooltip === 'portfolio' && 'Manage all your assets in one secure dashboard!'}
+                {showTooltip === 'stocks' && 'Track stock prices as they happen!'}
+              </div>
+            )}
+            <div className={styles.heroContent}>
+              <h1 className={styles.heroTitle}>Lakshmi AI <span className={styles.heroAccent}>Ignite. Thrive. Conquer!</span></h1>
+              <p className={styles.heroSubtitle}>Unleash the most dazzling stock & crypto trading experience with real-time data and stunning visuals!</p>
+              <div className={styles.heroActions}>
+                <button className={styles.magicButton} onClick={handleButtonBurst}>Start Your Epic Trade
                   <span className={styles.buttonGlow}></span>
-                  {/* Confetti/Coin burst */}
                   {confetti.length > 0 && (
                     <span className={styles.confettiBurst} ref={confettiRef}>
                       {confetti.map((c, i) => (
                         <Image
                           key={c.id}
-                          src={c.type === 0 ? "/dollar-coin-svgrepo-com.svg" : c.type === 1 ? "/bitcoin-svgrepo-com.svg" : "/money-bag-svgrepo-com.svg"}
-                          alt="confetti"
+                          src={c.type === 0 ? "/dollar-coin-svgrepo-com.svg" : c.type === 1 ? "/bitcoin-svgrepo-com.svg" : c.type === 2 ? "/money-bag-svgrepo-com.svg" : "/star.svg"}
+                          alt="celebration"
                           className={styles.confettiPiece}
-        style={{
-                            '--dx': `${c.dx}px`,
-                            '--dy': `${c.dy}px`,
-                            left: 0,
-                            top: 0
-                          }}
-                          width={18}
-                          height={18}
+                          style={{ '--dx': `${c.dx}px`, '--dy': `${c.dy}px` }}
+                          width={20}
+                          height={20}
                         />
                       ))}
                     </span>
                   )}
                 </button>
-                <button className={styles.animatedButton} style={{background: 'linear-gradient(90deg, #232526 60%, #FFD700 100%)', color: '#FFD700', border: '2px solid #FFD700'}}>Learn More</button>
+                <button className={styles.magicButton} style={{ background: 'linear-gradient(90deg, #1A1A2E 60%, #FFD700 100%)', color: '#FFD700', border: '2px solid #FFD700' }}>Discover More</button>
               </div>
             </div>
           </section>
 
-          {/* Ticker Tape - always visible */}
           <div className={styles.tickerTape}>
             <div className={styles.tickerContent}>
               {tickerLoading ? (
-                <span>Loading prices...</span>
+                <span>Fetching Market Magic...</span>
               ) : (
                 tickerData.map((item, idx) => (
                   <span key={item.symbol} className={styles.tickerItem + ' ' + (item.change >= 0 ? styles.tickerUp : styles.tickerDown)}>
@@ -621,42 +459,55 @@ export default function Home() {
                 ))
               )}
             </div>
-              </div>
-
-          {/* Features Section */}
-          <section className={styles.featuresSection + ' ' + styles.sectionSlideIn}>
-            <div className={styles.featuresContainer}>
-              <h2 className={styles.sectionTitle + ' ' + styles.gradientText}>Why Lakshmi?</h2>
-              <div className={styles.featuresGrid}>
-                <div className={styles.animatedCard}>
-                  <Image src="/file.svg" alt="file" width={48} height={48} className={styles.featureIcon} />
-                  <h3 className={styles.featureTitle}>Live Stock & Crypto Prices</h3>
-                  <p className={styles.featureDescription}>Get real-time prices, trends, and news for stocks and crypto. Never miss a market move!</p>
-            </div>
-                <div className={styles.animatedCard}>
-                  <Image src="/window.svg" alt="window" width={48} height={48} className={styles.featureIcon} />
-                  <h3 className={styles.featureTitle}>Unified Portfolio Management</h3>
-                  <p className={styles.featureDescription}>Track all your stocks, crypto, and assets in one place. Effortlessly monitor performance, set alerts, and manage your investments with ease.</p>
-              </div>
-                <div className={styles.animatedCard}>
-                  <Image src="/vercel.svg" alt="vercel" width={48} height={48} className={styles.featureIcon} />
-                  <h3 className={styles.featureTitle}>Secure & Seamless Trading Experience</h3>
-                  <p className={styles.featureDescription}>Enjoy fast, secure, and user-friendly trading tools designed for both beginners and pros. Your data and transactions are always protected.</p>
-            </div>
           </div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-          <section className={styles.ctaSection + ' ' + styles.sectionFadeIn}>
-        <div className={styles.ctaContainer}>
-              <h2 className={styles.ctaTitle + ' ' + styles.gradientText}>Ready to Get Crazy with Your Trades?</h2>
-              <p className={styles.ctaDescription}>Join Lakshmi and experience the most animated, fun, and powerful trading dashboard ever built.</p>
-              <button className={styles.animatedButton} onClick={handleButtonBurst}>Join Now</button>
-        </div>
-      </section>
+          <section className={styles.featuresSection}>
+            <div className={styles.featuresContainer}>
+              <h2 className={styles.sectionTitle}>Why Lakshmi Shines?</h2>
+              <div className={styles.featuresGrid}>
+                <div className={styles.featureCard} onMouseEnter={() => setShowTooltip('livePrices')} onMouseLeave={() => setShowTooltip(null)}>
+                  <Image src="/trend-upward-svgrepo-com.svg" alt="Live Prices" width={60} height={60} className={styles.featureIcon} />
+                  <h3 className={styles.featureTitle}>Live Stock & Crypto Prices</h3>
+                  <p className={styles.featureDescription}>Experience real-time market updates to stay ahead of the game!</p>
+                </div>
+                <div className={styles.featureCard} onMouseEnter={() => setShowTooltip('portfolio')} onMouseLeave={() => setShowTooltip(null)}>
+                  <Image src="/money-bag-svgrepo-com.svg" alt="Portfolio" width={60} height={60} className={styles.featureIcon} />
+                  <h3 className={styles.featureTitle}>Unified Portfolio Management</h3>
+                  <p className={styles.featureDescription}>Centralize your investments with ease and security!</p>
+                </div>
+                <div className={styles.featureCard} onMouseEnter={() => setShowTooltip('secureTrading')} onMouseLeave={() => setShowTooltip(null)}>
+                  <Image src="/window.svg" alt="Secure Trading" width={60} height={60} className={styles.featureIcon} />
+                  <h3 className={styles.featureTitle}>Secure & Seamless Trading</h3>
+                  <p className={styles.featureDescription}>Trade with confidence using top-tier security protocols!</p>
+                </div>
+                <div className={styles.featureCard} onMouseEnter={() => setShowTooltip('networkGraph')} onMouseLeave={() => setShowTooltip(null)}>
+                  <Image src="/globe.svg" alt="Network Graph" width={60} height={60} className={styles.featureIcon} />
+                  <h3 className={styles.featureTitle}>Network Graph Analytics</h3>
+                  <p className={styles.featureDescription}>Visualize relationships and influences between your assets with interactive AI-powered graphs.</p>
+                </div>
+                <div className={styles.featureCard} onMouseEnter={() => setShowTooltip('aiAssistant')} onMouseLeave={() => setShowTooltip(null)}>
+                  <span className={styles.featureIcon} role="img" aria-label="AI Bot">🤖</span>
+                  <h3 className={styles.featureTitle}>Lakshmi AI Assistant</h3>
+                  <p className={styles.featureDescription}>Ask anything about markets, your portfolio, or news. Get instant, personalized answers and insights.</p>
+                </div>
+                <div className={styles.featureCard} onMouseEnter={() => setShowTooltip('news')} onMouseLeave={() => setShowTooltip(null)}>
+                  <Image src="/file.svg" alt="Smart News" width={60} height={60} className={styles.featureIcon} />
+                  <h3 className={styles.featureTitle}>Smart News & Sentiment</h3>
+                  <p className={styles.featureDescription}>Stay ahead with curated news, sentiment analysis, and alerts for your watchlist.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.ctaSection}>
+            <div className={styles.ctaContainer}>
+              <h2 className={styles.ctaTitle}>Ready to Rule the Markets?</h2>
+              <p className={styles.ctaDescription}>Join Lakshmi AI for a fabulous trading adventure today!</p>
+              <button className={styles.magicButton} onClick={handleButtonBurst}>Join the Revolution</button>
+            </div>
+          </section>
         </>
       )}
     </>
-  );
+  )
 }
