@@ -89,7 +89,9 @@ export async function GET(request) {
                 // Enhanced stock categorization
                 affectedStocks: analyzeAffectedStocks(combinedText, newsApiCategory),
                 stockSectors: analyzeSectors(combinedText, newsApiCategory),
-                marketImpact: analyzeMarketImpact(combinedText, newsApiCategory)
+                marketImpact: analyzeMarketImpact(combinedText, newsApiCategory),
+                aiDependency: analyzeAIDependency(combinedText, newsApiCategory),
+                stockRelationships: analyzeStockRelationships(combinedText, newsApiCategory)
               }
             })
           
@@ -152,39 +154,45 @@ export async function GET(request) {
   }
 }
 
-// Enhanced stock analysis function with Indian stocks and MNCs
+// Enhanced stock analysis function focused on Indian stock market
 function analyzeAffectedStocks(text, category) {
   const stocks = []
   
-  // US Technology Giants
-  const usTechStocks = [
-    { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', keywords: ['apple', 'iphone', 'ipad', 'mac', 'ios', 'tim cook', 'app store', 'airpods'], country: 'US' },
-    { symbol: 'MSFT', name: 'Microsoft Corp.', exchange: 'NASDAQ', keywords: ['microsoft', 'windows', 'azure', 'office', 'xbox', 'satya nadella', 'teams', 'linkedin'], country: 'US' },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', exchange: 'NASDAQ', keywords: ['google', 'alphabet', 'android', 'youtube', 'search', 'sundar pichai', 'chrome', 'pixel'], country: 'US' },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.', exchange: 'NASDAQ', keywords: ['amazon', 'aws', 'prime', 'bezos', 'e-commerce', 'alexa', 'kindle'], country: 'US' },
-    { symbol: 'TSLA', name: 'Tesla Inc.', exchange: 'NASDAQ', keywords: ['tesla', 'elon musk', 'electric vehicle', 'ev', 'model', 'autopilot', 'supercharger'], country: 'US' },
-    { symbol: 'NVDA', name: 'NVIDIA Corp.', exchange: 'NASDAQ', keywords: ['nvidia', 'gpu', 'ai chip', 'graphics', 'jensen huang', 'cuda', 'geforce'], country: 'US' },
-    { symbol: 'META', name: 'Meta Platforms', exchange: 'NASDAQ', keywords: ['meta', 'facebook', 'instagram', 'whatsapp', 'mark zuckerberg', 'metaverse', 'oculus'], country: 'US' },
-    { symbol: 'NFLX', name: 'Netflix Inc.', exchange: 'NASDAQ', keywords: ['netflix', 'streaming', 'subscription', 'content', 'series'], country: 'US' }
+  // Indian Blue Chip Stocks (NIFTY 50 Major Components)
+  const indianBlueChipStocks = [
+    { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', exchange: 'NSE', keywords: ['reliance', 'mukesh ambani', 'jio', 'petrochemicals', 'retail', 'oil', 'gas', 'digital'], country: 'India', sector: 'Energy' },
+    { symbol: 'TCS.NS', name: 'Tata Consultancy Services', exchange: 'NSE', keywords: ['tcs', 'tata consultancy', 'it services', 'software', 'digital transformation', 'consulting'], country: 'India', sector: 'Technology' },
+    { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Ltd', exchange: 'NSE', keywords: ['hdfc bank', 'banking', 'private bank', 'sashidhar jagdishan', 'credit', 'loans'], country: 'India', sector: 'Financial' },
+    { symbol: 'INFY.NS', name: 'Infosys Ltd', exchange: 'NSE', keywords: ['infosys', 'salil parekh', 'it consulting', 'digital services', 'ai', 'automation'], country: 'India', sector: 'Technology' },
+    { symbol: 'HINDUNILVR.NS', name: 'Hindustan Unilever Ltd', exchange: 'NSE', keywords: ['hindustan unilever', 'hul', 'fmcg', 'consumer goods', 'dove', 'lifebuoy'], country: 'India', sector: 'Consumer' },
+    { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd', exchange: 'NSE', keywords: ['icici bank', 'sandeep bakhshi', 'private bank', 'digital banking'], country: 'India', sector: 'Financial' },
+    { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd', exchange: 'NSE', keywords: ['bharti airtel', 'airtel', 'telecom', '5g', 'mobile', 'sunil mittal'], country: 'India', sector: 'Telecommunications' },
+    { symbol: 'ITC.NS', name: 'ITC Ltd', exchange: 'NSE', keywords: ['itc', 'cigarettes', 'fmcg', 'hotels', 'paperboards', 'agri business'], country: 'India', sector: 'Consumer' },
+    { symbol: 'KOTAKBANK.NS', name: 'Kotak Mahindra Bank', exchange: 'NSE', keywords: ['kotak', 'uday kotak', 'private banking', 'wealth management'], country: 'India', sector: 'Financial' },
+    { symbol: 'LT.NS', name: 'Larsen & Toubro Ltd', exchange: 'NSE', keywords: ['larsen toubro', 'l&t', 'construction', 'infrastructure', 'engineering'], country: 'India', sector: 'Infrastructure' }
   ]
   
   // Indian Technology & IT Services
   const indianTechStocks = [
-    { symbol: 'TCS.NS', name: 'Tata Consultancy Services', exchange: 'NSE', keywords: ['tcs', 'tata consultancy', 'it services', 'rajesh gopinathan', 'digital transformation'], country: 'India' },
-    { symbol: 'INFY.NS', name: 'Infosys Ltd.', exchange: 'NSE', keywords: ['infosys', 'salil parekh', 'it consulting', 'digital services', 'bangalore'], country: 'India' },
-    { symbol: 'WIPRO.NS', name: 'Wipro Ltd.', exchange: 'NSE', keywords: ['wipro', 'thierry delaporte', 'it services', 'consulting'], country: 'India' },
-    { symbol: 'HCLTECH.NS', name: 'HCL Technologies', exchange: 'NSE', keywords: ['hcl technologies', 'hcl tech', 'it services', 'engineering'], country: 'India' },
-    { symbol: 'TECHM.NS', name: 'Tech Mahindra', exchange: 'NSE', keywords: ['tech mahindra', 'mahindra tech', 'telecom', 'it services'], country: 'India' }
+    { symbol: 'TCS.NS', name: 'Tata Consultancy Services', exchange: 'NSE', keywords: ['tcs', 'tata consultancy', 'it services', 'rajesh gopinathan', 'digital transformation'], country: 'India', sector: 'Technology' },
+    { symbol: 'INFY.NS', name: 'Infosys Ltd.', exchange: 'NSE', keywords: ['infosys', 'salil parekh', 'it consulting', 'digital services', 'bangalore'], country: 'India', sector: 'Technology' },
+    { symbol: 'WIPRO.NS', name: 'Wipro Ltd.', exchange: 'NSE', keywords: ['wipro', 'thierry delaporte', 'it services', 'consulting'], country: 'India', sector: 'Technology' },
+    { symbol: 'HCLTECH.NS', name: 'HCL Technologies', exchange: 'NSE', keywords: ['hcl technologies', 'hcl tech', 'it services', 'engineering'], country: 'India', sector: 'Technology' },
+    { symbol: 'TECHM.NS', name: 'Tech Mahindra', exchange: 'NSE', keywords: ['tech mahindra', 'mahindra tech', 'telecom', 'it services'], country: 'India', sector: 'Technology' },
+    { symbol: 'LTIM.NS', name: 'LTIMindtree', exchange: 'NSE', keywords: ['ltimindtree', 'mindtree', 'it consulting', 'digital solutions'], country: 'India', sector: 'Technology' },
+    { symbol: 'MPHASIS.NS', name: 'Mphasis Ltd', exchange: 'NSE', keywords: ['mphasis', 'it services', 'digital transformation'], country: 'India', sector: 'Technology' }
   ]
   
   // Indian Banks & Financial Services
   const indianFinancialStocks = [
-    { symbol: 'RELIANCE.NS', name: 'Reliance Industries', exchange: 'NSE', keywords: ['reliance', 'mukesh ambani', 'jio', 'petrochemicals', 'retail'], country: 'India' },
-    { symbol: 'HDFCBANK.NS', name: 'HDFC Bank', exchange: 'NSE', keywords: ['hdfc bank', 'banking', 'sashidhar jagdishan'], country: 'India' },
-    { symbol: 'ICICIBANK.NS', name: 'ICICI Bank', exchange: 'NSE', keywords: ['icici bank', 'sandeep bakhshi', 'private bank'], country: 'India' },
-    { symbol: 'KOTAKBANK.NS', name: 'Kotak Mahindra Bank', exchange: 'NSE', keywords: ['kotak', 'uday kotak', 'private banking'], country: 'India' },
-    { symbol: 'AXISBANK.NS', name: 'Axis Bank', exchange: 'NSE', keywords: ['axis bank', 'amitabh chaudhry'], country: 'India' },
-    { symbol: 'SBIN.NS', name: 'State Bank of India', exchange: 'NSE', keywords: ['sbi', 'state bank', 'public sector bank'], country: 'India' }
+    { symbol: 'HDFCBANK.NS', name: 'HDFC Bank', exchange: 'NSE', keywords: ['hdfc bank', 'banking', 'sashidhar jagdishan'], country: 'India', sector: 'Financial' },
+    { symbol: 'ICICIBANK.NS', name: 'ICICI Bank', exchange: 'NSE', keywords: ['icici bank', 'sandeep bakhshi', 'private bank'], country: 'India', sector: 'Financial' },
+    { symbol: 'KOTAKBANK.NS', name: 'Kotak Mahindra Bank', exchange: 'NSE', keywords: ['kotak', 'uday kotak', 'private banking'], country: 'India', sector: 'Financial' },
+    { symbol: 'AXISBANK.NS', name: 'Axis Bank', exchange: 'NSE', keywords: ['axis bank', 'amitabh chaudhry'], country: 'India', sector: 'Financial' },
+    { symbol: 'SBIN.NS', name: 'State Bank of India', exchange: 'NSE', keywords: ['sbi', 'state bank', 'public sector bank'], country: 'India', sector: 'Financial' },
+    { symbol: 'INDUSINDBK.NS', name: 'IndusInd Bank', exchange: 'NSE', keywords: ['indusind bank', 'private bank'], country: 'India', sector: 'Financial' },
+    { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance', exchange: 'NSE', keywords: ['bajaj finance', 'nbfc', 'consumer finance'], country: 'India', sector: 'Financial' },
+    { symbol: 'HDFCLIFE.NS', name: 'HDFC Life Insurance', exchange: 'NSE', keywords: ['hdfc life', 'insurance', 'life insurance'], country: 'India', sector: 'Financial' }
   ]
   
   // Global MNCs with significant operations
@@ -199,76 +207,118 @@ function analyzeAffectedStocks(text, category) {
   
   // Indian Pharma & Healthcare
   const indianPharmaStocks = [
-    { symbol: 'SUNPHARMA.NS', name: 'Sun Pharmaceutical', exchange: 'NSE', keywords: ['sun pharma', 'pharmaceutical', 'dilip shanghvi'], country: 'India' },
-    { symbol: 'DRREDDY.NS', name: 'Dr. Reddy\'s Labs', exchange: 'NSE', keywords: ['dr reddy', 'pharmaceutical', 'generic drugs'], country: 'India' },
-    { symbol: 'CIPLA.NS', name: 'Cipla Ltd.', exchange: 'NSE', keywords: ['cipla', 'pharmaceutical', 'respiratory'], country: 'India' },
-    { symbol: 'BIOCON.NS', name: 'Biocon Ltd.', exchange: 'NSE', keywords: ['biocon', 'biotechnology', 'kiran mazumdar'], country: 'India' }
+    { symbol: 'SUNPHARMA.NS', name: 'Sun Pharmaceutical', exchange: 'NSE', keywords: ['sun pharma', 'pharmaceutical', 'dilip shanghvi'], country: 'India', sector: 'Healthcare' },
+    { symbol: 'DRREDDY.NS', name: 'Dr. Reddy\'s Labs', exchange: 'NSE', keywords: ['dr reddy', 'pharmaceutical', 'generic drugs'], country: 'India', sector: 'Healthcare' },
+    { symbol: 'CIPLA.NS', name: 'Cipla Ltd.', exchange: 'NSE', keywords: ['cipla', 'pharmaceutical', 'respiratory'], country: 'India', sector: 'Healthcare' },
+    { symbol: 'BIOCON.NS', name: 'Biocon Ltd.', exchange: 'NSE', keywords: ['biocon', 'biotechnology', 'kiran mazumdar'], country: 'India', sector: 'Healthcare' },
+    { symbol: 'APOLLOHOSP.NS', name: 'Apollo Hospitals', exchange: 'NSE', keywords: ['apollo hospitals', 'healthcare', 'prathap reddy'], country: 'India', sector: 'Healthcare' },
+    { symbol: 'DIVISLAB.NS', name: 'Divi\'s Laboratories', exchange: 'NSE', keywords: ['divis lab', 'pharmaceutical', 'api'], country: 'India', sector: 'Healthcare' }
   ]
   
   // Indian Automotive
   const indianAutoStocks = [
-    { symbol: 'MARUTI.NS', name: 'Maruti Suzuki', exchange: 'NSE', keywords: ['maruti suzuki', 'maruti', 'automobile', 'car manufacturer'], country: 'India' },
-    { symbol: 'TATAMOTORS.NS', name: 'Tata Motors', exchange: 'NSE', keywords: ['tata motors', 'jaguar land rover', 'commercial vehicles'], country: 'India' },
-    { symbol: 'M&M.NS', name: 'Mahindra & Mahindra', exchange: 'NSE', keywords: ['mahindra', 'suv', 'tractor', 'automotive'], country: 'India' },
-    { symbol: 'BAJAJ-AUTO.NS', name: 'Bajaj Auto', exchange: 'NSE', keywords: ['bajaj auto', 'motorcycle', 'two wheeler'], country: 'India' }
+    { symbol: 'MARUTI.NS', name: 'Maruti Suzuki', exchange: 'NSE', keywords: ['maruti suzuki', 'maruti', 'automobile', 'car manufacturer'], country: 'India', sector: 'Automotive' },
+    { symbol: 'TATAMOTORS.NS', name: 'Tata Motors', exchange: 'NSE', keywords: ['tata motors', 'jaguar land rover', 'commercial vehicles'], country: 'India', sector: 'Automotive' },
+    { symbol: 'M&M.NS', name: 'Mahindra & Mahindra', exchange: 'NSE', keywords: ['mahindra', 'suv', 'tractor', 'automotive'], country: 'India', sector: 'Automotive' },
+    { symbol: 'BAJAJ-AUTO.NS', name: 'Bajaj Auto', exchange: 'NSE', keywords: ['bajaj auto', 'motorcycle', 'two wheeler'], country: 'India', sector: 'Automotive' },
+    { symbol: 'EICHERMOT.NS', name: 'Eicher Motors', exchange: 'NSE', keywords: ['eicher motors', 'royal enfield', 'motorcycles'], country: 'India', sector: 'Automotive' },
+    { symbol: 'HEROMOTOCO.NS', name: 'Hero MotoCorp', exchange: 'NSE', keywords: ['hero motocorp', 'motorcycles', 'two wheeler'], country: 'India', sector: 'Automotive' }
   ]
   
-  // European MNCs
-  const europeanMNCStocks = [
-    { symbol: 'ASML', name: 'ASML Holding', exchange: 'NASDAQ', keywords: ['asml', 'semiconductor', 'lithography', 'chip manufacturing'], country: 'Netherlands' },
-    { symbol: 'SAP', name: 'SAP SE', exchange: 'NYSE', keywords: ['sap', 'enterprise software', 'erp', 'business software'], country: 'Germany' },
-    { symbol: 'NESN.SW', name: 'Nestlé S.A.', exchange: 'SIX', keywords: ['nestle', 'food', 'beverage', 'nutrition', 'maggi'], country: 'Switzerland' }
+  // Indian FMCG & Consumer
+  const indianConsumerStocks = [
+    { symbol: 'HINDUNILVR.NS', name: 'Hindustan Unilever', exchange: 'NSE', keywords: ['hindustan unilever', 'hul', 'fmcg', 'consumer goods'], country: 'India', sector: 'Consumer' },
+    { symbol: 'ITC.NS', name: 'ITC Ltd', exchange: 'NSE', keywords: ['itc', 'cigarettes', 'fmcg', 'hotels'], country: 'India', sector: 'Consumer' },
+    { symbol: 'NESTLEIND.NS', name: 'Nestle India', exchange: 'NSE', keywords: ['nestle india', 'fmcg', 'maggi', 'nescafe'], country: 'India', sector: 'Consumer' },
+    { symbol: 'BRITANNIA.NS', name: 'Britannia Industries', exchange: 'NSE', keywords: ['britannia', 'biscuits', 'bakery'], country: 'India', sector: 'Consumer' },
+    { symbol: 'GODREJCP.NS', name: 'Godrej Consumer Products', exchange: 'NSE', keywords: ['godrej', 'consumer products', 'personal care'], country: 'India', sector: 'Consumer' }
   ]
   
-  // Asian MNCs
-  const asianMNCStocks = [
-    { symbol: '005930.KS', name: 'Samsung Electronics', exchange: 'KRX', keywords: ['samsung', 'galaxy', 'semiconductor', 'memory', 'electronics'], country: 'South Korea' },
-    { symbol: 'TSM', name: 'Taiwan Semiconductor', exchange: 'NYSE', keywords: ['tsmc', 'taiwan semiconductor', 'chip foundry', 'semiconductor'], country: 'Taiwan' },
-    { symbol: '9988.HK', name: 'Alibaba Group', exchange: 'HKEX', keywords: ['alibaba', 'jack ma', 'e-commerce', 'cloud', 'taobao'], country: 'China' }
+  // Indian Energy & Oil
+  const indianEnergyStocks = [
+    { symbol: 'RELIANCE.NS', name: 'Reliance Industries', exchange: 'NSE', keywords: ['reliance', 'mukesh ambani', 'petrochemicals', 'oil', 'gas'], country: 'India', sector: 'Energy' },
+    { symbol: 'ONGC.NS', name: 'Oil & Natural Gas Corp', exchange: 'NSE', keywords: ['ongc', 'oil natural gas', 'exploration'], country: 'India', sector: 'Energy' },
+    { symbol: 'IOC.NS', name: 'Indian Oil Corporation', exchange: 'NSE', keywords: ['indian oil', 'ioc', 'refinery'], country: 'India', sector: 'Energy' },
+    { symbol: 'BPCL.NS', name: 'Bharat Petroleum', exchange: 'NSE', keywords: ['bharat petroleum', 'bpcl', 'refinery'], country: 'India', sector: 'Energy' },
+    { symbol: 'HPCL.NS', name: 'Hindustan Petroleum', exchange: 'NSE', keywords: ['hindustan petroleum', 'hpcl', 'refinery'], country: 'India', sector: 'Energy' }
+  ]
+  
+  // Indian Telecom & Digital
+  const indianTelecomStocks = [
+    { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel', exchange: 'NSE', keywords: ['bharti airtel', 'airtel', 'telecom', '5g', 'mobile'], country: 'India', sector: 'Telecommunications' },
+    { symbol: 'JIOQ.NS', name: 'Jio Platforms', exchange: 'NSE', keywords: ['jio', 'reliance jio', 'telecom', 'digital'], country: 'India', sector: 'Telecommunications' },
+    { symbol: 'IDEA.NS', name: 'Vodafone Idea', exchange: 'NSE', keywords: ['vodafone idea', 'vi', 'telecom'], country: 'India', sector: 'Telecommunications' }
+  ]
+  
+  // US Tech Giants (for global impact reference)
+  const usTechGiants = [
+    { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', keywords: ['apple', 'iphone', 'ipad', 'mac', 'ios'], country: 'US', sector: 'Technology' },
+    { symbol: 'MSFT', name: 'Microsoft Corp.', exchange: 'NASDAQ', keywords: ['microsoft', 'windows', 'azure', 'office', 'satya nadella'], country: 'US', sector: 'Technology' },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', exchange: 'NASDAQ', keywords: ['google', 'alphabet', 'android', 'youtube', 'sundar pichai'], country: 'US', sector: 'Technology' },
+    { symbol: 'NVDA', name: 'NVIDIA Corp.', exchange: 'NASDAQ', keywords: ['nvidia', 'gpu', 'ai chip', 'graphics', 'jensen huang'], country: 'US', sector: 'Technology' }
   ]
   
   let allStocks = []
   
-  // Select relevant stock categories based on news category and content
+  // Prioritize Indian stocks first
   if (category === 'technology' || category === 'general') {
-    allStocks = [...allStocks, ...usTechStocks, ...indianTechStocks, ...europeanMNCStocks]
+    allStocks = [...allStocks, ...indianBlueChipStocks, ...indianTechStocks, ...indianTelecomStocks]
+    // Add US tech only if specifically mentioned
+    if (text.includes('apple') || text.includes('microsoft') || text.includes('google') || text.includes('nvidia')) {
+      allStocks = [...allStocks, ...usTechGiants]
+    }
   }
   if (category === 'business' || category === 'general') {
-    allStocks = [...allStocks, ...indianFinancialStocks, ...globalMNCStocks]
+    allStocks = [...allStocks, ...indianFinancialStocks, ...indianConsumerStocks, ...indianEnergyStocks]
   }
   if (category === 'health' || category === 'general') {
     allStocks = [...allStocks, ...indianPharmaStocks]
   }
   if (category === 'general') {
-    allStocks = [...allStocks, ...indianAutoStocks, ...asianMNCStocks]
+    allStocks = [...allStocks, ...indianAutoStocks]
+  }
+  
+  // Add global MNCs only if specifically relevant
+  if (text.includes('walmart') || text.includes('coca cola') || text.includes('unilever')) {
+    allStocks = [...allStocks, ...globalMNCStocks]
   }
   if (text.includes('crypto') || text.includes('bitcoin') || text.includes('ethereum')) {
-    // Crypto-related stocks
+    // Crypto-related stocks (Indian crypto exposure)
     allStocks = [...allStocks, 
-      { symbol: 'COIN', name: 'Coinbase', exchange: 'NASDAQ', keywords: ['coinbase', 'crypto exchange'], country: 'US' },
-      { symbol: 'MSTR', name: 'MicroStrategy', exchange: 'NASDAQ', keywords: ['microstrategy', 'bitcoin'], country: 'US' }
+      { symbol: 'ZOMATO.NS', name: 'Zomato Ltd', exchange: 'NSE', keywords: ['zomato', 'food delivery', 'crypto payment'], country: 'India', sector: 'Technology' },
+      { symbol: 'PAYTM.NS', name: 'Paytm', exchange: 'NSE', keywords: ['paytm', 'digital payments', 'crypto'], country: 'India', sector: 'Financial' }
     ]
   }
   
   // Enhanced relevance calculation for better quality filtering
   allStocks.forEach(stock => {
-    const relevanceScore = calculateEnhancedRelevance(text, stock.keywords, stock.name)
+    const relevanceScore = calculateEnhancedRelevanceWithAI(text, stock)
     
-    // Only include stocks with 50% or higher relevance (threshold for quality)
-    if (relevanceScore >= 0.5) {
+    // Only include stocks with 40% or higher relevance (lower threshold for Indian stocks)
+    if (relevanceScore >= 0.4) {
       stocks.push({
         symbol: stock.symbol,
         name: stock.name,
         exchange: stock.exchange,
         country: stock.country,
+        sector: stock.sector || 'Other',
         relevance: relevanceScore,
-        confidenceLevel: getConfidenceLevel(relevanceScore)
+        confidenceLevel: getConfidenceLevel(relevanceScore),
+        aiDependency: calculateAIDependencyForStock(text, stock)
       })
     }
   })
   
-  // Sort by relevance and return top matches
-  return stocks.sort((a, b) => b.relevance - a.relevance).slice(0, 6)
+  // Sort by relevance and prioritize Indian stocks
+  return stocks
+    .sort((a, b) => {
+      // Prioritize Indian stocks
+      if (a.country === 'India' && b.country !== 'India') return -1
+      if (a.country !== 'India' && b.country === 'India') return 1
+      // Then by relevance
+      return b.relevance - a.relevance
+    })
+    .slice(0, 8) // Increased to 8 for better coverage
 }
 
 // Analyze market sectors affected
@@ -398,4 +448,186 @@ function determineSentimentFromText(text) {
   }
   
   return 'neutral'
+}
+
+// Analyze AI dependency for affected stocks
+function analyzeAIDependency(text, category) {
+  const aiKeywords = [
+    'artificial intelligence', 'ai', 'machine learning', 'ml', 'deep learning',
+    'neural network', 'automation', 'robotics', 'nlp', 'computer vision',
+    'chatgpt', 'openai', 'google ai', 'microsoft ai', 'nvidia ai',
+    'ai chip', 'gpu computing', 'cloud ai', 'edge ai', 'ai infrastructure'
+  ]
+  
+  const aiMatches = aiKeywords.filter(keyword => text.toLowerCase().includes(keyword)).length
+  
+  if (aiMatches === 0) return { level: 'none', score: 0, keywords: [] }
+  
+  const matchedKeywords = aiKeywords.filter(keyword => text.toLowerCase().includes(keyword))
+  
+  let level = 'low'
+  if (aiMatches >= 5) level = 'high'
+  else if (aiMatches >= 3) level = 'medium'
+  
+  return {
+    level: level,
+    score: aiMatches,
+    keywords: matchedKeywords,
+    description: getAIDependencyDescription(level, matchedKeywords)
+  }
+}
+
+function getAIDependencyDescription(level, keywords) {
+  switch (level) {
+    case 'high':
+      return 'Strong AI dependency detected. This news likely impacts AI-focused companies significantly.'
+    case 'medium':
+      return 'Moderate AI relevance. Companies with AI initiatives may be affected.'
+    case 'low':
+      return 'Limited AI connection. Minor impact on AI-dependent stocks expected.'
+    default:
+      return 'No significant AI dependency identified.'
+  }
+}
+
+// Analyze relationships between affected stocks
+function analyzeStockRelationships(text, category) {
+  const relationships = []
+  
+  // Competition indicators
+  const competitionKeywords = ['vs', 'versus', 'compete', 'rival', 'battle', 'market share', 'outperform']
+  const hasCompetition = competitionKeywords.some(keyword => text.toLowerCase().includes(keyword))
+  
+  // Partnership indicators
+  const partnershipKeywords = ['partnership', 'collaboration', 'joint venture', 'alliance', 'merger', 'acquisition']
+  const hasPartnership = partnershipKeywords.some(keyword => text.toLowerCase().includes(keyword))
+  
+  // Supply chain indicators
+  const supplyChainKeywords = ['supplier', 'customer', 'supply chain', 'component', 'manufacturing', 'chips']
+  const hasSupplyChain = supplyChainKeywords.some(keyword => text.toLowerCase().includes(keyword))
+  
+  if (hasCompetition) {
+    relationships.push({
+      type: 'competition',
+      description: 'Competitive relationship detected - stocks may move inversely',
+      impact: 'inverse'
+    })
+  }
+  
+  if (hasPartnership) {
+    relationships.push({
+      type: 'partnership',
+      description: 'Partnership or alliance detected - stocks may move together',
+      impact: 'positive'
+    })
+  }
+  
+  if (hasSupplyChain) {
+    relationships.push({
+      type: 'supply_chain',
+      description: 'Supply chain relationship - dependent movement patterns possible',
+      impact: 'dependent'
+    })
+  }
+  
+  // AI ecosystem relationships
+  if (text.toLowerCase().includes('ai') || text.toLowerCase().includes('artificial intelligence')) {
+    relationships.push({
+      type: 'ai_ecosystem',
+      description: 'AI ecosystem relationship - shared exposure to AI market trends',
+      impact: 'correlated'
+    })
+  }
+  
+  return relationships
+}
+
+// Enhanced stock analysis function with AI focus
+function calculateEnhancedRelevanceWithAI(text, stock) {
+  let baseRelevance = calculateEnhancedRelevance(text, stock.keywords, stock.name)
+  
+  // AI boost for tech stocks
+  if (stock.sector === 'Technology' || stock.country === 'India') {
+    const aiKeywords = ['ai', 'artificial intelligence', 'machine learning', 'gpu', 'chip', 'cloud computing', 'automation', 'digital transformation']
+    const aiMatches = aiKeywords.filter(keyword => text.toLowerCase().includes(keyword)).length
+    
+    if (aiMatches > 0) {
+      baseRelevance += 0.15 * aiMatches // Boost AI-related stocks
+    }
+  }
+  
+  // Additional boost for Indian stocks to prioritize local market
+  if (stock.country === 'India') {
+    baseRelevance += 0.1
+  }
+  
+  return Math.min(baseRelevance, 1.0)
+}
+
+// Calculate AI dependency for individual stocks
+function calculateAIDependencyForStock(text, stock) {
+  const aiKeywords = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'digital transformation']
+  const techSectors = ['Technology', 'Telecommunications']
+  
+  let aiScore = 0
+  
+  // Check for AI keywords in text
+  aiKeywords.forEach(keyword => {
+    if (text.toLowerCase().includes(keyword)) {
+      aiScore += 1
+    }
+  })
+  
+  // Sector-based AI dependency
+  if (techSectors.includes(stock.sector)) {
+    aiScore += 2
+  }
+  
+  // Company-specific AI indicators
+  const aiCompanies = ['TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM', 'BHARTIARTL']
+  if (aiCompanies.some(company => stock.symbol.includes(company))) {
+    aiScore += 1
+  }
+  
+  if (aiScore === 0) return { level: 'none', score: 0 }
+  if (aiScore <= 2) return { level: 'low', score: aiScore }
+  if (aiScore <= 4) return { level: 'medium', score: aiScore }
+  return { level: 'high', score: aiScore }
+}
+
+// Get stock AI dependency level
+function getStockAIDependency(stockName, symbol) {
+  const highAIStocks = [
+    'NVIDIA', 'Microsoft', 'Google', 'Alphabet', 'Tesla', 'Meta', 'Amazon', 'Apple',
+    'TCS', 'Infosys', 'Wipro', 'HCL Technologies', 'Tech Mahindra'
+  ]
+  
+  const mediumAIStocks = [
+    'TSMC', 'Samsung', 'Intel', 'AMD', 'Oracle', 'Salesforce', 'Adobe',
+    'Reliance', 'HDFC Bank', 'ICICI Bank'
+  ]
+  
+  const stockNameLower = stockName.toLowerCase()
+  
+  if (highAIStocks.some(name => stockNameLower.includes(name.toLowerCase()))) {
+    return 'high'
+  } else if (mediumAIStocks.some(name => stockNameLower.includes(name.toLowerCase()))) {
+    return 'medium'
+  } else {
+    return 'low'
+  }
+}
+
+// Get stock sector categorization
+function getStockSector(stockName, symbol) {
+  const stockNameLower = stockName.toLowerCase()
+  
+  if (stockNameLower.includes('bank') || stockNameLower.includes('financial')) return 'Financial Services'
+  if (stockNameLower.includes('tech') || stockNameLower.includes('software') || stockNameLower.includes('microsoft') || stockNameLower.includes('google')) return 'Technology'
+  if (stockNameLower.includes('pharma') || stockNameLower.includes('healthcare') || stockNameLower.includes('medical')) return 'Healthcare'
+  if (stockNameLower.includes('energy') || stockNameLower.includes('oil') || stockNameLower.includes('gas')) return 'Energy'
+  if (stockNameLower.includes('auto') || stockNameLower.includes('vehicle') || stockNameLower.includes('tesla') || stockNameLower.includes('maruti')) return 'Automotive'
+  if (stockNameLower.includes('retail') || stockNameLower.includes('consumer') || stockNameLower.includes('fmcg')) return 'Consumer'
+  
+  return 'Other'
 }

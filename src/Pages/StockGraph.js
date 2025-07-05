@@ -480,25 +480,17 @@ const StockGraph = () => {
         type: edgeData.correlation > 0 ? 'Positive' : 'Negative'
       }
       
-      // Call AI analysis API
-      const response = await fetch('/api/gemini-chat', {
+      // Enhanced AI analysis using the new API
+      const response = await fetch('/api/stock-ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `Analyze the ${analysisData.strength.toLowerCase()} ${analysisData.type.toLowerCase()} correlation (${analysisData.correlation}) between ${analysisData.source} and ${analysisData.target} stocks. 
-          
-          Please provide:
-          1. Possible reasons for this correlation
-          2. Business relationship analysis
-          3. Sector/industry connections
-          4. Recent news or events that might explain this relationship
-          5. Market factors influencing both stocks
-          
-          Correlation method: ${analysisData.method}
-          Correlation value: ${analysisData.correlation}
-          
-          Keep the analysis concise but comprehensive.`,
-          conversationId: `correlation_analysis_${Date.now()}`
+          stocks: [
+            { symbol: analysisData.source, name: analysisData.source },
+            { symbol: analysisData.target, name: analysisData.target }
+          ],
+          analysisType: 'ai_dependency',
+          correlationData: analysisData
         })
       })
       
@@ -510,9 +502,10 @@ const StockGraph = () => {
       
       if (data.success) {
         setAiAnalysis({
-          analysis: data.response,
+          analysis: data.analysis,
           edgeData: analysisData,
-          timestamp: new Date()
+          timestamp: new Date(),
+          metadata: data.metadata
         })
       } else {
         throw new Error(data.error || 'AI analysis failed')
@@ -520,7 +513,9 @@ const StockGraph = () => {
     } catch (error) {
       console.error('AI Analysis error:', error)
       setAiAnalysis({
-        analysis: `Sorry, I couldn't perform the analysis at this time. Error: ${error.message}`,
+        analysis: `Sorry, I couldn't perform the analysis at this time. Error: ${error.message}
+        
+Please try again later. If the issue persists, the AI service might be temporarily unavailable.`,
         edgeData: analysisData,
         timestamp: new Date(),
         error: true
