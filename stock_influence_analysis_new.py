@@ -265,7 +265,7 @@ def fetch_real_historical_data(stock_data):
             try:
                 # Use the yahoo-finance endpoint which has real historical data
                 response = requests.get(
-                    f'http://localhost:3000/api/yahoo-finance',
+                    f'https://wwws68kj-3000.inc1.devtunnels.ms/api/yahoo-finance',
                     params={
                         'symbol': symbol,
                         'timeframe': '6m',  # 6 months
@@ -396,7 +396,11 @@ def run_server():
     Enhanced Flask server with improved Granger causality analysis
     """
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, origins=[
+        "https://wwws68kj-3000.inc1.devtunnels.ms",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ])
 
     # Enhanced cache with metadata
     results_cache = {}
@@ -522,6 +526,8 @@ def run_server():
         })
 
     print("🚀 Starting Enhanced Flask server on port 5001...")
+    print("🌐 Backend URL: https://wwws68kj-5001.inc1.devtunnels.ms")
+    print("🌐 Frontend URL: https://wwws68kj-3000.inc1.devtunnels.ms")
     print("📡 Available endpoints:")
     print("  POST /api/granger-causality - Run correlation analysis")
     print("  GET  /api/health - Health check")

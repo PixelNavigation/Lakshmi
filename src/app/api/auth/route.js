@@ -144,7 +144,7 @@ export async function POST(request) {
       
     // If this is a call from OmniDimension with a call_sid, store the session
     if (call_sid) {
-      console.log(`Storing session for call_sid: ${call_sid}`);
+      console.log(`Storing session for call_sid: ${call_sid} -> userId: ${data.user.id}`);
       // Store the session with the call_sid as the key
       try {
         // Prepare session data with required fields
@@ -154,9 +154,17 @@ export async function POST(request) {
           expiresAt: data.session.expires_at
         };
         
-        // Also store a session using the user's ID as the key for the special PIN case
+        // Store session data using call_sid as key (for complex session data)
         await setSession(call_sid, sessionData);
+        
+        // Store simplified mapping: call_sid -> user.id (for easy lookup)
+        // This allows direct resolution of call_sid to user ID
+        await setSession(`${call_sid}_userid`, data.user.id);
+        
+        // Also store a session using the user's ID as the key for the special PIN case
         await setSession(data.user.id, sessionData);
+        
+        console.log(`✅ Session stored: ${call_sid} -> userId: ${data.user.id}`);
       } catch (err) {
         console.error(`Error storing session for call_sid: ${call_sid}`, err);
       }

@@ -204,6 +204,9 @@ export default function Balance() {
                   <div className={styles.transactionInfo}>
                     {transaction.transaction_type} {transaction.quantity} @ ₹{transaction.price}
                   </div>
+                  <div className={styles.transactionFee}>
+                    Fee: {transaction.transaction_fee || '0.01'} {transaction.fee_currency || 'ETH'}
+                  </div>
                 </div>
                 <div className={styles.transactionAmount}>
                   ₹{transaction.total_amount.toLocaleString('en-IN')}

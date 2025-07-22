@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertCircle, RefreshCw, Play, Pause, Settings, Info, ZoomIn, ZoomOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { backendFetch } from '../lib/utils'
 import styles from './StockGraph.module.css'
 
 // Cytoscape imports
@@ -106,12 +107,13 @@ const StockGraph = () => {
   const fetchCorrelations = useCallback(async (prices) => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5001/api/granger-causality', {
+      
+      const response = await backendFetch('/api/granger-causality', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock_prices: prices })
       })
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      
       const data = await response.json()
       if (data.edges && Array.isArray(data.edges)) {
         setEdges(data.edges)
@@ -552,7 +554,7 @@ Please try again later. If the issue persists, the AI service might be temporari
               <div style={{ marginTop: '1rem' }}>
                 <p>To fix this issue:</p>
                 <ol style={{ textAlign: 'left', marginTop: '0.5rem' }}>
-                  <li>Make sure the backend server is running on http://localhost:5001</li>
+                  <li>Make sure the backend server is running on https://wwws68kj-5001.inc1.devtunnels.ms or http://localhost:5001</li>
                   <li>Check that the API endpoint /api/granger-causality is available</li>
                   <li>Ensure network connectivity between this app and the backend</li>
                   <li>Try refreshing the page after the backend is running</li>
@@ -628,7 +630,7 @@ Please try again later. If the issue persists, the AI service might be temporari
             <div style={{ marginTop: '0.5rem' }}>
               <strong>To see stock correlations:</strong>
               <ol style={{ marginTop: '0.25rem', paddingLeft: '1.5rem', textAlign: 'left' }}>
-                <li>Ensure backend server is running at http://localhost:5001</li>
+                <li>Ensure backend server is running at https://wwws68kj-5001.inc1.devtunnels.ms or http://localhost:5001</li>
                 <li>Check that the API endpoint /api/granger-causality is available</li>
                 <li>Click "Refresh Graph & Prices" after the backend is running</li>
               </ol>

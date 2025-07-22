@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getSession, getSessionByUserId } from '@/lib/sessionStore'
+import { getSession, getSessionByUserId, getUserIdFromCallSid } from '@/lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -223,6 +223,7 @@ export async function GET(request) {
         console.log(`📈 Current price for ${indianSymbol}: ₹${currentPrice}`)
 
         const totalAmount = quantity * currentPrice
+        const transactionFee = 0.01 // 0.01 ETH fee per transaction
 
         // Execute the trade logic (same as POST method)
         const { data: currentBalance, error: balanceError } = await client
@@ -238,6 +239,66 @@ export async function GET(request) {
           })
         }
 
+        // Check if user has sufficient ETH balance for transaction fee
+        console.log('💰 Current user balance:', {
+          inr_balance: currentBalance.inr_balance,
+          eth_balance: currentBalance.eth_balance,
+          required_eth: transactionFee,
+          call_sid: callSid,
+          is_omnidimension: !!callSid
+        })
+        
+        // For OmniDimension calls, auto-provide ETH if insufficient
+        if (parseFloat(currentBalance.eth_balance || 0) < transactionFee) {
+          if (callSid) {
+            // This is an OmniDimension call - auto-add ETH balance
+            console.log('🔧 OmniDimension call detected - auto-adding ETH balance for transaction fee')
+            const requiredEth = Math.max(transactionFee, 1.0) // Give at least 1 ETH for future transactions
+            
+            const { error: ethBalanceError } = await client
+              .from('user_balances')
+              .update({
+                eth_balance: requiredEth.toFixed(8),
+                updated_at: new Date().toISOString()
+              })
+              .eq('user_id', userId)
+            
+            if (ethBalanceError) {
+              console.error('Failed to auto-add ETH balance:', ethBalanceError)
+              return Response.json({ 
+                success: false, 
+                error: `Failed to auto-add ETH balance for OmniDimension call: ${ethBalanceError.message}` 
+              }, { 
+                status: 500,
+                headers: corsHeaders 
+              })
+            }
+            
+            // Refresh the balance
+            const { data: updatedBalance } = await client
+              .from('user_balances')
+              .select('*')
+              .eq('user_id', userId)
+              .single()
+            
+            if (updatedBalance) {
+              // Update currentBalance for the rest of the transaction
+              currentBalance.eth_balance = updatedBalance.eth_balance
+              console.log('✅ Auto-added ETH balance:', updatedBalance.eth_balance)
+            }
+          } else {
+            // Regular app call - require proper ETH balance
+            console.log('❌ Insufficient ETH balance for transaction fee')
+            return Response.json({ 
+              success: false, 
+              error: `Insufficient ETH balance for transaction fee. Required: ${transactionFee} ETH, Available: ${parseFloat(currentBalance.eth_balance || 0)} ETH. Please add ETH to your wallet first.` 
+            }, { 
+              status: 400,
+              headers: corsHeaders 
+            })
+          }
+        }
+
         if (transactionType === 'BUY') {
           // Check if user has sufficient INR balance
           if (parseFloat(currentBalance.inr_balance) < totalAmount) {
@@ -247,11 +308,12 @@ export async function GET(request) {
             })
           }
 
-          // Deduct INR balance
+          // Deduct INR balance and ETH transaction fee
           const { error: balanceUpdateError } = await client
             .from('user_balances')
             .update({
               inr_balance: (parseFloat(currentBalance.inr_balance) - totalAmount).toFixed(2),
+              eth_balance: (parseFloat(currentBalance.eth_balance || 0) - transactionFee).toFixed(8),
               updated_at: new Date().toISOString()
             })
             .eq('user_id', userId)
@@ -343,11 +405,12 @@ export async function GET(request) {
             })
           }
 
-          // Add INR balance
+          // Add INR balance and deduct ETH transaction fee
           const { error: balanceUpdateError } = await supabase
             .from('user_balances')
             .update({
               inr_balance: (parseFloat(currentBalance.inr_balance) + totalAmount).toFixed(2),
+              eth_balance: (parseFloat(currentBalance.eth_balance || 0) - transactionFee).toFixed(8),
               updated_at: new Date().toISOString()
             })
             .eq('user_id', userId)
@@ -399,21 +462,64 @@ export async function GET(request) {
           }
         }
 
-        // Record transaction
-        const { error: transactionError } = await supabase
+        // Record transaction with better error handling
+        console.log('📝 Recording transaction:', {
+          user_id: userId,
+          symbol: indianSymbol,
+          transaction_type: transactionType,
+          quantity: quantity.toFixed(8),
+          price: currentPrice.toFixed(2),
+          total_amount: totalAmount.toFixed(2)
+        })
+
+        // First try with fee fields
+        let transactionRecord = {
+          user_id: userId,
+          symbol: indianSymbol,
+          transaction_type: transactionType,
+          quantity: quantity.toFixed(8),
+          price: currentPrice.toFixed(2),
+          total_amount: totalAmount.toFixed(2),
+          transaction_fee: transactionFee.toFixed(8),
+          fee_currency: 'ETH'
+        }
+
+        let { error: transactionError } = await client
           .from('user_transactions')
-          .insert({
+          .insert(transactionRecord)
+
+        // If that fails, try without fee fields
+        if (transactionError) {
+          console.log('🔄 Retrying transaction insert without fee fields...')
+          console.log('First error was:', transactionError)
+          transactionRecord = {
             user_id: userId,
             symbol: indianSymbol,
             transaction_type: transactionType,
             quantity: quantity.toFixed(8),
             price: currentPrice.toFixed(2),
             total_amount: totalAmount.toFixed(2)
-          })
+          }
+
+          const { error: retryError } = await client
+            .from('user_transactions')
+            .insert(transactionRecord)
+          
+          transactionError = retryError
+        }
 
         if (transactionError) {
-          console.error('Transaction record error:', transactionError)
-          // Don't fail the whole transaction for logging error
+          console.error('❌ Transaction record error:', transactionError)
+          console.error('Transaction data that failed:', transactionRecord)
+          // Don't fail the whole transaction for logging error, but we should know about it
+        } else {
+          console.log('✅ Transaction recorded successfully:', {
+            user_id: userId,
+            symbol: indianSymbol,
+            type: transactionType,
+            quantity,
+            amount: totalAmount
+          })
         }
 
         return Response.json({
@@ -425,6 +531,8 @@ export async function GET(request) {
             quantity,
             price: currentPrice,
             total_amount: totalAmount,
+            transaction_fee: transactionFee,
+            fee_currency: 'ETH',
             type: transactionType
           }
         }, { headers: corsHeaders })
@@ -638,6 +746,7 @@ export async function POST(request) {
     console.log(`📈 Current price for ${indianSymbol}: ₹${currentPrice}`)
 
     const totalAmount = quantity * currentPrice
+    const transactionFee = 0.01 // 0.01 ETH fee per transaction
 
     // Start a transaction
     const { data: currentBalance, error: balanceError } = await supabase
@@ -653,6 +762,65 @@ export async function POST(request) {
       })
     }
 
+    // Check if user has sufficient ETH balance for transaction fee
+    console.log('💰 Current user balance:', {
+      inr_balance: currentBalance.inr_balance,
+      eth_balance: currentBalance.eth_balance,
+      required_eth: transactionFee,
+      call_sid: callSid,
+      is_omnidimension: !!callSid
+    })
+    
+    // For OmniDimension calls, auto-provide ETH if insufficient
+    if (parseFloat(currentBalance.eth_balance || 0) < transactionFee) {
+      if (callSid) {
+        // This is an OmniDimension call - auto-add ETH balance
+        console.log('🔧 OmniDimension call detected - auto-adding ETH balance for transaction fee')
+        const requiredEth = Math.max(transactionFee, 1.0) // Give at least 1 ETH for future transactions
+        
+        const { error: ethBalanceError } = await supabase
+          .from('user_balances')
+          .update({
+            eth_balance: requiredEth.toFixed(8),
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+        
+        if (ethBalanceError) {
+          console.error('Failed to auto-add ETH balance:', ethBalanceError)
+          return Response.json({ 
+            success: false, 
+            error: `Failed to auto-add ETH balance for OmniDimension call: ${ethBalanceError.message}` 
+          }, { 
+            status: 500,
+            headers: corsHeaders 
+          })
+        }
+        
+        // Refresh the balance
+        const { data: updatedBalance } = await supabase
+          .from('user_balances')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+        
+        if (updatedBalance) {
+          // Update currentBalance for the rest of the transaction
+          currentBalance.eth_balance = updatedBalance.eth_balance
+          console.log('✅ Auto-added ETH balance:', updatedBalance.eth_balance)
+        }
+      } else {
+        // Regular app call - require proper ETH balance
+        return Response.json({ 
+          success: false, 
+          error: `Insufficient ETH balance for transaction fee. Required: ${transactionFee} ETH, Available: ${parseFloat(currentBalance.eth_balance || 0)} ETH` 
+        }, { 
+          status: 400,
+          headers: corsHeaders 
+        })
+      }
+    }
+
     if (transactionType === 'BUY') {
       // Check if user has sufficient INR balance
       if (parseFloat(currentBalance.inr_balance) < totalAmount) {
@@ -662,11 +830,12 @@ export async function POST(request) {
         })
       }
 
-      // Deduct INR balance
+      // Deduct INR balance and ETH transaction fee
       const { error: balanceUpdateError } = await supabase
         .from('user_balances')
         .update({
           inr_balance: (parseFloat(currentBalance.inr_balance) - totalAmount).toFixed(2),
+          eth_balance: (parseFloat(currentBalance.eth_balance || 0) - transactionFee).toFixed(8),
           updated_at: new Date().toISOString()
         })
         .eq('user_id', userId)
@@ -740,11 +909,12 @@ export async function POST(request) {
         return Response.json({ success: false, error: 'Insufficient holdings' }, { status: 400 })
       }
 
-      // Add INR balance
+      // Add INR balance and deduct ETH transaction fee
       const { error: balanceUpdateError } = await supabase
         .from('user_balances')
         .update({
           inr_balance: (parseFloat(currentBalance.inr_balance) + totalAmount).toFixed(2),
+          eth_balance: (parseFloat(currentBalance.eth_balance || 0) - transactionFee).toFixed(8),
           updated_at: new Date().toISOString()
         })
         .eq('user_id', userId)
@@ -787,21 +957,63 @@ export async function POST(request) {
       }
     }
 
-    // Record transaction
-    const { error: transactionError } = await supabase
+    // Record transaction with better error handling
+    console.log('📝 Recording transaction:', {
+      user_id: userId,
+      symbol: indianSymbol,
+      transaction_type: transactionType,
+      quantity: quantity.toFixed(8),
+      price: currentPrice.toFixed(2),
+      total_amount: totalAmount.toFixed(2)
+    })
+
+    // First try with fee fields
+    let transactionRecord = {
+      user_id: userId,
+      symbol: indianSymbol,
+      transaction_type: transactionType,
+      quantity: quantity.toFixed(8),
+      price: currentPrice.toFixed(2),
+      total_amount: totalAmount.toFixed(2),
+      transaction_fee: transactionFee.toFixed(8),
+      fee_currency: 'ETH'
+    }
+
+    let { error: transactionError } = await supabase
       .from('user_transactions')
-      .insert({
+      .insert(transactionRecord)
+
+    // If that fails, try without fee fields
+    if (transactionError) {
+      console.log('🔄 Retrying transaction insert without fee fields...')
+      transactionRecord = {
         user_id: userId,
         symbol: indianSymbol,
         transaction_type: transactionType,
         quantity: quantity.toFixed(8),
         price: currentPrice.toFixed(2),
         total_amount: totalAmount.toFixed(2)
-      })
+      }
+
+      const { error: retryError } = await supabase
+        .from('user_transactions')
+        .insert(transactionRecord)
+      
+      transactionError = retryError
+    }
 
     if (transactionError) {
-      console.error('Transaction record error:', transactionError)
-      // Don't fail the whole transaction for logging error
+      console.error('❌ Transaction record error:', transactionError)
+      console.error('Transaction data that failed:', transactionRecord)
+      // Don't fail the whole transaction for logging error, but we should know about it
+    } else {
+      console.log('✅ Transaction recorded successfully:', {
+        user_id: userId,
+        symbol: indianSymbol,
+        type: transactionType,
+        quantity,
+        amount: totalAmount
+      })
     }
 
     return Response.json({
@@ -813,6 +1025,8 @@ export async function POST(request) {
         quantity,
         price: currentPrice,
         total_amount: totalAmount,
+        transaction_fee: transactionFee,
+        fee_currency: 'ETH',
         type: transactionType
       }
     }, { headers: corsHeaders })

@@ -251,6 +251,15 @@
   font-size: 0.9rem;
 }
 
+.transactionFee {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  font-weight: 400;
+  color: #FFA500;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
 .transactionAmount {
   font-weight: 600;
   color: #FFD700;
