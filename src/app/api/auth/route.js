@@ -1,6 +1,6 @@
-import { supabase } from '@/lib/supabase'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { setSession, getSession } from '@/lib/sessionStore'
+import { supabase } from '../../../lib/supabase'
+import { supabaseAdmin } from '../../../lib/supabaseAdmin'
+import { setSession, getSession } from '../../../lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {

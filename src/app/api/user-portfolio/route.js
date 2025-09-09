@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase'
-import { getSession, getSessionByUserId } from '@/lib/sessionStore'
+import { supabase } from '../../../lib//supabase'
+import { getSession, getSessionByUserId } from '../../../lib/sessionStore'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {

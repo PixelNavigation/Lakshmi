@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase } from '../../../lib/supabase'
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
