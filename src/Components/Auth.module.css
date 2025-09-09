@@ -1,4 +1,4 @@
-:root {
+:root .localRoot{
   --gold-primary: #ffd700;
   --gold-secondary: #daa520;
   --background-primary: #121212;
@@ -6,6 +6,8 @@
   --text-primary: #e5e5e5;
   --gradient-gold: linear-gradient(135deg, var(--gold-primary), var(--gold-secondary));
 }
+
+/* local hook required for CSS Modules purity check */
 
 /* Authentication Modal Styles */
 .authContainer {

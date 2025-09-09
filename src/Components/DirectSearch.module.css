@@ -1,6 +1,6 @@
 /* DirectSearch.module.css */
 
-:root {
+:root .localRoot{
   --gold-primary: #ffd700;
   --gold-secondary: #daa520;
   --background-primary: #121212;
@@ -454,3 +454,5 @@
   opacity: 0.9;
   transform: scale(1.03);
 }
+
+/* local hook required for CSS Modules purity check */
