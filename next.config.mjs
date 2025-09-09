@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // allow server runtime for API routes (removed `output: 'export'`)
 };
 
 export default nextConfig;
