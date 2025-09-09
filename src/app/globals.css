@@ -1,6 +1,8 @@
 :root {
-  --background: #ffffff;
-  --foreground: #000223;
+  /* Default to dark theme to preserve previous look across pages and navbar */
+  --background: #171717;
+  /* Use gold as the accent foreground to match prior page/theme styles */
+  --foreground: #FFD700;
   --gold-primary: #FFD700;
   --gold-secondary: #FFA500;
   --gold-dark: #B8860B;
@@ -22,7 +24,7 @@
   --surface: #232526;
   --background-dark: #0A0A0A;
   --background-secondary: #1A1A1A;
-  --text-primary: #FFFFFF;
+  --text-primary: #e5e5e5;
   --text-secondary: #CCCCCC;
   --text-muted: #888888;
   --success-green: #00D084;
@@ -38,9 +40,10 @@
   --danger-color: var(--danger-red);
 }
 
+/* Optional: keep dark override consistent (no-op since default is dark) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000223;
+    --background: #171717;
     --foreground: #ededed;
   }
 }
