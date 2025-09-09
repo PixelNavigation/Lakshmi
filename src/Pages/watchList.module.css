@@ -1,7 +1,7 @@
 /* Modern watchList.module.css - Gold & Grey Dark Theme */
 
 /* CSS Variables for consistent theming */
-:root .localRoot{
+:root{
   --gold-primary: #ffd700;
   --gold-secondary: #daa520;
   --grey-900: #171717;
