@@ -1,12 +1,4 @@
-:root{
-  --gold-primary: #FFD700;
-  --gold-secondary: #FFA500;
-  --silver-primary: #C0C0C0;
-  --gradient-bg: linear-gradient(135deg, #1A1A2E, #16213E);
-  --text-primary: #FFFFFF;
-  --text-secondary: #D3D3D3;
-  --shadow-gold: 0 4px 20px rgba(255, 215, 0, 0.3);
-}
+/* Module-level variables sourced from app/globals.css */
 
 .loadingContainer {
   display: flex;

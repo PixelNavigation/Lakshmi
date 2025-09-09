@@ -1,30 +1,8 @@
 /* Modern watchList.module.css - Gold & Grey Dark Theme */
 
-/* CSS Variables for consistent theming */
-:root{
-  --gold-primary: #ffd700;
-  --gold-secondary: #daa520;
-  --grey-900: #171717;
-  --grey-800: #232526;
-  --grey-700: #434343;
-  --background: #171717;
-  --foreground: #FFD700;
-  --muted: #B8860B;
-  --border: #434343;
-  --card-bg: #232526;
-  --surface: #232526;
-}
+/* CSS Variables sourced from app/globals.css */
 
-@media (prefers-color-scheme: dark) {
-  :root .localRoot{
-    --background: #171717;
-    --foreground: #FFD700;
-    --muted: #B8860B;
-    --border: #434343;
-    --card-bg: #232526;
-    --surface: #232526;
-  }
-}
+/* Dark mode overrides are already handled via globals.css */
 
 .pageContainer {
   padding: 2rem;

@@ -1,13 +1,5 @@
 /* DirectSearch.module.css */
-
-:root{
-  --gold-primary: #ffd700;
-  --gold-secondary: #daa520;
-  --background-primary: #121212;
-  --background-elevated: #242424;
-  --text-primary: #e5e5e5;
-  --gradient-gold: linear-gradient(135deg, var(--gold-primary), var(--gold-secondary));
-}
+/* CSS variables now come from app/globals.css */
 
 .searchTab {
   width: 100%;
