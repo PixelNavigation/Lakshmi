@@ -104,7 +104,7 @@ export default function LoginForm({ onSuccess, onToggleMode, onClose }) {
         </form>
         <div className={styles.authFooter} style={{ textAlign: 'center', width: '100%', marginTop: '2rem' }}>
           <p style={{ color: '#ffd700', opacity: 0.8, fontWeight: 500 }}>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <button
               onClick={onToggleMode}
               className={styles.toggleButton}

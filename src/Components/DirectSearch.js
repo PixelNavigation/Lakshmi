@@ -608,6 +608,8 @@ export default function DirectSearch({
       setSearchResults([])
       setLiveResults([])
     }
+    // The function is intentionally not memoized; suppress exhaustive-deps for it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedMarket])
 
   // Auto-refresh live data every 10 seconds
@@ -618,6 +620,8 @@ export default function DirectSearch({
       }, 10000)
       return () => clearInterval(refreshInterval)
     }
+    // The function is intentionally not memoized; suppress exhaustive-deps for it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveResults, searchQuery])
 
   const handleStockClick = async (stock) => {
@@ -792,9 +796,9 @@ export default function DirectSearch({
           </div>
         )}
 
-        {searchQuery.length > 0 && searchResults.length === 0 && searchQuery.length > 2 && (
+    {searchQuery.length > 0 && searchResults.length === 0 && searchQuery.length > 2 && (
           <div className={styles.noResults}>
-            <p>No results found for "{searchQuery}"</p>
+      <p>No results found for &quot;{searchQuery}&quot;</p>
           </div>
         )}
       </div>

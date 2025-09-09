@@ -632,7 +632,7 @@ Please try again later. If the issue persists, the AI service might be temporari
               <ol style={{ marginTop: '0.25rem', paddingLeft: '1.5rem', textAlign: 'left' }}>
                 <li>Ensure backend server is running at https://wwws68kj-5001.inc1.devtunnels.ms or http://localhost:5001</li>
                 <li>Check that the API endpoint /api/granger-causality is available</li>
-                <li>Click "Refresh Graph & Prices" after the backend is running</li>
+                <li>Click &quot;Refresh Graph & Prices&quot; after the backend is running</li>
               </ol>
             </div>
           </div>

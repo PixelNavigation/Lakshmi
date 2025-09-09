@@ -111,21 +111,22 @@ export default function Home() {
     })
   }, [user])
 
-  const useRouteValidator = useCallback((route) => Object.keys(APP_ROUTES).includes(route), [APP_ROUTES])
-  const useInitialRoute = useCallback(() => {
+  // Plain helpers (not React hooks)
+  const routeValidator = useCallback((route) => Object.keys(APP_ROUTES).includes(route), [APP_ROUTES])
+  const getInitialRoute = useCallback(() => {
     if (!user) return 'dashboard'
     const urlParams = new URLSearchParams(window.location.search)
     const pageParam = urlParams.get('page')
-    if (pageParam && useRouteValidator(pageParam)) return pageParam
+    if (pageParam && routeValidator(pageParam)) return pageParam
     if (typeof window !== 'undefined') {
       const lastVisited = localStorage.getItem('lastVisitedPage')
-      if (lastVisited && useRouteValidator(lastVisited)) return lastVisited
+      if (lastVisited && routeValidator(lastVisited)) return lastVisited
     }
     return 'dashboard'
-  }, [user, useRouteValidator])
-  const useNavigation = useCallback(() => {
+  }, [user, routeValidator])
+  const getNavigation = useCallback(() => {
     const navigate = (route) => {
-      if (!useRouteValidator(route)) return
+      if (!routeValidator(route)) return
       setCurrentPage(route)
       if (user && typeof window !== 'undefined') {
         localStorage.setItem('lastVisitedPage', route)
@@ -137,23 +138,23 @@ export default function Home() {
       }
     }
     return navigate
-  }, [useRouteValidator, user])
-  const useBrowserNavigation = useCallback(() => {
+  }, [routeValidator, user])
+  const getBrowserNavigation = useCallback(() => {
     const handlePopState = (event) => {
       const route = event.state?.page || 'dashboard'
-      if (useRouteValidator(route)) setCurrentPage(route)
+      if (routeValidator(route)) setCurrentPage(route)
     }
     return handlePopState
-  }, [useRouteValidator])
-  const useExternalNavigation = useCallback(() => {
-    const navigate = useNavigation()
+  }, [routeValidator])
+  const getExternalNavigation = useCallback(() => {
+    const navigate = getNavigation()
     const handleNavigationEvent = (event) => navigate(event.detail.page)
     return handleNavigationEvent
-  }, [useNavigation])
+  }, [getNavigation])
 
   useEffect(() => {
     if (user && !isInitialized) {
-      const initialRoute = useInitialRoute()
+  const initialRoute = getInitialRoute()
       setCurrentPage(initialRoute)
       setIsInitialized(true)
       if (typeof window !== 'undefined') {
@@ -164,36 +165,36 @@ export default function Home() {
         window.dispatchEvent(event)
       }
     }
-  }, [user, isInitialized, useInitialRoute])
+  }, [user, isInitialized, getInitialRoute])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const handlePopState = useBrowserNavigation()
+      const handlePopState = getBrowserNavigation()
       window.addEventListener('popstate', handlePopState)
       return () => window.removeEventListener('popstate', handlePopState)
     }
-  }, [useBrowserNavigation])
+  }, [getBrowserNavigation])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const handleNavigationEvent = useExternalNavigation()
+      const handleNavigationEvent = getExternalNavigation()
       window.addEventListener('navigate', handleNavigationEvent)
       return () => window.removeEventListener('navigate', handleNavigationEvent)
     }
-  }, [useExternalNavigation])
+  }, [getExternalNavigation])
 
-  const usePageRenderer = useCallback(() => {
+  const renderPage = useCallback(() => {
     const route = APP_ROUTES[currentPage]
     return route && route.component ? <route.component /> : <APP_ROUTES.dashboard.component />
   }, [currentPage, APP_ROUTES])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const navigate = useNavigation()
+      const navigate = getNavigation()
       window.navigateApp = navigate
       return () => delete window.navigateApp
     }
-  }, [useNavigation])
+  }, [getNavigation])
 
   useEffect(() => {
     async function fetchTicker() {
@@ -398,7 +399,7 @@ export default function Home() {
           </div>
         </div>
       ) : user ? (
-        usePageRenderer()
+        renderPage()
       ) : (
         <>
           <div style={{ position: 'fixed', pointerEvents: 'none', zIndex: 9999, left: `${coinAnimState.left}px`, top: `${coinAnimState.top}px`, width: 250 * coinAnimState.scale, height: 250 * coinAnimState.scale }}>

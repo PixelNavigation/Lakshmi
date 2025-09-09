@@ -249,7 +249,7 @@ export default function YahooStockChart({ symbol, timeframe = '1m', interval = '
             {loading ? 'Retrying...' : 'Try Again'}
           </button>
           <div className={styles.errorHelp}>
-            Note: For Indian stocks, we'll try both NSE (.NS) and BSE (.BO) exchanges.
+            Note: For Indian stocks, we&apos;ll try both NSE (.NS) and BSE (.BO) exchanges.
           </div>
         </div>
       )}

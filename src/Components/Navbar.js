@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '../contexts/AuthContext'
 import LoginForm from './LoginForm'
@@ -102,9 +103,9 @@ export default function Navbar() {
       {!user && (
         <nav className="navigation-header">
           <div className="navigation-container">
-            <a href="/" className="brand-logo">
+            <Link href="/" className="brand-logo">
               Lakshmi.ai
-            </a>
+            </Link>
             <ul className="authentication-links">
               <li><button onClick={openSignUp} className="signup-button">Sign Up</button></li>
               <li><button onClick={openLogin} className="login-button">Log In</button></li>
@@ -117,9 +118,9 @@ export default function Navbar() {
       {user && (
         <aside className="left-sidebar">
           <div className="sidebar-header">
-            <a href="/" className="sidebar-logo">
+            <Link href="/" className="sidebar-logo">
               Lakshmi.ai
-            </a>
+            </Link>
           </div>
           
           <nav className="sidebar-navigation">
